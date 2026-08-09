@@ -2,175 +2,142 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+[![npm](https://img.shields.io/npm/v/%40tokenc%2Fcore.svg?label=npm)](https://www.npmjs.com/package/@tokenc/core)
+[![CI](https://github.com/Seeridia/tokenc/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Seeridia/tokenc/actions/workflows/ci.yml)
+[![Node.js](https://img.shields.io/node/v/%40tokenc%2Fcore.svg)](https://nodejs.org/)
+[![License](https://img.shields.io/github/license/Seeridia/tokenc)](LICENSE)
+
 > A DTCG-native, typed, graph-based Design Token compiler.
 
-`tokenc` treats design tokens as a small typed program: tokens are nodes, references are dependency edges, contexts are evaluation inputs, and CSS, Tailwind, and TypeScript are compilation targets.
+Compile design tokens as a typed program—not a merged JSON dictionary. `tokenc` parses DTCG,
+checks references and types, evaluates contexts lazily, and emits CSS, Tailwind CSS, or TypeScript
+through independent backends.
 
-## Why
+## Why tokenc
 
-Traditional token pipelines commonly look like this:
+Traditional token pipelines often grow into `JSON → deep merge → transforms → templates`.
+`tokenc` uses a compiler model instead:
 
-```text
-JSON → deep merge → transform → filter → format
-```
-
-That model makes aliases, themes, diagnostics, impact analysis, and incremental work secondary concerns. `tokenc` uses a compiler model instead:
-
-- **DTCG-native** — `$value`, `$type`, `$description`, `$extensions`, and group type inheritance are the source language.
-- **Typed** — core values have explicit models; references are checked before output.
-- **Graph-based** — forward and reverse edges power resolution, cycles, `explain`, `usages`, and invalidation.
-- **Context-aware** — theme, brand, density, platform, or custom dimensions are lazy evaluation inputs, not dictionaries users must merge.
-- **Incremental** — changed files alone are reparsed; reverse edges select affected evaluations.
-- **Compiler diagnostics** — errors retain file, line, column, related locations, codes, and suggestions.
-- **Backend architecture** — output policy is isolated behind one `emit(compilation)` operation.
+- **DTCG-native** — `$value`, `$type`, `$description`, `$extensions`, and group type inheritance are
+  the source language.
+- **Typed** — token values and references are checked before output is emitted.
+- **Graph-based** — references become dependency edges, enabling cycle detection, impact analysis,
+  `explain`, and `usages`.
+- **Context-aware** — theme, brand, density, platform, and custom dimensions are evaluated lazily;
+  no Cartesian-product dictionaries are generated.
+- **Incremental** — changed files are reparsed and reverse edges identify affected tokens.
+- **Backend-driven** — each target decides whether references are preserved, resolved, or emitted as
+  symbols.
+- **Diagnostic-first** — errors retain codes, source locations, related locations, and suggestions.
 
 ## Quick start
 
-The repository uses [Vite+](https://viteplus.dev/) as its unified toolchain. Install `vp` once;
-the checked-in `.node-version` and `packageManager` fields let it select Node.js 24 and pnpm 11.
+Requires Node.js 22.13 or newer.
 
 ```bash
-curl -fsSL https://vite.plus | bash
-vp install
-vp check
-vp run -r build
-vp test --run
-vp -C examples/basic run build
+npm install --save-dev @tokenc/cli @tokenc/core @tokenc/backend-css
 ```
 
-To use published packages in an application, install the CLI, core, and the backends referenced by your configuration:
-
-```bash
-vp add -D \
-  @tokenc/cli \
-  @tokenc/core \
-  @tokenc/backend-css \
-  @tokenc/backend-tailwind \
-  @tokenc/backend-typescript
-```
-
-Create `tokenc.config.ts`:
-
-```ts
-import { defineConfig } from "@tokenc/core";
-import { css } from "@tokenc/backend-css";
-import { tailwind } from "@tokenc/backend-tailwind";
-import { typescript } from "@tokenc/backend-typescript";
-
-export default defineConfig({
-  source: ["tokens/**/*.json"],
-  contexts: {
-    theme: { default: "light", values: ["light", "dark"] },
-  },
-  outputs: [
-    css({ output: "dist/tokens.css" }),
-    tailwind({ output: "dist/tailwind.css" }),
-    typescript({ output: "dist/tokens.ts", mode: "flat", references: "symbol" }),
-  ],
-});
-```
-
-## Example
-
-DTCG input:
+Create `tokens/tokens.json`:
 
 ```json
 {
   "color": {
     "$type": "color",
-    "blue": { "600": { "$value": "#0052D9" } },
-    "brand": { "default": { "$value": "{color.blue.600}" } }
-  },
-  "button": {
-    "primary": {
-      "background": {
-        "$type": "color",
-        "$value": "{color.brand.default}"
-      }
+    "blue": {
+      "600": { "$value": "#0052D9" }
+    },
+    "brand": {
+      "default": { "$value": "{color.blue.600}" }
     }
   }
 }
 ```
 
-CSS output with reference preservation:
+Create `tokenc.config.ts`:
+
+```ts
+import { css } from "@tokenc/backend-css";
+import { defineConfig } from "@tokenc/core";
+
+export default defineConfig({
+  source: ["tokens/**/*.json"],
+  outputs: [
+    css({
+      output: "dist/tokens.css",
+      references: "preserve",
+    }),
+  ],
+});
+```
+
+Compile:
+
+```bash
+npx tokenc build
+```
 
 ```css
 :root {
   --color-blue-600: #0052d9;
   --color-brand-default: var(--color-blue-600);
-  --button-primary-background: var(--color-brand-default);
 }
 ```
 
-References are not globally erased. CSS can preserve them as `var()`, TypeScript can preserve them as symbols, or either backend can request resolved literals.
-
-## Context overrides
-
-Context dimensions are configured once. A token may declare sparse overrides through the project extension namespace:
-
-```json
-{
-  "color": {
-    "page": {
-      "$type": "color",
-      "$value": "#ffffff",
-      "$extensions": {
-        "org.token-compiler.contexts": {
-          "theme=dark": { "$value": "#111111" },
-          "theme=dark&brand=enterprise": { "$value": "#0b0b0b" }
-        }
-      }
-    }
-  }
-}
-```
-
-The extension is intentionally narrow and namespaced; it does not invent a second token language. Resolution chooses the most-specific matching override. The compiler enumerates only declared contexts and evaluates tokens on demand—never a full theme × brand × density Cartesian product.
-
-CSS selectors can be explicit:
-
-```ts
-css({
-  selectors: {
-    "theme=light": ":root",
-    "theme=dark": "[data-theme='dark']",
-  },
-});
-```
-
-Only declarations whose emitted representation differs from the default block are repeated.
-
-## Tailwind v4 design
-
-The Tailwind backend emits one runtime token layer and maps supported token types into Tailwind's CSS-first namespace:
-
-```css
-:root {
-  --token-color-brand-primary: var(--token-color-blue-600);
-}
-
-@theme {
-  --color-brand-primary: var(--token-color-brand-primary);
-}
-```
-
-This indirection is deliberate: CSS and Tailwind share the same runtime value, theme switching changes only `--token-*`, and semantic values are not duplicated. Color, spacing, radius, font-weight, and shadow namespaces are supported.
+See the [basic example](examples/basic) for CSS, Tailwind CSS, TypeScript, aliases, and component
+tokens.
 
 ## CLI
 
-```bash
-tokenc build
-tokenc check
-tokenc check --json
-tokenc dev
-tokenc explain button.primary.background
-tokenc explain button.primary.background --theme dark
-tokenc usages color.blue.600
-tokenc graph color.brand.default
-tokenc graph --format mermaid
+| Command                         | Purpose                                          |
+| ------------------------------- | ------------------------------------------------ |
+| `tokenc build`                  | Validate, compile, and write configured outputs. |
+| `tokenc check`                  | Validate without writing files.                  |
+| `tokenc check --json`           | Emit machine-readable diagnostics.               |
+| `tokenc dev`                    | Watch files and compile incrementally.           |
+| `tokenc explain <token>`        | Trace a token to its literal value.              |
+| `tokenc usages <token>`         | List direct and indirect dependents.             |
+| `tokenc graph [token]`          | Print a dependency graph.                        |
+| `tokenc graph --format mermaid` | Emit Mermaid graph syntax.                       |
+
+Compilation errors never produce partial output artifacts.
+
+## Compiler model
+
+```text
+DTCG JSON
+    ↓
+Typed AST + source provenance
+    ↓
+Token dependency graph
+    ↓
+Context resolver + type checker
+    ↓
+Compiler IR
+    ↓
+CSS / Tailwind CSS / TypeScript backends
 ```
 
-`build` writes nothing when compilation contains an error. `check --json` exposes stable diagnostic objects for CI and future editor integrations. `dev` debounces file events, handles add/change/remove, survives invalid JSON, and recovers after the next valid edit.
+References are graph edges, not strings replaced during formatting. The same graph powers alias
+resolution, cycle diagnostics, topological output, incremental invalidation, impact analysis, and
+the query commands.
+
+Reference resolution is backend policy:
+
+```ts
+import { css } from "@tokenc/backend-css";
+import { typescript } from "@tokenc/backend-typescript";
+
+css({ references: "preserve" });
+typescript({ references: "symbol" });
+```
+
+Contexts are sparse inputs to evaluation. A token can provide overrides through the namespaced
+`org.token-compiler.contexts` extension; only matching overrides are evaluated and only changed CSS
+declarations are repeated.
+
+See [Architecture](docs/ARCHITECTURE.md) for the data model, context semantics, incremental
+invalidation, and backend contracts.
 
 ## Programmatic API
 
@@ -178,9 +145,7 @@ tokenc graph --format mermaid
 import { compile, parseTokenId } from "@tokenc/core";
 
 const result = await compile({
-  cwd: process.cwd(),
   source: ["tokens/**/*.json"],
-  outputs: [],
 });
 
 if (result.success) {
@@ -189,65 +154,50 @@ if (result.success) {
 }
 ```
 
-For virtual or remote sources, use `parseTokenDocument(content, source)` and `compileDocuments(inputs)`. The parser performs no filesystem IO.
-
-## Architecture
-
-```text
-DTCG JSON
-    ↓
-Parser + source map
-    ↓
-Typed Token AST
-    ↓
-Dependency Graph
-    ↓
-Context Resolver
-    ↓
-Type Checker
-    ↓
-Compiler IR
-    ↓
-Backend
-    ↓
-CSS / Tailwind / TypeScript
-```
-
-### Why graph-based?
-
-The same `TokenGraph` provides O(1) token/adjacency lookup and O(V + E) traversal for dependency analysis, circular-reference diagnostics, topological output order, incremental invalidation, impact analysis, `explain`, and `usages`. No command searches raw JSON text.
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the detailed model and decisions.
-
-Release preparation is documented in [docs/RELEASING.md](docs/RELEASING.md). Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
+For virtual or remote inputs, use `parseTokenDocument(content, source)` and
+`compileDocuments(inputs)`. Parsing is independent of filesystem IO.
 
 ## Packages
 
-- `@tokenc/core` — parser, typed model, graph, resolver, checker, IR, loader, incremental session.
-- `@tokenc/backend-css` — custom properties and sparse selector overrides.
-- `@tokenc/backend-tailwind` — Tailwind v4 runtime variables and `@theme` bindings.
-- `@tokenc/backend-typescript` — nested object or flat symbol exports.
-- `@tokenc/cli` — configuration, diagnostics, file output, queries, and watch mode.
+| Package                                                                                  | Role                                                 |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| [`@tokenc/core`](https://www.npmjs.com/package/@tokenc/core)                             | Parser, types, graph, resolver, checker, and IR.     |
+| [`@tokenc/cli`](https://www.npmjs.com/package/@tokenc/cli)                               | Build, check, watch, diagnostics, and graph queries. |
+| [`@tokenc/backend-css`](https://www.npmjs.com/package/@tokenc/backend-css)               | CSS Custom Properties and context selectors.         |
+| [`@tokenc/backend-tailwind`](https://www.npmjs.com/package/@tokenc/backend-tailwind)     | Tailwind CSS v4 `@theme` variables.                  |
+| [`@tokenc/backend-typescript`](https://www.npmjs.com/package/@tokenc/backend-typescript) | Object and flat TypeScript exports.                  |
 
-## Supported token types
+## Token support
 
-The first release fully validates `color`, `dimension`, `number`, `duration`, and `fontWeight`. It has typed extension slots and basic JSON-shape retention for `cubicBezier`, `strokeStyle`, `border`, `transition`, `shadow`, `gradient`, and `typography`.
+| Level                 | Types                                                                                    |
+| --------------------- | ---------------------------------------------------------------------------------------- |
+| Fully validated       | `color`, `dimension`, `number`, `duration`, `fontWeight`                                 |
+| Basic composite model | `cubicBezier`, `strokeStyle`, `border`, `transition`, `shadow`, `gradient`, `typography` |
 
-Color values support hex/CSS strings, structured sRGB, and structured OKLCH. The core retains platform-neutral color data; each backend owns serialization policy.
+Colors support CSS strings, structured sRGB, and structured OKLCH. Platform conversion remains a
+backend responsibility. Composite types will receive deeper field-level validation in future
+releases.
 
 ## Development
+
+The repository uses [Vite+](https://viteplus.dev/) for runtime and package management, checks,
+tests, packaging, and monorepo tasks.
 
 ```bash
 vp install
 vp check
 vp run -r build
 vp test --run
-vp fmt --write .
-vp lint --fix .
 ```
 
-Vite+ provides the project-local Vitest, Oxlint, Oxfmt, type-aware checks, tsdown packaging, task runner, runtime, and package-manager integration. Configuration is centralized in `vite.config.ts`, with a small package-level `pack` block for each published library. `vp run -r build` follows workspace dependencies and each package uses `vp pack`.
+This is a library monorepo: packages are built with `vp pack`, orchestrated by `vp run -r build`.
 
-This is a Node.js library monorepo, not a Vite web application. Consequently, `vp build` and `vp dev` are not the normal root commands: use `vp run -r build` to package every library and `tokenc dev` for the compiler's incremental watch mode. The standalone `vitest` and `vite` catalog entries in `pnpm-workspace.yaml` are intentional aliases maintained by Vite+ for pnpm compatibility.
+## Documentation
 
-The project is licensed under MIT.
+- [Architecture](docs/ARCHITECTURE.md) · [中文](docs/ARCHITECTURE.zh-CN.md)
+- [Contributing](CONTRIBUTING.md)
+- [Releasing](docs/RELEASING.md)
+
+## License
+
+[MIT](LICENSE)
