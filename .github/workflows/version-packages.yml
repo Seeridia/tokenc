@@ -9,6 +9,7 @@ concurrency:
   group: version-packages
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
 
@@ -34,8 +35,15 @@ jobs:
         run: vp install --frozen-lockfile
 
       - name: Create version pull request
+        id: changesets
         uses: changesets/action@v1
         with:
           version: vp run version-packages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run CI for version pull request
+        if: steps.changesets.outputs.pullRequestNumber != ''
+        run: gh workflow run ci.yml --ref "changeset-release/${GITHUB_REF_NAME}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
