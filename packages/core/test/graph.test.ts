@@ -1,10 +1,9 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { TokenGraph } from "../src/graph.js";
-import type { TokenId } from "../src/model.js";
 import { parseTokenDocument } from "../src/parser.js";
 import { parseTokenId } from "../src/token-id.js";
 
@@ -23,11 +22,11 @@ describe("TokenGraph", () => {
 
   it("sorts dependencies before consumers", () => {
     const order = graphFrom("aliases/tokens.json").topologicalSort();
-    expect(order.indexOf("color.blue.600" as TokenId)).toBeLessThan(
-      order.indexOf("color.brand" as TokenId),
+    expect(order.indexOf(parseTokenId("color.blue.600"))).toBeLessThan(
+      order.indexOf(parseTokenId("color.brand")),
     );
-    expect(order.indexOf("color.brand" as TokenId)).toBeLessThan(
-      order.indexOf("color.button" as TokenId),
+    expect(order.indexOf(parseTokenId("color.brand"))).toBeLessThan(
+      order.indexOf(parseTokenId("color.button")),
     );
   });
 

@@ -7,6 +7,7 @@ import type {
   TokenId,
   TokenLiteral,
 } from "./model.js";
+import { parseTokenId } from "./token-id.js";
 
 /** Lazy, context-aware graph evaluator with selective cache invalidation. */
 export class TokenResolver {
@@ -71,7 +72,7 @@ export class TokenResolver {
   invalidate(ids: ReadonlySet<TokenId>): void {
     for (const key of this.#cache.keys()) {
       const boundary = key.indexOf("\0");
-      if (ids.has(key.slice(0, boundary) as TokenId)) this.#cache.delete(key);
+      if (ids.has(parseTokenId(key.slice(0, boundary)))) this.#cache.delete(key);
     }
   }
 

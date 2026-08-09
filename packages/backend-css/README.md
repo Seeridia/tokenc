@@ -23,4 +23,4 @@ export default defineConfig({
 
 References can be preserved as CSS `var()` expressions or resolved to literals. Context selectors emit only declarations whose generated values differ from the default context.
 
-Requires Node.js 20 or newer. Licensed under MIT.
+Requires Node.js 22.13 or newer. Licensed under MIT.

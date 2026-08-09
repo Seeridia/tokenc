@@ -8,7 +8,16 @@
     "design-tokens",
     "dtcg"
   ],
+  "homepage": "https://github.com/Seeridia/tokenc#readme",
+  "bugs": {
+    "url": "https://github.com/Seeridia/tokenc/issues"
+  },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Seeridia/tokenc.git",
+    "directory": "packages/backend-css"
+  },
   "files": [
     "dist",
     "README.md",
@@ -25,22 +34,19 @@
     }
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean --external @tokenc/core",
-    "prepack": "pnpm build",
-    "typecheck": "tsc --noEmit"
+    "build": "vp pack",
+    "prepack": "vp run build"
   },
   "dependencies": {
     "@tokenc/core": "workspace:*"
   },
   "devDependencies": {
-    "tsup": "^8.5.0",
     "typescript": "^5.9.0"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.13"
   }
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { compileDocuments, type TokenBackend } from "../src/compiler.js";
 

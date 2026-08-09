@@ -184,11 +184,19 @@ function displayLiteral(value: TokenLiteral): string {
     "colorSpace" in value &&
     value.colorSpace === "oklch" &&
     "components" in value &&
-    Array.isArray(value.components)
+    Array.isArray(value.components) &&
+    value.components.every((component) => typeof component === "number")
   )
-    return `oklch(${value.components.join(" ")})`;
-  if (value !== null && typeof value === "object" && "unit" in value && "value" in value)
-    return `${String(value.value)}${String(value.unit)}`;
+    return `oklch(${value.components.map(String).join(" ")})`;
+  if (
+    value !== null &&
+    typeof value === "object" &&
+    "unit" in value &&
+    typeof value.unit === "string" &&
+    "value" in value &&
+    typeof value.value === "number"
+  )
+    return `${value.value}${value.unit}`;
   return JSON.stringify(value);
 }
 

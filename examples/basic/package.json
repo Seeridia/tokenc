@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "tokenc": "tsx ../../packages/cli/src/bin.ts",
-    "build": "pnpm tokenc build",
-    "check": "pnpm tokenc check"
+    "build": "vp exec tsx ../../packages/cli/src/bin.ts build",
+    "check": "vp exec tsx ../../packages/cli/src/bin.ts check",
+    "tokenc": "vp exec tsx ../../packages/cli/src/bin.ts"
   },
   "devDependencies": {
     "@tokenc/backend-css": "workspace:*",

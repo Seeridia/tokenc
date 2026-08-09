@@ -26,19 +26,22 @@ That model makes aliases, themes, diagnostics, impact analysis, and incremental 
 
 ## Quick start
 
-Requirements: Node.js 20 or newer and pnpm.
+The repository uses [Vite+](https://viteplus.dev/) as its unified toolchain. Install `vp` once;
+the checked-in `.node-version` and `packageManager` fields let it select Node.js 24 and pnpm 11.
 
 ```bash
-pnpm install
-pnpm build
-pnpm test
-pnpm --dir examples/basic tokenc build
+curl -fsSL https://vite.plus | bash
+vp install
+vp check
+vp run -r build
+vp test --run
+vp -C examples/basic run build
 ```
 
 To use published packages in an application, install the CLI, core, and the backends referenced by your configuration:
 
 ```bash
-pnpm add -D \
+vp add -D \
   @tokenc/cli \
   @tokenc/core \
   @tokenc/backend-css \
@@ -235,14 +238,16 @@ Color values support hex/CSS strings, structured sRGB, and structured OKLCH. The
 ## Development
 
 ```bash
-pnpm check
-pnpm lint
-pnpm format:check
-pnpm build
-pnpm typecheck
-pnpm test
+vp install
+vp check
+vp run -r build
+vp test --run
+vp fmt --write .
+vp lint --fix .
 ```
 
-The workspace uses [Oxlint](https://oxc.rs/docs/guide/usage/linter.html) for linting and [Oxfmt](https://oxc.rs/docs/guide/usage/formatter.html) for deterministic formatting. Run `pnpm format` to apply formatting and `pnpm lint:fix` for safe automatic lint fixes.
+Vite+ provides the project-local Vitest, Oxlint, Oxfmt, type-aware checks, tsdown packaging, task runner, runtime, and package-manager integration. Configuration is centralized in `vite.config.ts`, with a small package-level `pack` block for each published library. `vp run -r build` follows workspace dependencies and each package uses `vp pack`.
+
+This is a Node.js library monorepo, not a Vite web application. Consequently, `vp build` and `vp dev` are not the normal root commands: use `vp run -r build` to package every library and `tokenc dev` for the compiler's incremental watch mode. The standalone `vitest` and `vite` catalog entries in `pnpm-workspace.yaml` are intentional aliases maintained by Vite+ for pnpm compatibility.
 
 The project is licensed under MIT.

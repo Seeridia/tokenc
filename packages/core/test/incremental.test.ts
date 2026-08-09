@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { IncrementalCompiler } from "../src/incremental.js";
+import { parseTokenId } from "../src/token-id.js";
 
 const primitive = (value: number) => ({
   file: "/tokens/primitive.json",
@@ -24,7 +25,7 @@ describe("IncrementalCompiler", () => {
     expect(update.changed).toEqual(["base"]);
     expect([...update.affected]).toEqual(["base", "alias"]);
     expect(update.recomputed).toBe(2);
-    expect(update.result.compilation.resolveToken("alias" as never)?.value).toBe(2);
+    expect(update.result.compilation.resolveToken(parseTokenId("alias"))?.value).toBe(2);
   });
 
   it("handles file removal using the old reverse graph", async () => {
@@ -43,7 +44,7 @@ describe("IncrementalCompiler", () => {
     expect(broken.result.success).toBe(false);
     const recovered = await compiler.update(primitive(3));
     expect(recovered.result.success).toBe(true);
-    expect(recovered.result.compilation.resolveToken("alias" as never)?.value).toBe(3);
+    expect(recovered.result.compilation.resolveToken(parseTokenId("alias"))?.value).toBe(3);
   });
 
   it("supports added files without reparsing cached documents", async () => {

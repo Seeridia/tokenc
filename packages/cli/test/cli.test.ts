@@ -1,7 +1,7 @@
 import { readFile, rm } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vite-plus/test";
 
 import { runCli } from "../src/index.js";
 

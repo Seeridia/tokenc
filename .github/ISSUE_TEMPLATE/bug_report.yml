@@ -1,0 +1,58 @@
+name: Bug report
+description: Report a reproducible compiler, backend, or CLI problem
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve tokenc. Please provide a minimal reproduction when possible.
+  - type: input
+    id: version
+    attributes:
+      label: Package and version
+      placeholder: "@tokenc/core 0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node.js and package-manager version
+      placeholder: "Node.js 24.1.0, pnpm 11.16.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Parser or DTCG model
+        - Dependency graph or resolver
+        - Type checker or diagnostics
+        - Incremental compiler
+        - CSS backend
+        - Tailwind backend
+        - TypeScript backend
+        - CLI
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include token input, configuration, command, and repository link when available.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and diagnostics
+    validations:
+      required: true

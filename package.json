@@ -2,34 +2,45 @@
   "name": "tokenc",
   "version": "0.1.0",
   "private": true,
+  "description": "A DTCG-native, typed, graph-based Design Token compiler",
+  "homepage": "https://github.com/Seeridia/tokenc#readme",
+  "bugs": {
+    "url": "https://github.com/Seeridia/tokenc/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Seeridia/tokenc.git"
+  },
   "type": "module",
   "scripts": {
-    "build": "pnpm -r --if-present build",
+    "build": "vp run -r build",
     "changeset": "changeset",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm build && pnpm test",
-    "format": "oxfmt --write .",
-    "format:check": "oxfmt --check .",
-    "lint": "oxlint .",
-    "lint:fix": "oxlint --fix .",
-    "release": "pnpm check && changeset publish",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "typecheck": "pnpm -r --if-present typecheck",
+    "check": "vp check",
+    "format": "vp fmt --write .",
+    "format:check": "vp fmt --check .",
+    "lint": "vp lint .",
+    "lint:fix": "vp lint --fix .",
+    "publish-packages": "node scripts/publish-packages.mjs",
+    "release": "vp run verify && vp run publish-packages",
+    "test": "vp test --run",
+    "test:watch": "vp test",
+    "typecheck": "vp check --no-fmt --no-lint",
     "tokenc": "tsx packages/cli/src/bin.ts",
+    "verify": "vp check && vp run -r build && vp test --run",
     "version-packages": "changeset version"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.1",
     "@types/node": "^24.0.0",
-    "oxfmt": "^0.62.0",
-    "oxlint": "^1.77.0",
-    "tsup": "^8.5.0",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0",
-    "vitest": "^3.2.0"
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
+    "vitest": "catalog:"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.13"
   },
   "packageManager": "pnpm@11.16.0"
 }

@@ -158,7 +158,9 @@ export async function compileParsedDocuments(
   const emitStart = performance.now();
   const outputs = compilation.success
     ? (
-        await Promise.all((options.outputs ?? []).map((backend) => backend.emit(compilation)))
+        await Promise.all(
+          (options.outputs ?? []).map((backend) => Promise.resolve(backend.emit(compilation))),
+        )
       ).flat()
     : [];
   const emitTime = performance.now() - emitStart;
