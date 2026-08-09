@@ -1,0 +1,19 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "fixed": [
+    [
+      "@tokenc/core",
+      "@tokenc/cli",
+      "@tokenc/backend-css",
+      "@tokenc/backend-tailwind",
+      "@tokenc/backend-typescript"
+    ]
+  ],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": []
+}

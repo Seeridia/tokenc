@@ -1,0 +1,49 @@
+{
+  "name": "@tokenc/core",
+  "version": "0.1.0",
+  "description": "DTCG-native, typed, graph-based Design Token compiler core",
+  "keywords": [
+    "compiler",
+    "design-system",
+    "design-tokens",
+    "dtcg"
+  ],
+  "license": "MIT",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "prepack": "pnpm build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.3",
+    "fast-glob": "^3.3.3",
+    "jsonc-parser": "^3.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

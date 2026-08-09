@@ -1,0 +1,4 @@
+{
+  "spacing": { "400": { "$type": "dimension", "$value": { "value": 16, "unit": "px" } } },
+  "color": { "background": { "$type": "color", "$value": "{spacing.400}" } }
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "import", "vitest", "promise", "node"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "warn"
+  },
+  "options": {
+    "denyWarnings": true,
+    "reportUnusedDisableDirectives": "error"
+  },
+  "rules": {
+    "eslint/eqeqeq": "error",
+    "eslint/no-console": "error",
+    "eslint/no-debugger": "error",
+    "typescript/no-explicit-any": "error",
+    "unicorn/no-process-exit": "error",
+    "unicorn/prefer-node-protocol": "error",
+    "vitest/no-disabled-tests": "error",
+    "vitest/no-focused-tests": "error"
+  },
+  "ignorePatterns": ["**/dist/**", "**/coverage/**", "**/node_modules/**"]
+}

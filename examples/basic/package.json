@@ -1,0 +1,18 @@
+{
+  "name": "@tokenc/example-basic",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "tokenc": "tsx ../../packages/cli/src/bin.ts",
+    "build": "pnpm tokenc build",
+    "check": "pnpm tokenc check"
+  },
+  "devDependencies": {
+    "@tokenc/backend-css": "workspace:*",
+    "@tokenc/backend-tailwind": "workspace:*",
+    "@tokenc/backend-typescript": "workspace:*",
+    "@tokenc/core": "workspace:*",
+    "tsx": "^4.20.0"
+  }
+}

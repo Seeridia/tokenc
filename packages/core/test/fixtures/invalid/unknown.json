@@ -1,0 +1,10 @@
+{
+  "color": {
+    "$type": "color",
+    "blue": {
+      "600": { "$value": "#0052D9" },
+      "700": { "$value": "#003CAB" }
+    },
+    "brand": { "$value": "{color.blue.650}" }
+  }
+}

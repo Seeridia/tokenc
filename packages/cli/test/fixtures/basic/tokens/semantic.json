@@ -1,0 +1,9 @@
+{
+  "color": {
+    "$type": "color",
+    "brand": {
+      "default": { "$value": "{color.blue.600}" },
+      "hover": { "$value": "{color.blue.700}" }
+    }
+  }
+}

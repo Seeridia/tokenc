@@ -1,0 +1,35 @@
+{
+  "name": "tokenc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r --if-present build",
+    "changeset": "changeset",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm build && pnpm test",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "release": "pnpm check && changeset publish",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "tokenc": "tsx packages/cli/src/bin.ts",
+    "version-packages": "changeset version"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.31.1",
+    "@types/node": "^24.0.0",
+    "oxfmt": "^0.62.0",
+    "oxlint": "^1.77.0",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@11.16.0"
+}

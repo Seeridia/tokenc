@@ -1,0 +1,46 @@
+{
+  "name": "@tokenc/backend-css",
+  "version": "0.1.0",
+  "description": "CSS Custom Properties backend for the tokenc Design Token compiler",
+  "keywords": [
+    "compiler",
+    "css",
+    "design-tokens",
+    "dtcg"
+  ],
+  "license": "MIT",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean --external @tokenc/core",
+    "prepack": "pnpm build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tokenc/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

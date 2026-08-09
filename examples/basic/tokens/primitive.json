@@ -1,0 +1,22 @@
+{
+  "color": {
+    "$type": "color",
+    "blue": {
+      "100": {
+        "$value": "#EAF2FF"
+      },
+      "600": {
+        "$value": "#0052D9"
+      },
+      "700": {
+        "$value": "#003CAB"
+      }
+    }
+  },
+  "spacing": {
+    "4": {
+      "$type": "dimension",
+      "$value": { "value": 16, "unit": "px" }
+    }
+  }
+}

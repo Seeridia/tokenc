@@ -1,0 +1,7 @@
+{
+  "button": {
+    "primary": {
+      "background": { "$type": "color", "$value": "{color.brand.default}" }
+    }
+  }
+}
