@@ -23,7 +23,7 @@ import type {
 } from "./model.js";
 import { parseTokenId, tokenIdFromSegments } from "./token-id.js";
 
-const TOKEN_TYPES = new Set<TokenType>([
+const TOKEN_TYPES: ReadonlySet<string> = new Set([
   "color",
   "dimension",
   "number",
@@ -38,7 +38,9 @@ const TOKEN_TYPES = new Set<TokenType>([
   "typography",
 ]);
 
-const FONT_WEIGHTS = new Set<FontWeightValue>([
+type NamedFontWeight = Exclude<FontWeightValue, number>;
+
+const FONT_WEIGHTS: ReadonlySet<string> = new Set([
   "thin",
   "hairline",
   "extra-light",
@@ -116,9 +118,7 @@ function findProperty(node: Node, name: string): Node | undefined {
 function isJsonValue(value: unknown): value is JsonValue {
   if (value === null || ["string", "number", "boolean"].includes(typeof value)) return true;
   if (Array.isArray(value)) return value.every(isJsonValue);
-  return (
-    typeof value === "object" && Object.values(value as Record<string, unknown>).every(isJsonValue)
-  );
+  return typeof value === "object" && Object.values(value).every(isJsonValue);
 }
 
 function jsonValue(node: Node): JsonValue | undefined {
@@ -129,10 +129,16 @@ function jsonValue(node: Node): JsonValue | undefined {
 function parseHex(input: string): ColorValue | undefined {
   const value = input.slice(1);
   if (!/^(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/iu.test(value)) return undefined;
-  const expanded = value.length <= 4 ? [...value].map((part) => `${part}${part}`).join("") : value;
-  const components = [0, 2, 4].map(
-    (start) => Number.parseInt(expanded.slice(start, start + 2), 16) / 255,
-  ) as [number, number, number];
+  const expanded =
+    value.length <= 4
+      ? value
+          .split("")
+          .map((part) => `${part}${part}`)
+          .join("")
+      : value;
+  const component = (start: number): number =>
+    Number.parseInt(expanded.slice(start, start + 2), 16) / 255;
+  const components: readonly [number, number, number] = [component(0), component(2), component(4)];
   const alpha = expanded.length === 8 ? Number.parseInt(expanded.slice(6, 8), 16) / 255 : 1;
   return { colorSpace: "srgb", components, alpha, original: input };
 }
@@ -140,9 +146,19 @@ function parseHex(input: string): ColorValue | undefined {
 function numericTriple(
   value: JsonValue | undefined,
 ): readonly [number, number, number] | undefined {
-  if (!Array.isArray(value) || value.length !== 3 || value.some((item) => typeof item !== "number"))
+  if (!Array.isArray(value) || value.length !== 3) return undefined;
+  const [first, second, third] = value;
+  if (typeof first !== "number" || typeof second !== "number" || typeof third !== "number")
     return undefined;
-  return [value[0] as number, value[1] as number, value[2] as number];
+  return [first, second, third];
+}
+
+function isNamedFontWeight(value: string): value is NamedFontWeight {
+  return FONT_WEIGHTS.has(value);
+}
+
+function isTokenType(value: string): value is TokenType {
+  return TOKEN_TYPES.has(value);
 }
 
 function parseColor(value: JsonValue): ColorValue | undefined {
@@ -188,8 +204,7 @@ function parseLiteral(type: TokenType, value: JsonValue): TokenLiteral | undefin
   }
   if (type === "fontWeight") {
     if (typeof value === "number" && value >= 1 && value <= 1000) return value;
-    if (typeof value === "string" && FONT_WEIGHTS.has(value as FontWeightValue))
-      return value as FontWeightValue;
+    if (typeof value === "string" && isNamedFontWeight(value)) return value;
     return undefined;
   }
   return value;
@@ -324,8 +339,7 @@ export function parseTokenDocument(content: string, source: string): ParsedToken
     const ownTypeValue = ownTypeProperty ? propertyValue(ownTypeProperty)?.value : undefined;
     let type = inheritedType;
     if (ownTypeProperty) {
-      if (typeof ownTypeValue === "string" && TOKEN_TYPES.has(ownTypeValue as TokenType))
-        type = ownTypeValue as TokenType;
+      if (typeof ownTypeValue === "string" && isTokenType(ownTypeValue)) type = ownTypeValue;
       else
         diagnostics.push({
           code: "TOKEN_INVALID_TYPE",

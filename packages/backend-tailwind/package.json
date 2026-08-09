@@ -37,15 +37,13 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean --external @tokenc/core",
-    "prepack": "pnpm build",
-    "typecheck": "tsc --noEmit"
+    "build": "vp pack",
+    "prepack": "vp run build"
   },
   "dependencies": {
     "@tokenc/core": "workspace:*"
   },
   "devDependencies": {
-    "tsup": "^8.5.0",
     "typescript": "^5.9.0"
   },
   "engines": {

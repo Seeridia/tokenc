@@ -1,5 +1,5 @@
 import { compileDocuments } from "@tokenc/core";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { tailwind } from "../src/index.js";
 

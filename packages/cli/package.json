@@ -40,9 +40,8 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts src/bin.ts --format esm --dts --clean --external @tokenc/core --external @tokenc/backend-css --external @tokenc/backend-tailwind --external @tokenc/backend-typescript",
-    "prepack": "pnpm build",
-    "typecheck": "tsc --noEmit"
+    "build": "vp pack",
+    "prepack": "vp run build"
   },
   "dependencies": {
     "@tokenc/backend-css": "workspace:*",
@@ -54,7 +53,6 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "tsup": "^8.5.0",
     "typescript": "^5.9.0"
   },
   "engines": {

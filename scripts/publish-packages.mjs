@@ -59,7 +59,7 @@ try {
       continue;
     }
 
-    execFileSync("pnpm", ["--filter", name, "pack", "--pack-destination", destination], {
+    execFileSync("vp", ["-C", directory, "pm", "pack", "--pack-destination", destination], {
       stdio: "inherit",
     });
     const archive = join(destination, archiveName(name, version));

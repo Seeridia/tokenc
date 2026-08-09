@@ -26,19 +26,22 @@ JSON → deep merge → transform → filter → format
 
 ## 快速开始
 
-需要 Node.js 22.13 或更高版本，以及 pnpm 11。
+仓库使用 [Vite+](https://viteplus.dev/) 作为统一工具链。只需安装一次 `vp`；仓库中的
+`.node-version` 与 `packageManager` 会让它自动选择 Node.js 24 和 pnpm 11。
 
 ```bash
-pnpm install
-pnpm build
-pnpm test
-pnpm --dir examples/basic tokenc build
+curl -fsSL https://vite.plus | bash
+vp install
+vp check
+vp test --run
+vp run -r build
+vp -C examples/basic run build
 ```
 
 在应用项目中使用已发布的 package 时，请安装 CLI、Core 和配置中实际引用的 Backend：
 
 ```bash
-pnpm add -D \
+vp add -D \
   @tokenc/cli \
   @tokenc/core \
   @tokenc/backend-css \
@@ -287,14 +290,16 @@ CSS / Tailwind / TypeScript
 ## 开发
 
 ```bash
-pnpm check
-pnpm lint
-pnpm format:check
-pnpm build
-pnpm typecheck
-pnpm test
+vp install
+vp check
+vp test --run
+vp run -r build
+vp fmt --write .
+vp lint --fix .
 ```
 
-Workspace 使用 [Oxlint](https://oxc.rs/docs/guide/usage/linter.html) 进行静态检查，使用 [Oxfmt](https://oxc.rs/docs/guide/usage/formatter.html) 提供确定性格式化。执行 `pnpm format` 应用格式化，执行 `pnpm lint:fix` 应用安全的 lint 自动修复。
+Vite+ 为本项目统一提供 Vitest、Oxlint、Oxfmt、类型感知检查、tsdown 打包、任务编排、Node 运行时和包管理器集成。共享配置集中在根目录的 `vite.config.ts`，每个待发布 package 只保留一个很小的 `pack` 配置；`vp run -r build` 会按照 workspace 依赖顺序调用各包的 `vp pack`。
+
+这个仓库是 Node.js library monorepo，不是 Vite Web 应用。因此根目录的常用构建命令不是 `vp build`，`vp dev` 也不会启动 Token 编译器：请使用 `vp run -r build` 构建全部库，使用 `tokenc dev` 启动编译器的增量监听。`pnpm-workspace.yaml` 中保留的 `vitest` 和 `vite` catalog 项是 Vite+ 为 pnpm 兼容性维护的有意别名，不应手工删除。
 
 项目使用 MIT License。

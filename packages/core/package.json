@@ -37,9 +37,8 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean",
-    "prepack": "pnpm build",
-    "typecheck": "tsc --noEmit"
+    "build": "vp pack",
+    "prepack": "vp run build"
   },
   "dependencies": {
     "chokidar": "^4.0.3",
@@ -48,7 +47,6 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "tsup": "^8.5.0",
     "typescript": "^5.9.0"
   },
   "engines": {

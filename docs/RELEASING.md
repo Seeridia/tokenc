@@ -33,11 +33,13 @@ Trusted Publisher settings are configured from an existing package's npm setting
 ```bash
 npm login --auth-type=web
 npm whoami
-pnpm check
-pnpm publish-packages --tag latest
+vp check
+vp test --run
+vp run -r build
+vp run publish-packages --tag latest
 ```
 
-`publish-packages` packs packages with pnpm so `workspace:*` ranges become real versions, then publishes the tarballs with the npm CLI in dependency order. The npm CLI can prompt for normal 2FA during this one-time bootstrap.
+`publish-packages` asks Vite+ to delegate packing to the configured package manager (pnpm), so `workspace:*` ranges become real versions, then publishes the tarballs with the npm CLI in dependency order. The npm CLI can prompt for normal 2FA during this one-time bootstrap.
 
 ## Configure Trusted Publishers
 
@@ -61,7 +63,7 @@ After verifying one OIDC release, open each package's Publishing access settings
 Every pull request that changes public behavior should contain a changeset:
 
 ```bash
-pnpm changeset
+vp exec changeset
 ```
 
 When changesets reach `main`, the `Version Packages` workflow opens or updates a version pull request. Review and merge that pull request before publishing.
@@ -69,16 +71,16 @@ When changesets reach `main`, the `Version Packages` workflow opens or updates a
 For a prerelease, enter prerelease mode before creating the version pull request:
 
 ```bash
-pnpm changeset pre enter beta
-pnpm version-packages
-pnpm install
+vp exec changeset pre enter beta
+vp run version-packages
+vp install
 ```
 
 Exit prerelease mode when the API is ready for a stable release:
 
 ```bash
-pnpm changeset pre exit
-pnpm version-packages
+vp exec changeset pre exit
+vp run version-packages
 ```
 
 ## Inspecting package contents
@@ -86,7 +88,7 @@ pnpm version-packages
 Run the complete pack pipeline without contacting npm publish:
 
 ```bash
-pnpm publish-packages --tag next --dry-run
+vp run publish-packages --tag next --dry-run
 ```
 
 Each package should contain only package metadata, README, license, JavaScript output, and TypeScript declarations. The temporary tarballs are removed automatically.
@@ -110,7 +112,7 @@ If GitHub Actions is unavailable, a maintainer may use normal interactive npm au
 ```bash
 npm login --auth-type=web
 npm whoami
-pnpm release --tag latest
+vp run release --tag latest
 ```
 
 Do not create or share a long-lived npm write token for this fallback.

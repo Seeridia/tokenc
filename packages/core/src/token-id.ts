@@ -8,6 +8,8 @@ export function parseTokenId(input: string): TokenId {
   if (!normalized || normalized.split(".").some((part) => !SEGMENT.test(part))) {
     throw new TypeError(`Invalid token ID: ${input}`);
   }
+  // Branded strings have no runtime constructor; this is the single assertion after validation.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
   return normalized as TokenId;
 }
 
@@ -19,7 +21,7 @@ export function formatTokenId(id: TokenId): string {
 /** Return the parent ID, or undefined for a top-level token. */
 export function parentTokenId(id: TokenId): TokenId | undefined {
   const boundary = id.lastIndexOf(".");
-  return boundary === -1 ? undefined : (id.slice(0, boundary) as TokenId);
+  return boundary === -1 ? undefined : parseTokenId(id.slice(0, boundary));
 }
 
 /** Create a canonical ID from path segments. */
