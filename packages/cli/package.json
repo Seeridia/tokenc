@@ -48,7 +48,7 @@
     "@tokenc/backend-tailwind": "workspace:*",
     "@tokenc/backend-typescript": "workspace:*",
     "@tokenc/core": "workspace:*",
-    "chokidar": "^4.0.3",
+    "chokidar": "^5.0.0",
     "jiti": "^2.5.0"
   },
   "devDependencies": {
