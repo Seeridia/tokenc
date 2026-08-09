@@ -41,7 +41,7 @@
     "prepack": "vp run build"
   },
   "dependencies": {
-    "chokidar": "^4.0.3",
+    "chokidar": "^5.0.0",
     "fast-glob": "^3.3.3",
     "jsonc-parser": "^3.3.1"
   },
