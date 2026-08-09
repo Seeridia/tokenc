@@ -1,5 +1,7 @@
 # tokenc
 
+![tokenc — A DTCG-native, typed, graph-based Design Token compiler](docs/assets/cover.png)
+
 [English](README.md) | [简体中文](README.zh-CN.md)
 
 [![npm](https://img.shields.io/npm/v/%40tokenc%2Fcore.svg?label=npm)](https://www.npmjs.com/package/@tokenc/core)
