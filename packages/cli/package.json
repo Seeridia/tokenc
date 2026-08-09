@@ -37,8 +37,7 @@
     }
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "scripts": {
     "build": "tsup src/index.ts src/bin.ts --format esm --dts --clean --external @tokenc/core --external @tokenc/backend-css --external @tokenc/backend-tailwind --external @tokenc/backend-typescript",

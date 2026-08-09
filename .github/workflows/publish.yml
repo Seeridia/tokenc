@@ -28,19 +28,22 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
 
       - name: Enable Corepack
         run: corepack enable
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-          registry-url: https://registry.npmjs.org
+      - name: Install npm with Trusted Publishing support
+        run: npm install --global npm@11
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -48,15 +51,8 @@ jobs:
       - name: Run release checks
         run: pnpm check
 
-      - name: Verify npm credentials
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: test -n "$NODE_AUTH_TOKEN" || (echo "NPM_TOKEN is not configured in the npm environment" && exit 1)
-
       - name: Publish packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: pnpm exec changeset publish --tag "${{ inputs.npm_tag }}"
+        run: pnpm publish-packages --tag "${{ inputs.npm_tag }}"
 
       - name: Push release tags
-        run: git push --follow-tags
+        run: pnpm exec changeset tag && git push --follow-tags
