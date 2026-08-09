@@ -33,8 +33,8 @@ JSON → deep merge → transform → filter → format
 curl -fsSL https://vite.plus | bash
 vp install
 vp check
-vp test --run
 vp run -r build
+vp test --run
 vp -C examples/basic run build
 ```
 
@@ -292,8 +292,8 @@ CSS / Tailwind / TypeScript
 ```bash
 vp install
 vp check
-vp test --run
 vp run -r build
+vp test --run
 vp fmt --write .
 vp lint --fix .
 ```

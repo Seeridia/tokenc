@@ -5,8 +5,8 @@ Describe the user-visible behavior or internal architecture changed by this pull
 ## Validation
 
 - [ ] `vp check`
-- [ ] `vp test --run`
 - [ ] `vp run -r build`
+- [ ] `vp test --run`
 - [ ] Tests added or updated where behavior changed
 - [ ] English and Chinese documentation updated where public behavior changed
 - [ ] Changeset added for changes to published packages, or not required

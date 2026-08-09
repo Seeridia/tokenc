@@ -1,6 +1,23 @@
+import { fileURLToPath } from "node:url";
+
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      "@tokenc/backend-css": fileURLToPath(
+        new URL("./packages/backend-css/src/index.ts", import.meta.url),
+      ),
+      "@tokenc/backend-tailwind": fileURLToPath(
+        new URL("./packages/backend-tailwind/src/index.ts", import.meta.url),
+      ),
+      "@tokenc/backend-typescript": fileURLToPath(
+        new URL("./packages/backend-typescript/src/index.ts", import.meta.url),
+      ),
+      "@tokenc/cli": fileURLToPath(new URL("./packages/cli/src/index.ts", import.meta.url)),
+      "@tokenc/core": fileURLToPath(new URL("./packages/core/src/index.ts", import.meta.url)),
+    },
+  },
   fmt: {
     printWidth: 100,
     tabWidth: 2,

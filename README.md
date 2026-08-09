@@ -33,8 +33,8 @@ the checked-in `.node-version` and `packageManager` fields let it select Node.js
 curl -fsSL https://vite.plus | bash
 vp install
 vp check
-vp test --run
 vp run -r build
+vp test --run
 vp -C examples/basic run build
 ```
 
@@ -240,8 +240,8 @@ Color values support hex/CSS strings, structured sRGB, and structured OKLCH. The
 ```bash
 vp install
 vp check
-vp test --run
 vp run -r build
+vp test --run
 vp fmt --write .
 vp lint --fix .
 ```

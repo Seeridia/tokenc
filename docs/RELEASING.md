@@ -34,8 +34,8 @@ Trusted Publisher settings are configured from an existing package's npm setting
 npm login --auth-type=web
 npm whoami
 vp check
-vp test --run
 vp run -r build
+vp test --run
 vp run publish-packages --tag latest
 ```
 

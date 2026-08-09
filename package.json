@@ -27,7 +27,7 @@
     "test:watch": "vp test",
     "typecheck": "vp check --no-fmt --no-lint",
     "tokenc": "tsx packages/cli/src/bin.ts",
-    "verify": "vp check && vp test --run && vp run -r build",
+    "verify": "vp check && vp run -r build && vp test --run",
     "version-packages": "changeset version"
   },
   "devDependencies": {
