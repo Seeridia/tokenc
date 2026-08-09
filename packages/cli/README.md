@@ -24,4 +24,4 @@ pnpm tokenc graph --format mermaid
 
 Local installation is recommended so pnpm can resolve backend imports from the project configuration reliably.
 
-Requires Node.js 20 or newer. Licensed under MIT.
+Requires Node.js 22.13 or newer. Licensed under MIT.

@@ -6,7 +6,7 @@ Thank you for helping improve tokenc.
 
 Requirements:
 
-- Node.js 20 or newer
+- Node.js 22.13 or newer
 - pnpm 11
 
 ```bash

@@ -24,4 +24,4 @@ export default defineConfig({
 
 The backend supports nested object output, flat exports, preserved symbol references, and resolved literal output.
 
-Requires Node.js 20 or newer. Licensed under MIT.
+Requires Node.js 22.13 or newer. Licensed under MIT.

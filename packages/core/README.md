@@ -18,4 +18,4 @@ const impact = result.graph.analyzeImpact([parseTokenId("color.blue.600")]);
 
 The package exposes the DTCG parser, typed Token AST, `TokenGraph`, context-aware resolver, type checker, compiler IR, structured diagnostics, and incremental compiler. It performs no terminal output, process termination, or artifact writes.
 
-Requires Node.js 20 or newer. Licensed under MIT.
+Requires Node.js 22.13 or newer. Licensed under MIT.

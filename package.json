@@ -2,11 +2,21 @@
   "name": "tokenc",
   "version": "0.1.0",
   "private": true,
+  "description": "A DTCG-native, typed, graph-based Design Token compiler",
+  "homepage": "https://github.com/Seeridia/tokenc#readme",
+  "bugs": {
+    "url": "https://github.com/Seeridia/tokenc/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Seeridia/tokenc.git"
+  },
   "type": "module",
   "scripts": {
     "build": "pnpm -r --if-present build",
     "changeset": "changeset",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm build && pnpm test",
+    "check": "pnpm format:check && pnpm lint && pnpm build && pnpm typecheck && pnpm test",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint .",
@@ -29,7 +39,7 @@
     "vitest": "^3.2.0"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.13"
   },
   "packageManager": "pnpm@11.16.0"
 }

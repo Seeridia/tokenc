@@ -26,7 +26,7 @@ That model makes aliases, themes, diagnostics, impact analysis, and incremental 
 
 ## Quick start
 
-Requirements: Node.js 20 or newer and pnpm.
+Requirements: Node.js 22.13 or newer and pnpm 11.
 
 ```bash
 pnpm install

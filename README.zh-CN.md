@@ -26,7 +26,7 @@ JSON → deep merge → transform → filter → format
 
 ## 快速开始
 
-需要 Node.js 20 或更高版本，以及 pnpm。
+需要 Node.js 22.13 或更高版本，以及 pnpm 11。
 
 ```bash
 pnpm install

@@ -16,9 +16,9 @@ The root package and examples are private and are never published.
 
 1. Create or gain publish access to the `tokenc` organization on npm.
 2. Create the GitHub repository and push the `main` branch.
-3. Add real `repository`, `homepage`, and `bugs` fields to each public package after the repository URL is known.
-4. Configure npm trusted publishing for the GitHub repository, or add a short-lived automation token only if trusted publishing is unavailable.
-5. Add a release workflow only after the npm organization and repository environment exist, so a newly pushed repository cannot trigger a broken publish job.
+3. Create an `npm` environment in the GitHub repository and optionally require maintainer approval.
+4. Add an environment secret named `NPM_TOKEN`. Use a granular npm token restricted to the five `@tokenc/*` packages; never commit or paste it into issues or chat.
+5. Prefer npm trusted publishing after the first package release. The publish workflow already requests an OIDC identity token and can be migrated away from `NPM_TOKEN` after the npm packages have trusted-publisher settings.
 
 ## Preparing a release
 
@@ -55,7 +55,12 @@ Each package should contain only its package metadata, README, license, JavaScri
 
 ## Publishing
 
-Authenticate with npm and verify the account before the first manual release:
+The repository contains two release workflows:
+
+- `Version Packages` opens or updates a Changesets version pull request.
+- `Publish Packages` is manual, requires the protected `npm` environment, and accepts `latest`, `next`, or `beta` as the npm distribution tag.
+
+For a local manual release, authenticate with npm and verify the account:
 
 ```bash
 npm whoami

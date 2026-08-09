@@ -18,4 +18,4 @@ export default defineConfig({
 
 The backend emits shared `--token-*` runtime properties and maps supported types into Tailwind v4 `@theme` namespaces. Theme switching changes the runtime layer without duplicating semantic values.
 
-Requires Node.js 20 or newer. Licensed under MIT.
+Requires Node.js 22.13 or newer. Licensed under MIT.
