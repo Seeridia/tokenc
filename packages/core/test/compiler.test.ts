@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
 
 import { compileDocuments, type TokenBackend } from "../src/compiler.js";
+import type { ColorValue } from "../src/model.js";
+import { parseTokenId } from "../src/token-id.js";
 
 describe("compiler pipeline", () => {
   it("produces backend-facing IR and stats", async () => {
@@ -52,5 +54,30 @@ describe("compiler pipeline", () => {
       },
     ]);
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain("TOKEN_DUPLICATE_ID");
+  });
+
+  it("provides a type-directed backend view", async () => {
+    const result = await compileDocuments([
+      { file: "typed.json", content: '{"brand":{"$type":"color","$value":"#0052D9"}}' },
+    ]);
+    const value: ColorValue | undefined = result.compilation.tokensOfType("color")[0]?.value;
+    expect(value).toMatchObject({ colorSpace: "srgb" });
+    expect(result.compilation.tokensOfType("number")).toEqual([]);
+  });
+
+  it("exposes source and completion queries for language tooling", async () => {
+    const content =
+      '{"color":{"$type":"number","blue":{"$value":1},"brand":{"$value":"{color.blue}"}}}';
+    const result = await compileDocuments([{ file: "/tokens/lsp.json", content }]);
+    const brand = parseTokenId("color.brand");
+    const definition = result.compilation.getDefinition(brand);
+    expect(definition?.file).toBe("/tokens/lsp.json");
+    expect(
+      result.compilation.getTokenAtSourcePosition("/tokens/lsp.json", definition?.offset ?? -1)?.id,
+    ).toBe(brand);
+    expect(result.compilation.getCompletionCandidates("color.b")).toEqual([
+      "color.blue",
+      "color.brand",
+    ]);
   });
 });

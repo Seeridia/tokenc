@@ -1,5 +1,20 @@
 import type { ImpactAnalysis, TokenId, TokenNode } from "./model.js";
 
+export interface TokenGraphPatch {
+  readonly added?: readonly TokenNode[];
+  readonly changed?: readonly TokenNode[];
+  readonly removed?: readonly TokenId[];
+}
+
+export interface TokenGraphDelta {
+  readonly added: readonly TokenId[];
+  readonly changed: readonly TokenId[];
+  readonly removed: readonly TokenId[];
+  readonly affected: ReadonlySet<TokenId>;
+  readonly touchedNodes: number;
+  readonly touchedEdges: number;
+}
+
 function canonicalCycle(cycle: readonly TokenId[]): string {
   const body = cycle.slice(0, -1).map(String);
   const rotations = body.map((_, index) =>
@@ -8,27 +23,75 @@ function canonicalCycle(cycle: readonly TokenId[]): string {
   return rotations.toSorted()[0] ?? "";
 }
 
+class StableTokenQueue {
+  readonly #heap: TokenId[] = [];
+
+  get size(): number {
+    return this.#heap.length;
+  }
+
+  push(id: TokenId): void {
+    this.#heap.push(id);
+    let index = this.#heap.length - 1;
+    while (index > 0) {
+      const parent = Math.floor((index - 1) / 2);
+      const parentValue = this.#heap[parent];
+      if (!parentValue || String(parentValue).localeCompare(String(id)) <= 0) break;
+      this.#heap[index] = parentValue;
+      index = parent;
+    }
+    this.#heap[index] = id;
+  }
+
+  take(): TokenId | undefined {
+    const first = this.#heap[0];
+    const last = this.#heap.pop();
+    if (!first || !last || this.#heap.length === 0) return first;
+    this.#heap[0] = last;
+    let index = 0;
+    while (true) {
+      const left = index * 2 + 1;
+      const right = left + 1;
+      let smallest = index;
+      if (
+        this.#heap[left] &&
+        String(this.#heap[left]).localeCompare(String(this.#heap[smallest])) < 0
+      )
+        smallest = left;
+      if (
+        this.#heap[right] &&
+        String(this.#heap[right]).localeCompare(String(this.#heap[smallest])) < 0
+      )
+        smallest = right;
+      if (smallest === index) break;
+      const value = this.#heap[index];
+      const next = this.#heap[smallest];
+      if (!value || !next) break;
+      this.#heap[index] = next;
+      this.#heap[smallest] = value;
+      index = smallest;
+    }
+    return first;
+  }
+}
+
 /** Directed token dependency graph with O(1) node and adjacency lookup. */
 export class TokenGraph {
   readonly #tokens = new Map<TokenId, TokenNode>();
   readonly #forward = new Map<TokenId, Set<TokenId>>();
   readonly #reverse = new Map<TokenId, Set<TokenId>>();
+  #revision = 0;
 
   constructor(tokens: Iterable<TokenNode> = []) {
     for (const token of tokens) this.#tokens.set(token.id, token);
-    for (const token of this.#tokens.values()) {
-      this.#forward.set(token.id, new Set(token.dependencies));
-      if (!this.#reverse.has(token.id)) this.#reverse.set(token.id, new Set());
-      for (const dependency of token.dependencies) {
-        const dependents = this.#reverse.get(dependency) ?? new Set<TokenId>();
-        dependents.add(token.id);
-        this.#reverse.set(dependency, dependents);
-      }
-    }
+    for (const token of this.#tokens.values()) this.#addEdges(token);
   }
 
   get size(): number {
     return this.#tokens.size;
+  }
+  get revision(): number {
+    return this.#revision;
   }
   get tokens(): readonly TokenNode[] {
     return [...this.#tokens.values()];
@@ -46,54 +109,148 @@ export class TokenGraph {
     return [...(this.#reverse.get(id) ?? [])];
   }
 
-  /** Dependencies always precede their consumers. Cycles are omitted from guarantees. */
+  /** Stable Kahn ordering. Dependencies precede consumers outside cyclic regions. */
   topologicalSort(): readonly TokenId[] {
-    const memo = new Map<TokenId, number>();
-    const active = new Set<TokenId>();
-    const depth = (id: TokenId): number => {
-      const cached = memo.get(id);
-      if (cached !== undefined) return cached;
-      if (active.has(id)) return 0;
-      active.add(id);
-      const dependencies = this.getDependencies(id).filter((dependency) =>
-        this.hasToken(dependency),
+    const inDegree = new Map<TokenId, number>();
+    for (const id of this.#tokens.keys())
+      inDegree.set(
+        id,
+        this.getDependencies(id).filter((dependency) => this.hasToken(dependency)).length,
       );
-      const value = dependencies.length === 0 ? 0 : Math.max(...dependencies.map(depth)) + 1;
-      active.delete(id);
-      memo.set(id, value);
-      return value;
+    const ready = new StableTokenQueue();
+    for (const [id, degree] of inDegree) if (degree === 0) ready.push(id);
+    const result: TokenId[] = [];
+    while (ready.size > 0) {
+      const id = ready.take();
+      if (!id) continue;
+      result.push(id);
+      for (const dependent of this.getDependents(id)) {
+        if (!this.hasToken(dependent)) continue;
+        const degree = (inDegree.get(dependent) ?? 0) - 1;
+        inDegree.set(dependent, degree);
+        if (degree === 0) {
+          ready.push(dependent);
+        }
+      }
+    }
+    if (result.length < this.size) {
+      const emitted = new Set(result);
+      result.push(
+        ...[...this.#tokens.keys()]
+          .filter((id) => !emitted.has(id))
+          .toSorted((left, right) => String(left).localeCompare(String(right))),
+      );
+    }
+    return result;
+  }
+
+  /** Patch nodes and adjacency indexes while preserving unaffected map/set identity. */
+  patch(patch: TokenGraphPatch): TokenGraphDelta {
+    const added = [...new Set((patch.added ?? []).map((token) => token.id))];
+    const changed = [...new Set((patch.changed ?? []).map((token) => token.id))];
+    const removed = [...new Set(patch.removed ?? [])];
+    const touchedIds = new Set([...added, ...changed, ...removed]);
+    const before = this.getAffectedTokens(touchedIds);
+    let touchedEdges = 0;
+
+    for (const id of [...removed, ...changed]) {
+      const previous = this.#tokens.get(id);
+      if (!previous) continue;
+      touchedEdges += previous.dependencies.length;
+      this.#removeEdges(previous);
+      this.#tokens.delete(id);
+      this.#forward.delete(id);
+      if (this.#reverse.get(id)?.size === 0) this.#reverse.delete(id);
+    }
+    for (const token of [...(patch.added ?? []), ...(patch.changed ?? [])]) {
+      const existing = this.#tokens.get(token.id);
+      if (existing) {
+        touchedEdges += existing.dependencies.length;
+        this.#removeEdges(existing);
+      }
+      this.#tokens.set(token.id, token);
+      this.#addEdges(token);
+      touchedEdges += token.dependencies.length;
+    }
+    const affected = new Set([...before, ...this.getAffectedTokens(touchedIds)]);
+    if (touchedIds.size > 0) this.#revision += 1;
+    return {
+      added,
+      changed,
+      removed,
+      affected,
+      touchedNodes: touchedIds.size,
+      touchedEdges,
     };
-    return [...this.#tokens.keys()].toSorted(
-      (left, right) => depth(left) - depth(right) || String(left).localeCompare(String(right)),
-    );
+  }
+
+  #addEdges(token: TokenNode): void {
+    this.#forward.set(token.id, new Set(token.dependencies));
+    if (!this.#reverse.has(token.id)) this.#reverse.set(token.id, new Set());
+    for (const dependency of token.dependencies) {
+      const dependents = this.#reverse.get(dependency) ?? new Set<TokenId>();
+      dependents.add(token.id);
+      this.#reverse.set(dependency, dependents);
+    }
+  }
+
+  #removeEdges(token: TokenNode): void {
+    for (const dependency of token.dependencies) {
+      const dependents = this.#reverse.get(dependency);
+      dependents?.delete(token.id);
+      if (dependents?.size === 0 && !this.#tokens.has(dependency)) this.#reverse.delete(dependency);
+    }
   }
 
   /** Return closed cycle paths, with the first ID repeated at the end. */
-  detectCycles(): readonly (readonly TokenId[])[] {
+  detectCycles(roots?: Iterable<TokenId>): readonly (readonly TokenId[])[] {
     const state = new Map<TokenId, 0 | 1 | 2>();
-    const stack: TokenId[] = [];
     const cycles: TokenId[][] = [];
     const signatures = new Set<string>();
-    const visit = (id: TokenId): void => {
-      state.set(id, 1);
-      stack.push(id);
-      for (const dependency of this.getDependencies(id)) {
-        if (!this.hasToken(dependency)) continue;
-        if ((state.get(dependency) ?? 0) === 0) visit(dependency);
-        else if (state.get(dependency) === 1) {
-          const start = stack.lastIndexOf(dependency);
-          const cycle = [...stack.slice(start), dependency];
-          const signature = canonicalCycle(cycle);
-          if (!signatures.has(signature)) {
-            signatures.add(signature);
-            cycles.push(cycle);
+    const path: TokenId[] = [];
+    const positions = new Map<TokenId, number>();
+    for (const root of roots ?? this.#tokens.keys()) {
+      if (!this.hasToken(root) || (state.get(root) ?? 0) !== 0) continue;
+      const stack: { id: TokenId; dependencies: readonly TokenId[]; index: number }[] = [
+        { id: root, dependencies: this.getDependencies(root), index: 0 },
+      ];
+      state.set(root, 1);
+      positions.set(root, path.length);
+      path.push(root);
+      while (stack.length > 0) {
+        const frame = stack.at(-1);
+        if (!frame) break;
+        const dependency = frame.dependencies[frame.index];
+        if (dependency) {
+          frame.index += 1;
+          if (!this.hasToken(dependency)) continue;
+          const dependencyState = state.get(dependency) ?? 0;
+          if (dependencyState === 0) {
+            state.set(dependency, 1);
+            positions.set(dependency, path.length);
+            path.push(dependency);
+            stack.push({
+              id: dependency,
+              dependencies: this.getDependencies(dependency),
+              index: 0,
+            });
+          } else if (dependencyState === 1) {
+            const start = positions.get(dependency) ?? 0;
+            const cycle = [...path.slice(start), dependency];
+            const signature = canonicalCycle(cycle);
+            if (!signatures.has(signature)) {
+              signatures.add(signature);
+              cycles.push(cycle);
+            }
           }
+          continue;
         }
+        stack.pop();
+        state.set(frame.id, 2);
+        positions.delete(frame.id);
+        path.pop();
       }
-      stack.pop();
-      state.set(id, 2);
-    };
-    for (const id of this.#tokens.keys()) if ((state.get(id) ?? 0) === 0) visit(id);
+    }
     return cycles;
   }
 
@@ -113,6 +270,24 @@ export class TokenGraph {
       }
     }
     return affected;
+  }
+
+  /** Root nodes plus every transitive forward dependency. */
+  getDependencyClosure(rootTokenIds: Iterable<TokenId>): ReadonlySet<TokenId> {
+    const closure = new Set<TokenId>();
+    const queue = [...rootTokenIds];
+    for (const id of queue) closure.add(id);
+    for (let index = 0; index < queue.length; index += 1) {
+      const current = queue[index];
+      if (!current) continue;
+      for (const dependency of this.getDependencies(current)) {
+        if (!closure.has(dependency)) {
+          closure.add(dependency);
+          queue.push(dependency);
+        }
+      }
+    }
+    return closure;
   }
 
   analyzeImpact(changedTokenIds: Iterable<TokenId>): ImpactAnalysis {

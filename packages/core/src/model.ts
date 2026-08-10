@@ -4,6 +4,7 @@ export type TokenId = string & { readonly __brand: "TokenId" };
 export type TokenType =
   | "color"
   | "dimension"
+  | "fontFamily"
   | "number"
   | "duration"
   | "fontWeight"
@@ -18,18 +19,37 @@ export type TokenType =
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
-export interface SRGBColor {
-  readonly colorSpace: "srgb";
-  readonly components: readonly [number, number, number];
+export type TokenDialect = "dtcg-2025.10" | "tokenc";
+
+export type ColorSpace =
+  | "srgb"
+  | "srgb-linear"
+  | "display-p3"
+  | "a98-rgb"
+  | "prophoto-rgb"
+  | "rec2020"
+  | "xyz-d50"
+  | "xyz-d65"
+  | "lab"
+  | "lch"
+  | "oklab"
+  | "oklch"
+  | "hsl"
+  | "hwb";
+
+export type ColorComponent = number | "none";
+
+/** Normalized DTCG 2025.10 color representation. */
+export interface DTCGColor {
+  readonly colorSpace: ColorSpace;
+  readonly components: readonly [ColorComponent, ColorComponent, ColorComponent];
   readonly alpha: number;
+  readonly hex?: string;
   readonly original?: string;
 }
 
-export interface OKLCHColor {
-  readonly colorSpace: "oklch";
-  readonly components: readonly [number, number, number];
-  readonly alpha: number;
-}
+export type SRGBColor = DTCGColor & { readonly colorSpace: "srgb" };
+export type OKLCHColor = DTCGColor & { readonly colorSpace: "oklch" };
 
 /** A valid CSS color that the core deliberately leaves platform-neutral. */
 export interface CSSColor {
@@ -37,7 +57,7 @@ export interface CSSColor {
   readonly value: string;
 }
 
-export type ColorValue = SRGBColor | OKLCHColor | CSSColor;
+export type ColorValue = DTCGColor | CSSColor;
 
 export interface DimensionValue {
   readonly value: number;
@@ -68,9 +88,12 @@ export type FontWeightValue =
   | "black"
   | "heavy";
 
+export type FontFamilyValue = string | readonly string[];
+
 export interface TokenValueMap {
   readonly color: ColorValue;
   readonly dimension: DimensionValue;
+  readonly fontFamily: FontFamilyValue;
   readonly number: number;
   readonly duration: DurationValue;
   readonly fontWeight: FontWeightValue;
@@ -94,25 +117,32 @@ export interface SourceLocation {
   readonly excerpt?: string;
 }
 
-export interface TokenReference {
+export interface TokenReference<T extends TokenType = TokenType> {
   readonly kind: "reference";
   readonly target: TokenId;
   readonly source: SourceLocation;
+  /** Carries the owning token type without changing the runtime representation. */
+  readonly __type?: T;
 }
 
-export interface TokenLiteralExpression {
+export interface TokenLiteralExpression<T extends TokenType = TokenType> {
   readonly kind: "literal";
-  readonly value: TokenLiteral;
+  readonly value: TokenValueMap[T];
 }
 
-export type TokenExpression = TokenReference | TokenLiteralExpression;
+export type TokenExpression<T extends TokenType = TokenType> =
+  | TokenReference<T>
+  | TokenLiteralExpression<T>;
 
 export type CompilationContext = Readonly<Record<string, string>>;
 
-export interface ContextOverride {
+export interface ContextOverride<T extends TokenType = TokenType> {
   readonly selector: CompilationContext;
-  readonly expression: TokenExpression;
+  readonly expression: TokenExpression<T>;
   readonly source: SourceLocation;
+  /** Explicit semantic precedence; higher values win. */
+  readonly precedence?: number;
+  readonly origin?: "resolver" | "tokenc-context";
 }
 
 /** A typed source-language token node, before context evaluation. */
@@ -120,10 +150,11 @@ export interface TokenNode<T extends TokenType = TokenType> {
   readonly kind: "token";
   readonly id: TokenId;
   readonly type: T;
-  readonly value: TokenExpression;
+  readonly value: TokenExpression<T>;
   readonly description?: string;
+  readonly deprecated?: boolean | string;
   readonly extensions?: Readonly<Record<string, JsonValue>>;
-  readonly overrides: readonly ContextOverride[];
+  readonly overrides: readonly ContextOverride<T>[];
   readonly source: SourceLocation;
   readonly dependencies: readonly TokenId[];
 }
@@ -160,18 +191,18 @@ export type ContextDefinition = Readonly<Record<string, ContextDimension>>;
 
 export type ReferenceStrategy = "resolve" | "preserve" | "symbol";
 
-export interface ResolvedToken {
+export interface ResolvedToken<T extends TokenType = TokenType> {
   readonly id: TokenId;
-  readonly type: TokenType;
-  readonly expression: TokenExpression;
-  readonly value: TokenLiteral;
+  readonly type: T;
+  readonly expression: TokenExpression<T>;
+  readonly value: TokenValueMap[T];
   readonly context: CompilationContext;
   readonly dependencies: readonly TokenId[];
   readonly source: SourceLocation;
 }
 
-export interface CompiledToken extends ResolvedToken {
-  readonly rawValue: TokenExpression;
+export interface CompiledToken<T extends TokenType = TokenType> extends ResolvedToken<T> {
+  readonly rawValue: TokenExpression<T>;
 }
 
 export interface OutputFile {
@@ -184,6 +215,7 @@ export interface CompilationStats {
   readonly references: number;
   readonly contexts: number;
   readonly affectedTokens?: number;
+  readonly checkedTokens?: number;
   readonly timings: {
     readonly parse: number;
     readonly graph: number;
@@ -197,4 +229,30 @@ export interface ImpactAnalysis {
   readonly changed: readonly TokenId[];
   readonly directlyAffected: readonly TokenId[];
   readonly indirectlyAffected: readonly TokenId[];
+}
+
+export interface ResolutionTraceStep {
+  readonly token: TokenId;
+  readonly selection: "base" | "override";
+  readonly expression: TokenExpression;
+  readonly source: SourceLocation;
+  readonly selector?: CompilationContext;
+  readonly origin?: "resolver" | "tokenc-context";
+  readonly precedence?: number;
+}
+
+export interface ResolverTraceStep {
+  readonly kind: "set" | "modifier";
+  readonly name: string;
+  readonly context?: string;
+  readonly source: SourceLocation;
+}
+
+export interface ResolutionTrace {
+  readonly token: TokenId;
+  readonly context: CompilationContext;
+  readonly selectedSource?: SourceLocation;
+  readonly steps: readonly ResolutionTraceStep[];
+  readonly resolverSteps: readonly ResolverTraceStep[];
+  readonly value?: TokenLiteral;
 }

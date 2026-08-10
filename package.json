@@ -14,6 +14,7 @@
   },
   "type": "module",
   "scripts": {
+    "bench": "vp exec tsx benchmarks/compiler.bench.ts",
     "build": "vp run -r build",
     "changeset": "changeset",
     "check": "vp check",

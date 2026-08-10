@@ -50,4 +50,51 @@ describe("TokenResolver", () => {
     resolver.resolve(parseTokenId("color.button"));
     expect(resolver.computations).toBe(4);
   });
+
+  it("returns a structured context and alias resolution trace", () => {
+    const graph = new TokenGraph(
+      parseTokenDocument(fixture("themes/tokens.json"), "themes.json").tokens,
+    );
+    const resolver = new TokenResolver(graph, {
+      theme: { default: "light", values: ["light", "dark"] },
+      brand: { default: "default", values: ["default", "enterprise"] },
+    });
+    const trace = resolver.trace(parseTokenId("color.page"), {
+      theme: "dark",
+      brand: "enterprise",
+    });
+    expect(trace).toMatchObject({
+      token: "color.page",
+      context: { theme: "dark", brand: "enterprise" },
+      steps: [
+        {
+          token: "color.page",
+          selection: "base",
+          expression: { kind: "reference", target: "color.base" },
+        },
+        {
+          token: "color.base",
+          selection: "override",
+          selector: { theme: "dark", brand: "enterprise" },
+        },
+      ],
+      value: { colorSpace: "srgb", original: "#003cab" },
+    });
+  });
+
+  it("resolves a 10k alias chain without call-stack recursion", () => {
+    const content = JSON.stringify(
+      Object.fromEntries(
+        Array.from({ length: 10_000 }, (_, index) => [
+          `token${index}`,
+          { $type: "number", $value: index === 0 ? 1 : `{token${index - 1}}` },
+        ]),
+      ),
+    );
+    const resolver = new TokenResolver(
+      new TokenGraph(parseTokenDocument(content, "deep.json").tokens),
+    );
+    expect(resolver.resolve(parseTokenId("token9999"))?.value).toBe(1);
+    expect(resolver.computations).toBe(10_000);
+  });
 });

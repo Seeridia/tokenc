@@ -1,0 +1,10 @@
+{
+  "version": "2024.01",
+  "modifiers": {
+    "theme": {
+      "contexts": {},
+      "default": "missing"
+    }
+  },
+  "resolutionOrder": [{ "$ref": "#/sets/unknown" }]
+}

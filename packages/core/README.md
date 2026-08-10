@@ -16,6 +16,8 @@ const result = await compile({
 const impact = result.graph.analyzeImpact([parseTokenId("color.blue.600")]);
 ```
 
-The package exposes the DTCG parser, typed Token AST, `TokenGraph`, context-aware resolver, type checker, compiler IR, structured diagnostics, and incremental compiler. It performs no terminal output, process termination, or artifact writes.
+The package exposes strict and compatibility dialect parsing, the DTCG 2025.10 Resolver document parser, typed Token AST, patchable `TokenGraph`, context-aware resolution traces, affected-subgraph checking, compiler IR, and structured diagnostics. It performs no terminal output, process termination, or artifact writes.
+
+Strict mode is opt-in with `dialect: "dtcg-2025.10"`; the v0.x default remains the backward-compatible `tokenc` dialect.
 
 Requires Node.js 22.13 or newer. Licensed under MIT.

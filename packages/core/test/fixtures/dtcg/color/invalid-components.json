@@ -1,0 +1,9 @@
+{
+  "brand": {
+    "$type": "color",
+    "$value": {
+      "colorSpace": "srgb",
+      "components": [1.2, 0, 0]
+    }
+  }
+}

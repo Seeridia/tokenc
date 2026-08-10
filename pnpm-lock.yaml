@@ -58,6 +58,18 @@ importers:
         specifier: ^4.20.0
         version: 4.23.11
 
+  examples/dtcg-resolver:
+    devDependencies:
+      '@tokenc/backend-css':
+        specifier: workspace:*
+        version: link:../../packages/backend-css
+      '@tokenc/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      tsx:
+        specifier: ^4.20.0
+        version: 4.23.11
+
   packages/backend-css:
     dependencies:
       '@tokenc/core':

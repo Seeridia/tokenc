@@ -1,0 +1,19 @@
+{
+  "color": {
+    "$type": "color",
+    "brand": {
+      "$value": {
+        "colorSpace": "display-p3",
+        "components": [0.1, 0.4, 0.9],
+        "alpha": 0.8,
+        "hex": "#1966e5"
+      }
+    },
+    "accent": {
+      "$value": {
+        "colorSpace": "oklch",
+        "components": [0.65, 0.2, 250]
+      }
+    }
+  }
+}

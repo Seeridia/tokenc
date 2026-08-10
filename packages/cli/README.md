@@ -22,6 +22,8 @@ pnpm tokenc usages color.blue.600
 pnpm tokenc graph --format mermaid
 ```
 
+Resolver modifier inputs use normal flags, for example `pnpm tokenc build --theme dark` or `pnpm tokenc explain color.background --theme dark`.
+
 Local installation is recommended so pnpm can resolve backend imports from the project configuration reliably.
 
 Requires Node.js 22.13 or newer. Licensed under MIT.

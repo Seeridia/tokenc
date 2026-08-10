@@ -47,4 +47,36 @@ describe("context selection", () => {
       checkContexts([token], { theme: contexts.theme! }).map((diagnostic) => diagnostic.code),
     ).toContain("TOKEN_CONTEXT_UNKNOWN_DIMENSION");
   });
+
+  it("uses explicit context dimension order for equally specific matches", () => {
+    const parsed = parseTokenDocument(
+      JSON.stringify({
+        value: {
+          $type: "number",
+          $value: 0,
+          $extensions: {
+            "org.token-compiler.contexts": {
+              "brand=enterprise": 2,
+              "theme=dark": 1,
+            },
+          },
+        },
+      }),
+      "precedence.json",
+    );
+    expect(
+      selectTokenExpression(parsed.tokens[0]!, { theme: "dark", brand: "enterprise" }, [
+        "theme",
+        "brand",
+      ]),
+    ).toMatchObject({ kind: "literal", value: 2 });
+  });
+
+  it("diagnoses duplicate selectors rather than using declaration order", () => {
+    const parsed = parseTokenDocument(
+      '{"value":{"$type":"number","$value":0,"$extensions":{"org.token-compiler.contexts":{"theme=dark":1,"theme=dark":2}}}}',
+      "ambiguous.json",
+    );
+    expect(checkContexts(parsed.tokens, contexts)[0]?.code).toBe("TOKEN_RESOLUTION_AMBIGUOUS");
+  });
 });

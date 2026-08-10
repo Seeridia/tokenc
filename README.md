@@ -9,7 +9,7 @@
 [![Node.js](https://img.shields.io/node/v/%40tokenc%2Fcore.svg)](https://nodejs.org/)
 [![License](https://img.shields.io/github/license/Seeridia/tokenc)](LICENSE)
 
-> A DTCG-native, typed, graph-based Design Token compiler.
+> A typed, graph-based Design Token compiler with first-class DTCG 2025.10 support.
 
 Compile design tokens as a typed program—not a merged JSON dictionary. `tokenc` parses DTCG,
 checks references and types, evaluates contexts lazily, and emits CSS, Tailwind CSS, or TypeScript
@@ -35,6 +35,10 @@ Traditional token pipelines often grow into `JSON → deep merge → transforms 
 ## Quick start
 
 Requires Node.js 22.13 or newer.
+
+The quick-start source below uses the default `tokenc` compatibility dialect. It accepts concise
+color strings and normalizes them before semantic analysis. Set `dialect: "dtcg-2025.10"` for
+strict structured DTCG input. See the [compatibility matrix](docs/DTCG-COMPATIBILITY.md).
 
 ```bash
 npm install --save-dev @tokenc/cli @tokenc/core @tokenc/backend-css
@@ -63,6 +67,7 @@ import { css } from "@tokenc/backend-css";
 import { defineConfig } from "@tokenc/core";
 
 export default defineConfig({
+  dialect: "tokenc",
   source: ["tokens/**/*.json"],
   outputs: [
     css({
@@ -87,7 +92,8 @@ npx tokenc build
 ```
 
 See the [basic example](examples/basic) for CSS, Tailwind CSS, TypeScript, aliases, and component
-tokens.
+tokens. The [strict Resolver example](examples/dtcg-resolver) demonstrates structured DTCG colors,
+sets, modifiers, and explicit resolution order.
 
 ## CLI
 
@@ -107,7 +113,9 @@ Compilation errors never produce partial output artifacts.
 ## Compiler model
 
 ```text
-DTCG JSON
+Strict DTCG / tokenc compatibility syntax
+    ↓
+Parser + normalizer
     ↓
 Typed AST + source provenance
     ↓
@@ -134,9 +142,10 @@ css({ references: "preserve" });
 typescript({ references: "symbol" });
 ```
 
-Contexts are sparse inputs to evaluation. A token can provide overrides through the namespaced
-`org.token-compiler.contexts` extension; only matching overrides are evaluated and only changed CSS
-declarations are repeated.
+The DTCG 2025.10 Resolver Module is a first-class input: sets and modifiers are composed in explicit
+`resolutionOrder`, then aliases are checked on the resulting graph. The existing
+`org.token-compiler.contexts` extension remains available in compatibility mode and is normalized
+to deterministic typed context overrides.
 
 See [Architecture](docs/ARCHITECTURE.md) for the data model, context semantics, incremental
 invalidation, and backend contracts.
@@ -173,11 +182,11 @@ For virtual or remote inputs, use `parseTokenDocument(content, source)` and
 
 | Level                 | Types                                                                                    |
 | --------------------- | ---------------------------------------------------------------------------------------- |
-| Fully validated       | `color`, `dimension`, `number`, `duration`, `fontWeight`                                 |
+| Fully validated       | `color`, `dimension`, `fontFamily`, `number`, `duration`, `fontWeight`                   |
 | Basic composite model | `cubicBezier`, `strokeStyle`, `border`, `transition`, `shadow`, `gradient`, `typography` |
 
-Colors support CSS strings, structured sRGB, and structured OKLCH. Platform conversion remains a
-backend responsibility. Composite types will receive deeper field-level validation in future
+Strict colors preserve all 14 DTCG 2025.10 color spaces; compatibility mode additionally accepts CSS
+strings. Platform conversion remains a backend responsibility. Composite types will receive deeper field-level validation in future
 releases.
 
 ## Development
@@ -197,6 +206,8 @@ This is a library monorepo: packages are built with `vp pack`, orchestrated by `
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md) · [中文](docs/ARCHITECTURE.zh-CN.md)
+- [DTCG 2025.10 compatibility](docs/DTCG-COMPATIBILITY.md) · [中文](docs/DTCG-COMPATIBILITY.zh-CN.md)
+- [Compiler benchmarks](benchmarks/README.md)
 - [Contributing](CONTRIBUTING.md)
 - [Releasing](docs/RELEASING.md)
 

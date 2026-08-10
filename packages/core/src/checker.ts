@@ -38,8 +38,17 @@ export function suggestTokenIds(
     .map((item) => item.candidate);
 }
 
-function references(graph: TokenGraph): readonly { owner: TokenId; reference: TokenReference }[] {
-  return graph.tokens.flatMap((token) =>
+function references(
+  graph: TokenGraph,
+  scope?: ReadonlySet<TokenId>,
+): readonly { owner: TokenId; reference: TokenReference }[] {
+  const tokens = scope
+    ? [...scope].flatMap((id) => {
+        const token = graph.getToken(id);
+        return token ? [token] : [];
+      })
+    : graph.tokens;
+  return tokens.flatMap((token) =>
     [token.value, ...token.overrides.map((override) => override.expression)]
       .filter((expression): expression is TokenReference => expression.kind === "reference")
       .map((reference) => ({ owner: token.id, reference })),
@@ -47,14 +56,18 @@ function references(graph: TokenGraph): readonly { owner: TokenId; reference: To
 }
 
 /** Perform graph integrity and reference type checks. */
-export function checkTokenGraph(graph: TokenGraph): readonly Diagnostic[] {
+export function checkTokenGraph(
+  graph: TokenGraph,
+  scope?: ReadonlySet<TokenId>,
+): readonly Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
-  const ids = graph.tokens.map((token) => token.id);
-  for (const { owner, reference } of references(graph)) {
+  let ids: readonly TokenId[] | undefined;
+  for (const { owner, reference } of references(graph, scope)) {
     const sourceToken = graph.getToken(owner);
     const targetToken = graph.getToken(reference.target);
     if (!sourceToken) continue;
     if (!targetToken) {
+      ids ??= graph.tokens.map((token) => token.id);
       const suggestions = suggestTokenIds(reference.target, ids).map(String);
       diagnostics.push({
         code: "TOKEN_UNKNOWN_REFERENCE",
@@ -78,7 +91,7 @@ export function checkTokenGraph(graph: TokenGraph): readonly Diagnostic[] {
       });
     }
   }
-  for (const cycle of graph.detectCycles()) {
+  for (const cycle of graph.detectCycles(scope)) {
     const first = cycle[0];
     if (!first) continue;
     const token = graph.getToken(first);

@@ -7,9 +7,10 @@
 ## 编译流水线
 
 ```text
-DTCG document
-  → parseTokenDocument(content, source)
+严格 DTCG / tokenc 兼容文档
+  → Dialect Parser + Normalizer
   → typed TokenNode[] + structured diagnostics
+  → 可选 DTCG Resolver sets/modifiers/resolutionOrder
   → TokenGraph
   → Context validation + reference type checking
   → lazy TokenResolver
@@ -19,6 +20,12 @@ DTCG document
 ```
 
 高层 `compile()` API 负责加载文件并执行完整流水线；`compileDocuments()` 接受虚拟输入。Core 中的任何阶段都不会直接写入输出文件或终止进程。
+
+## Dialect 与归一化边界
+
+DTCG 2025.10 是标准源语言。显式 `dtcg-2025.10` dialect 校验严格结构化值；v0.x 默认的 `tokenc` dialect 保留 CSS 颜色字符串等便利写法。两条路径都会在 Graph 构建前归一化，因此 Checker、Resolver、IR 与 Backend 无需理解源语法差异。
+
+Parser 与 DTCG Format/Color 校验分离。Core 保留颜色语义，序列化或转换仍是 Backend policy。准确支持范围参见 [DTCG 兼容矩阵](DTCG-COMPATIBILITY.zh-CN.md)。
 
 ## Parser 与 Source Provenance
 
@@ -36,7 +43,7 @@ source excerpt
 
 无效 JSON 会生成结构化诊断和一个空 document，而不是让 watch process 崩溃。修复文件后，同一增量 Session 可以自动恢复。
 
-Group 会把最近的 `$type` 传递给子节点。只有拥有 `$value` 的对象才会成为 Token；Group 不会被误判为 Token Node。
+Group 会把最近的 `$type` 传递给子节点。只有拥有 `$value` 的对象才会成为 Token；同时拥有 `$value` 与子节点的非法结构会被诊断。保留字 `$root` Token 会显式保留在 canonical path 中。
 
 ## Typed AST
 
@@ -52,7 +59,7 @@ TokenNode
   source: SourceLocation
 ```
 
-`color`、`dimension`、`number`、`duration` 和 `fontWeight` 具有具体的内部模型和 validator。
+`color`、`dimension`、`fontFamily`、`number`、`duration` 和 `fontWeight` 具有具体的内部模型和 validator。`TokenExpression<T>`、`TokenNode<T>`、`ResolvedToken<T>` 与 `CompiledToken<T>` 会让声明类型贯穿整个流水线。
 
 复合类型在 v0.1 中保留 JSON-safe 数据。这允许未来逐步加强 validator，而不需要改变 Graph 或 Backend 边界。
 
@@ -80,7 +87,9 @@ Map<TokenId, Set<TokenId>>    forward dependencies
 Map<TokenId, Set<TokenId>>    reverse dependents
 ```
 
-Token 和邻接关系查询为 O(1)。拓扑排序、环检测、affected-node traversal 和 impact analysis 为 O(V + E)。
+Token 和邻接关系查询为 O(1)。使用 lexical heap 的稳定 Kahn 排序为 O((V + E) log V)；迭代式环检测、affected traversal 与 impact analysis 为 O(V + E)。
+
+`TokenGraph.patch()` 原位更新 Token、正向边和反向边索引，返回 Graph Delta，并合并 patch 前后的反向影响集合，确保边被删除或改向时仍然正确。
 
 `explain` 和 `usages` 都直接查询同一张 Graph，不会搜索源文件字符串。
 
@@ -108,11 +117,17 @@ brand=enterprise
 density=compact
 ```
 
-基础值和稀疏 override 都保留在同一个 Token Node 上。Resolver 会选择所有匹配 override 中最具体的一个，然后沿 Dependency Graph 解析 Reference。
+基础值和稀疏兼容 override 都保留在同一个 Token Node 上。选择顺序为显式 precedence、匹配维度数量、配置中的维度顺序，不再依赖 JSON 声明顺序。
 
 解析过程是惰性的，并以 `(TokenId, Context)` 为 key 缓存。Compiler 只记录 default context 和源码实际声明的 override 组合，不会物化 theme × brand × density 的完整 Token Dictionary。
 
-v0.1 使用 `$extensions["org.token-compiler.contexts"]` 作为 Context 的 source representation。在 DTCG Resolver Module 进一步稳定前，这个扩展保持在一个隔离的命名空间中。
+`$extensions["org.token-compiler.contexts"]` 继续作为兼容语法，并归一化成由同一个 `TokenResolver` 消费的强类型 Context Override。
+
+## DTCG Resolver Module
+
+`parseResolverDocument(content, source)` 是不执行 IO 的 DTCG 2025.10 Resolver Frontend。它生成带源码位置的 `TokenSet`、`ResolverModifier`、`ResolutionSource` 与有序 Resolution Item。IO 层加载相对路径完整文件；语义解析负责校验 Input、展开同文档 Set 引用、选择 Modifier Context，并严格按照 `resolutionOrder` 产生 Source Stream。
+
+只有 Resolver Resolution 内部使用标准规定的“后 Source 覆盖前 Source”规则；普通多文件编译仍会诊断重复 canonical ID。Alias 会在 Source Stream 组合完成后进入 Graph 检查，因此 Resolver 不是全局 deep merge hook。
 
 ### 为什么不用 Global Deep Merge？
 
@@ -143,7 +158,7 @@ Graph Cycle 会在递归求值前独立校验，因此用户看到的是完整�
 
 ## Compiler IR
 
-`Compilation` 是 Backend 唯一可以消费的输入。它公开：
+`Compilation` 是 Backend 唯一可以消费的输入。它还公开强类型 `tokensOfType()` 视图与结构化 `explainToken()` trace，并继续提供：
 
 - 按拓扑顺序排列的 `CompiledToken`
 - 已验证的 `TokenGraph`
@@ -214,10 +229,11 @@ Tailwind variable 指向运行时层，因此普通 CSS 和 utility 可以共享
 
 1. 只解析发生变化的 Document。
 2. 比较语义节点签名，得到 changed Token IDs。
-3. 分别遍历旧 Graph 和新 Graph 的 reverse edges。
-4. 合并两个 affected set，覆盖修改、删除和新连接的节点。
-5. 将 affected set 以外的求值缓存迁移到新 Resolver。
-6. 在 IR 或 Backend 请求值时，惰性重算受影响节点。
+3. 仅 patch 新增、修改、删除的 Graph Node 与邻接边。
+4. 合并 patch 前后的 reverse affected set。
+5. 在 affected region 内检查 Reference 与 Cycle；无效构建后的下一次编辑回退为全量检查。
+6. 将 affected set 以外的求值缓存迁移到新 Resolver。
+7. 在 IR 或 Backend 请求值时，惰性重算受影响节点。
 
 Backend 在 v0.1 中仍可能重写完整文件，但这不会导致 Core 重新解析或重新求值无关 Token。
 

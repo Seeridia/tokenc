@@ -1,0 +1,33 @@
+{
+  "$schema": "https://www.designtokens.org/schemas/2025.10/resolver.json",
+  "version": "2025.10",
+  "name": "Application tokens",
+  "sets": {
+    "foundation": {
+      "sources": [
+        { "$ref": "foundation.json" },
+        {
+          "color": {
+            "brand": {
+              "$type": "color",
+              "$value": {
+                "colorSpace": "srgb",
+                "components": [0, 0.2, 0.8]
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "modifiers": {
+    "theme": {
+      "contexts": {
+        "light": [{ "$ref": "themes/light.json" }],
+        "dark": [{ "$ref": "#/sets/foundation" }, { "$ref": "themes/dark.json" }]
+      },
+      "default": "light"
+    }
+  },
+  "resolutionOrder": [{ "$ref": "#/sets/foundation" }, { "$ref": "#/modifiers/theme" }]
+}

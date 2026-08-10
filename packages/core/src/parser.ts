@@ -6,8 +6,9 @@ import {
   type ParseError,
 } from "jsonc-parser";
 
+import { parseColorValue } from "./dtcg/color.js";
+import { DEFAULT_TOKEN_DIALECT, isTokenType, isValidTokenSegment } from "./dtcg/format.js";
 import type {
-  ColorValue,
   CompilationContext,
   ContextOverride,
   Diagnostic,
@@ -19,24 +20,10 @@ import type {
   TokenExpression,
   TokenLiteral,
   TokenNode,
+  TokenDialect,
   TokenType,
 } from "./model.js";
 import { parseTokenId, tokenIdFromSegments } from "./token-id.js";
-
-const TOKEN_TYPES: ReadonlySet<string> = new Set([
-  "color",
-  "dimension",
-  "number",
-  "duration",
-  "fontWeight",
-  "cubicBezier",
-  "strokeStyle",
-  "border",
-  "transition",
-  "shadow",
-  "gradient",
-  "typography",
-]);
 
 type NamedFontWeight = Exclude<FontWeightValue, number>;
 
@@ -63,10 +50,12 @@ class Locator {
   readonly #starts: number[] = [0];
   readonly #content: string;
   readonly #file: string;
+  readonly #origin: SourceLocation | undefined;
 
-  constructor(content: string, file: string) {
+  constructor(content: string, file: string, origin?: SourceLocation) {
     this.#content = content;
     this.#file = file;
+    this.#origin = origin;
     for (let i = 0; i < content.length; i += 1) {
       if (content.charCodeAt(i) === 10) this.#starts.push(i + 1);
     }
@@ -82,14 +71,15 @@ class Locator {
     }
     const lineStart = this.#starts[low] ?? 0;
     const lineEnd = this.#content.indexOf("\n", lineStart);
-    const excerpt = this.#content
-      .slice(lineStart, lineEnd === -1 ? undefined : lineEnd)
-      .replace(/\r$/u, "");
+    const excerpt =
+      low === 0 && this.#origin?.excerpt
+        ? this.#origin.excerpt
+        : this.#content.slice(lineStart, lineEnd === -1 ? undefined : lineEnd).replace(/\r$/u, "");
     return {
-      file: this.#file,
-      line: low + 1,
-      column: offset - lineStart + 1,
-      offset,
+      file: this.#origin?.file ?? this.#file,
+      line: low + (this.#origin?.line ?? 1),
+      column: offset - lineStart + 1 + (low === 0 ? (this.#origin?.column ?? 1) - 1 : 0),
+      offset: offset + (this.#origin?.offset ?? 0),
       length: Math.max(1, length),
       excerpt,
     };
@@ -126,58 +116,22 @@ function jsonValue(node: Node): JsonValue | undefined {
   return isJsonValue(value) ? value : undefined;
 }
 
-function parseHex(input: string): ColorValue | undefined {
-  const value = input.slice(1);
-  if (!/^(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/iu.test(value)) return undefined;
-  const expanded =
-    value.length <= 4
-      ? value
-          .split("")
-          .map((part) => `${part}${part}`)
-          .join("")
-      : value;
-  const component = (start: number): number =>
-    Number.parseInt(expanded.slice(start, start + 2), 16) / 255;
-  const components: readonly [number, number, number] = [component(0), component(2), component(4)];
-  const alpha = expanded.length === 8 ? Number.parseInt(expanded.slice(6, 8), 16) / 255 : 1;
-  return { colorSpace: "srgb", components, alpha, original: input };
-}
-
-function numericTriple(
-  value: JsonValue | undefined,
-): readonly [number, number, number] | undefined {
-  if (!Array.isArray(value) || value.length !== 3) return undefined;
-  const [first, second, third] = value;
-  if (typeof first !== "number" || typeof second !== "number" || typeof third !== "number")
-    return undefined;
-  return [first, second, third];
-}
-
 function isNamedFontWeight(value: string): value is NamedFontWeight {
   return FONT_WEIGHTS.has(value);
 }
 
-function isTokenType(value: string): value is TokenType {
-  return TOKEN_TYPES.has(value);
-}
-
-function parseColor(value: JsonValue): ColorValue | undefined {
-  if (typeof value === "string") {
-    if (value.startsWith("#")) return parseHex(value);
-    return value.trim() ? { colorSpace: "css", value } : undefined;
-  }
-  if (value === null || Array.isArray(value) || typeof value !== "object") return undefined;
-  const space = value.colorSpace;
-  const components = numericTriple(value.components);
-  const alpha = value.alpha === undefined ? 1 : value.alpha;
-  if ((space !== "srgb" && space !== "oklch") || !components || typeof alpha !== "number")
-    return undefined;
-  return { colorSpace: space, components, alpha };
-}
-
 function parseLiteral(type: TokenType, value: JsonValue): TokenLiteral | undefined {
-  if (type === "color") return parseColor(value);
   if (type === "number") return typeof value === "number" ? value : undefined;
+  if (type === "fontFamily") {
+    if (typeof value === "string" && value.trim()) return value;
+    if (
+      Array.isArray(value) &&
+      value.length > 0 &&
+      value.every((family) => typeof family === "string" && family.trim())
+    )
+      return value;
+    return undefined;
+  }
   if (type === "dimension") {
     if (
       value !== null &&
@@ -225,6 +179,7 @@ function parseContextSelector(input: string): CompilationContext | undefined {
 function parseExpression(
   valueNode: Node,
   type: TokenType,
+  dialect: TokenDialect,
   locator: Locator,
   diagnostics: Diagnostic[],
 ): TokenExpression | undefined {
@@ -255,6 +210,28 @@ function parseExpression(
     });
     return undefined;
   }
+  if (type === "color") {
+    const parsed = parseColorValue(value, dialect);
+    if ("value" in parsed) return { kind: "literal", value: parsed.value };
+    diagnostics.push({
+      code:
+        parsed.error === "unsupported-space"
+          ? "DTCG_UNSUPPORTED_COLOR_SPACE"
+          : dialect === "dtcg-2025.10"
+            ? "DTCG_INVALID_COLOR"
+            : "TOKEN_INVALID_VALUE",
+      severity: "error",
+      message:
+        parsed.error === "shorthand"
+          ? "Expected a structured DTCG color value; string colors are tokenc shorthand. Use dialect `tokenc` to accept this value"
+          : parsed.error === "unsupported-space"
+            ? "Unsupported DTCG color space"
+            : "Invalid DTCG color value",
+      source,
+      ...(parsed.error === "shorthand" ? { suggestions: ['Use dialect: "tokenc"'] } : {}),
+    });
+    return undefined;
+  }
   const literal = parseLiteral(type, value);
   if (literal === undefined) {
     diagnostics.push({
@@ -271,6 +248,7 @@ function parseExpression(
 function readOverrides(
   tokenNode: Node,
   type: TokenType,
+  dialect: TokenDialect,
   locator: Locator,
   diagnostics: Diagnostic[],
 ): ContextOverride[] {
@@ -305,20 +283,37 @@ function readOverrides(
             findProperty(rawValueNode, "$value") ?? { type: "null", offset: 0, length: 0 },
           )
         : undefined;
-    const expression = parseExpression(wrappedValue ?? rawValueNode, type, locator, diagnostics);
+    const expression = parseExpression(
+      wrappedValue ?? rawValueNode,
+      type,
+      dialect,
+      locator,
+      diagnostics,
+    );
     if (expression)
       result.push({
         selector,
         expression,
         source: locator.at(rawValueNode.offset, rawValueNode.length),
+        origin: "tokenc-context",
       });
   }
   return result;
 }
 
+export interface ParseTokenDocumentOptions {
+  readonly dialect?: TokenDialect;
+  readonly origin?: SourceLocation;
+}
+
 /** Parse one DTCG JSON document without performing file-system IO. */
-export function parseTokenDocument(content: string, source: string): ParsedTokenDocument {
-  const locator = new Locator(content, source);
+export function parseTokenDocument(
+  content: string,
+  source: string,
+  options: ParseTokenDocumentOptions = {},
+): ParsedTokenDocument {
+  const dialect = options.dialect ?? DEFAULT_TOKEN_DIALECT;
+  const locator = new Locator(content, source, options.origin);
   const parseErrors: ParseError[] = [];
   const root = parseTree(content, parseErrors, {
     allowTrailingComma: false,
@@ -349,9 +344,76 @@ export function parseTokenDocument(content: string, source: string): ParsedToken
         });
     }
 
+    if (dialect === "dtcg-2025.10") {
+      const descriptionProperty = findProperty(node, "$description");
+      if (descriptionProperty && typeof propertyValue(descriptionProperty)?.value !== "string")
+        diagnostics.push({
+          code: "DTCG_INVALID_DESCRIPTION",
+          severity: "error",
+          message: "DTCG `$description` must be a string",
+          source: locator.at(descriptionProperty.offset, descriptionProperty.length),
+        });
+      const extensionsProperty = findProperty(node, "$extensions");
+      if (extensionsProperty && propertyValue(extensionsProperty)?.type !== "object")
+        diagnostics.push({
+          code: "DTCG_INVALID_EXTENSIONS",
+          severity: "error",
+          message: "DTCG `$extensions` must be an object",
+          source: locator.at(extensionsProperty.offset, extensionsProperty.length),
+        });
+      const deprecatedProperty = findProperty(node, "$deprecated");
+      const deprecatedValue = deprecatedProperty
+        ? propertyValue(deprecatedProperty)?.value
+        : undefined;
+      if (
+        deprecatedProperty &&
+        typeof deprecatedValue !== "boolean" &&
+        typeof deprecatedValue !== "string"
+      )
+        diagnostics.push({
+          code: "DTCG_INVALID_DEPRECATED",
+          severity: "error",
+          message: "DTCG `$deprecated` must be a boolean or string",
+          source: locator.at(deprecatedProperty.offset, deprecatedProperty.length),
+        });
+    }
+
     const valueProperty = findProperty(node, "$value");
     if (valueProperty) {
       const valueNode = propertyValue(valueProperty);
+      const childProperties = properties(node).filter(
+        (property) => !propertyName(property).startsWith("$"),
+      );
+      if (dialect === "dtcg-2025.10" && childProperties.length > 0) {
+        diagnostics.push({
+          code: "DTCG_INVALID_TOKEN_STRUCTURE",
+          severity: "error",
+          message: "A DTCG object cannot be both a token and a group",
+          source: locator.at(node.offset, node.length),
+          related: childProperties.map((property) => ({
+            message: `Child \`${propertyName(property)}\` makes this object a group`,
+            source: locator.at(property.offset, property.length),
+          })),
+        });
+        return;
+      }
+      if (dialect === "dtcg-2025.10") {
+        const allowed = new Set(["$value", "$type", "$description", "$extensions", "$deprecated"]);
+        for (const property of properties(node)) {
+          const name = propertyName(property);
+          if (name.startsWith("$") && !allowed.has(name))
+            diagnostics.push({
+              code:
+                name === "$ref" ? "DTCG_UNSUPPORTED_JSON_POINTER" : "DTCG_INVALID_TOKEN_PROPERTY",
+              severity: "error",
+              message:
+                name === "$ref"
+                  ? "Property-level JSON Pointer references are not supported in this release"
+                  : `Unknown DTCG token property \`${name}\``,
+              source: locator.at(property.offset, property.length),
+            });
+        }
+      }
       if (path.length === 0 || !type || !valueNode) {
         diagnostics.push({
           code: type ? "TOKEN_INVALID_ID" : "TOKEN_MISSING_TYPE",
@@ -363,7 +425,17 @@ export function parseTokenDocument(content: string, source: string): ParsedToken
         });
         return;
       }
-      const expression = parseExpression(valueNode, type, locator, diagnostics);
+      const invalidSegment = path.find((segment) => !isValidTokenSegment(segment, dialect));
+      if (invalidSegment) {
+        diagnostics.push({
+          code: dialect === "dtcg-2025.10" ? "DTCG_INVALID_TOKEN_NAME" : "TOKEN_INVALID_ID",
+          severity: "error",
+          message: `Invalid token path segment \`${invalidSegment}\``,
+          source: locator.at(node.offset, node.length),
+        });
+        return;
+      }
+      const expression = parseExpression(valueNode, type, dialect, locator, diagnostics);
       if (!expression) return;
       const id = tokenIdFromSegments(path);
       const descriptionProperty = findProperty(node, "$description");
@@ -373,7 +445,11 @@ export function parseTokenDocument(content: string, source: string): ParsedToken
       const extensionsProperty = findProperty(node, "$extensions");
       const extensionsNode = extensionsProperty ? propertyValue(extensionsProperty) : undefined;
       const extensionsValue = extensionsNode ? jsonValue(extensionsNode) : undefined;
-      const overrides = readOverrides(node, type, locator, diagnostics);
+      const deprecatedProperty = findProperty(node, "$deprecated");
+      const deprecatedValue = deprecatedProperty
+        ? propertyValue(deprecatedProperty)?.value
+        : undefined;
+      const overrides = readOverrides(node, type, dialect, locator, diagnostics);
       const dependencies = [expression, ...overrides.map((override) => override.expression)]
         .filter(
           (candidate): candidate is Extract<TokenExpression, { kind: "reference" }> =>
@@ -389,6 +465,9 @@ export function parseTokenDocument(content: string, source: string): ParsedToken
         source: locator.at(node.offset, node.length),
         dependencies: [...new Set(dependencies)],
         ...(typeof descriptionValue === "string" ? { description: descriptionValue } : {}),
+        ...(typeof deprecatedValue === "boolean" || typeof deprecatedValue === "string"
+          ? { deprecated: deprecatedValue }
+          : {}),
         ...(extensionsValue &&
         !Array.isArray(extensionsValue) &&
         typeof extensionsValue === "object"
@@ -399,10 +478,60 @@ export function parseTokenDocument(content: string, source: string): ParsedToken
       return;
     }
 
+    const rootProperty = findProperty(node, "$root");
+    const rootToken = rootProperty ? propertyValue(rootProperty) : undefined;
+    if (rootToken) visit(rootToken, [...path, "$root"], type);
+    if (dialect === "dtcg-2025.10") {
+      const tokenReference = findProperty(node, "$ref");
+      if (tokenReference)
+        diagnostics.push({
+          code: "DTCG_UNSUPPORTED_JSON_POINTER",
+          severity: "error",
+          message: "Property-level JSON Pointer references are not supported in this release",
+          source: locator.at(tokenReference.offset, tokenReference.length),
+        });
+      const unsupportedExtends = findProperty(node, "$extends");
+      if (unsupportedExtends)
+        diagnostics.push({
+          code: "DTCG_UNSUPPORTED_GROUP_EXTENDS",
+          severity: "error",
+          message: "DTCG group `$extends` is not supported in this release",
+          source: locator.at(unsupportedExtends.offset, unsupportedExtends.length),
+        });
+      const allowed = new Set([
+        "$type",
+        "$description",
+        "$extensions",
+        "$extends",
+        "$ref",
+        "$deprecated",
+        "$root",
+      ]);
+      for (const property of properties(node)) {
+        const name = propertyName(property);
+        if (name.startsWith("$") && !allowed.has(name))
+          diagnostics.push({
+            code: "DTCG_INVALID_GROUP_PROPERTY",
+            severity: "error",
+            message: `Unknown DTCG group property \`${name}\``,
+            source: locator.at(property.offset, property.length),
+          });
+      }
+    }
+
     for (const property of properties(node)) {
       const name = propertyName(property);
       const child = propertyValue(property);
-      if (!name.startsWith("$") && child?.type === "object") visit(child, [...path, name], type);
+      if (!name.startsWith("$") && child?.type === "object") {
+        if (!isValidTokenSegment(name, dialect)) {
+          diagnostics.push({
+            code: dialect === "dtcg-2025.10" ? "DTCG_INVALID_TOKEN_NAME" : "TOKEN_INVALID_ID",
+            severity: "error",
+            message: `Invalid token path segment \`${name}\``,
+            source: locator.at(property.offset, property.length),
+          });
+        } else visit(child, [...path, name], type);
+      }
     }
   };
   visit(root, []);

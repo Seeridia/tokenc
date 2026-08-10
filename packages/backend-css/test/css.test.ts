@@ -55,4 +55,27 @@ describe("CSS backend", () => {
     });
     expect(result.outputs[0]?.content).toContain("--dt-color.blue.600");
   });
+
+  it("serializes strict DTCG color spaces without converting them", async () => {
+    const result = await compileDocuments(
+      [
+        {
+          file: "strict.json",
+          content: JSON.stringify({
+            accent: {
+              $type: "color",
+              $value: { colorSpace: "hsl", components: [120, 50, 25], alpha: 0.5 },
+            },
+            wide: {
+              $type: "color",
+              $value: { colorSpace: "display-p3", components: [0.1, 0.2, 0.3] },
+            },
+          }),
+        },
+      ],
+      { dialect: "dtcg-2025.10", outputs: [css()] },
+    );
+    expect(result.outputs[0]?.content).toContain("--accent: hsl(120 50% 25% / 0.5);");
+    expect(result.outputs[0]?.content).toContain("--wide: color(display-p3 0.1 0.2 0.3);");
+  });
 });

@@ -1,0 +1,17 @@
+{
+  "color": {
+    "$type": "color",
+    "blue": {
+      "600": {
+        "$value": {
+          "colorSpace": "display-p3",
+          "components": [0, 0.32, 0.85],
+          "hex": "#0052d9"
+        }
+      }
+    },
+    "brand": {
+      "default": { "$value": "{color.blue.600}" }
+    }
+  }
+}

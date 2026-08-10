@@ -1,11 +1,14 @@
 import type { TokenId } from "./model.js";
 
-const SEGMENT = /^[^.$\s{}]+$/u;
+const SEGMENT = /^[^.${}]+$/u;
 
 /** Parse and validate a canonical dot-separated token ID. */
 export function parseTokenId(input: string): TokenId {
   const normalized = input.trim();
-  if (!normalized || normalized.split(".").some((part) => !SEGMENT.test(part))) {
+  if (
+    !normalized ||
+    normalized.split(".").some((part) => part !== "$root" && !SEGMENT.test(part))
+  ) {
     throw new TypeError(`Invalid token ID: ${input}`);
   }
   // Branded strings have no runtime constructor; this is the single assertion after validation.
