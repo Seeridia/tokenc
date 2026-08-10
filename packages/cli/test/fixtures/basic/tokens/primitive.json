@@ -2,8 +2,22 @@
   "color": {
     "$type": "color",
     "blue": {
-      "600": { "$value": "#0052D9" },
-      "700": { "$value": "#003CAB" }
+      "600": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0, 0.3215686275, 0.8509803922],
+          "alpha": 1,
+          "hex": "#0052D9"
+        }
+      },
+      "700": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0, 0.2352941176, 0.6705882353],
+          "alpha": 1,
+          "hex": "#003CAB"
+        }
+      }
     }
   }
 }

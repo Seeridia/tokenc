@@ -5,8 +5,22 @@ import { typescript } from "../src/index.js";
 
 const source = {
   file: "tokens.json",
-  content:
-    '{"color":{"$type":"color","blue":{"600":{"$value":"#0052D9"}},"brand":{"default":{"$value":"{color.blue.600}"}}}}',
+  content: JSON.stringify({
+    color: {
+      $type: "color",
+      blue: {
+        "600": {
+          $value: {
+            colorSpace: "srgb",
+            components: [0, 82 / 255, 217 / 255],
+            alpha: 1,
+            hex: "#0052D9",
+          },
+        },
+      },
+      brand: { default: { $value: "{color.blue.600}" } },
+    },
+  }),
 };
 
 describe("TypeScript backend", () => {
@@ -15,7 +29,7 @@ describe("TypeScript backend", () => {
       outputs: [typescript({ mode: "flat", references: "symbol" })],
     });
     expect(result.outputs[0]?.content).toBe(
-      'export const colorBlue600 = "#0052D9";\nexport const colorBrandDefault = colorBlue600;\n',
+      'export const colorBlue600 = "#0052d9";\nexport const colorBrandDefault = colorBlue600;\n',
     );
   });
 
@@ -23,14 +37,14 @@ describe("TypeScript backend", () => {
     const result = await compileDocuments([source], {
       outputs: [typescript({ mode: "flat", references: "resolve" })],
     });
-    expect(result.outputs[0]?.content).toContain('export const colorBrandDefault = "#0052D9";');
+    expect(result.outputs[0]?.content).toContain('export const colorBrandDefault = "#0052d9";');
   });
 
   it("emits a nested const object", async () => {
     const result = await compileDocuments([source], { outputs: [typescript({ mode: "object" })] });
     expect(result.outputs[0]?.content).toContain('export const tokens = {\n  "color": {');
-    expect(result.outputs[0]?.content).toContain('"600": "#0052D9"');
-    expect(result.outputs[0]?.content).toContain('"default": "#0052D9"');
+    expect(result.outputs[0]?.content).toContain('"600": "#0052d9"');
+    expect(result.outputs[0]?.content).toContain('"default": "#0052d9"');
     expect(result.outputs[0]?.content).toContain("} as const;");
   });
 });

@@ -1,11 +1,4 @@
-import type {
-  ColorComponent,
-  ColorSpace,
-  ColorValue,
-  JsonValue,
-  TokenDialect,
-  TokenLiteral,
-} from "../model.js";
+import type { ColorComponent, ColorSpace, ColorValue, JsonValue, TokenLiteral } from "../model.js";
 
 export const COLOR_SPACES: ReadonlySet<string> = new Set([
   "srgb",
@@ -26,29 +19,6 @@ export const COLOR_SPACES: ReadonlySet<string> = new Set([
 
 function isColorSpace(value: string): value is ColorSpace {
   return COLOR_SPACES.has(value);
-}
-
-function parseHex(input: string): ColorValue | undefined {
-  const value = input.slice(1);
-  if (!/^(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/iu.test(value)) return undefined;
-  const expanded =
-    value.length <= 4
-      ? value
-          .split("")
-          .map((part) => `${part}${part}`)
-          .join("")
-      : value;
-  const component = (start: number): number =>
-    Number.parseInt(expanded.slice(start, start + 2), 16) / 255;
-  const components: readonly [number, number, number] = [component(0), component(2), component(4)];
-  const alpha = expanded.length === 8 ? Number.parseInt(expanded.slice(6, 8), 16) / 255 : 1;
-  return {
-    colorSpace: "srgb",
-    components,
-    alpha,
-    original: input,
-    ...(expanded.length === 6 ? { hex: `#${expanded}` } : {}),
-  };
 }
 
 function colorComponent(value: JsonValue): value is ColorComponent {
@@ -96,28 +66,18 @@ function validComponents(space: ColorSpace, values: readonly ColorComponent[]): 
   return inRange(first, 0, 1) && inRange(second, 0) && hue(third);
 }
 
-export type ColorParseError = "invalid" | "shorthand" | "unsupported-space";
+export type ColorParseError = "invalid" | "non-structured" | "unsupported-space";
 
 export type ColorParseResult = { readonly value: ColorValue } | { readonly error: ColorParseError };
 
 export function isColorValue(value: TokenLiteral): value is ColorValue {
   if (typeof value !== "object" || value === null || !("colorSpace" in value)) return false;
-  return (
-    value.colorSpace === "css" ||
-    (typeof value.colorSpace === "string" && COLOR_SPACES.has(value.colorSpace))
-  );
+  return typeof value.colorSpace === "string" && COLOR_SPACES.has(value.colorSpace);
 }
 
 /** Validate and normalize a color without performing color-space conversion. */
-export function parseColorValue(value: JsonValue, dialect: TokenDialect): ColorParseResult {
-  if (typeof value === "string") {
-    if (dialect === "dtcg-2025.10") return { error: "shorthand" };
-    if (value.startsWith("#")) {
-      const parsed = parseHex(value);
-      return parsed ? { value: parsed } : { error: "invalid" };
-    }
-    return value.trim() ? { value: { colorSpace: "css", value } } : { error: "invalid" };
-  }
+export function parseColorValue(value: JsonValue): ColorParseResult {
+  if (typeof value === "string") return { error: "non-structured" };
   if (value === null || Array.isArray(value) || typeof value !== "object")
     return { error: "invalid" };
   const rawSpace = value.colorSpace;

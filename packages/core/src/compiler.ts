@@ -23,7 +23,6 @@ import type {
   ParsedTokenDocument,
   ResolvedToken,
   ResolutionTrace,
-  TokenDialect,
   TokenId,
   TokenNode,
 } from "./model.js";
@@ -37,8 +36,6 @@ export interface TokenBackend {
 
 export interface CompilerConfig {
   readonly source: readonly string[];
-  /** Defaults to `tokenc` for v0.x backward compatibility. */
-  readonly dialect?: TokenDialect;
   readonly contexts?: ContextDefinition;
   readonly outputs?: readonly TokenBackend[];
   readonly cwd?: string;
@@ -51,7 +48,6 @@ export interface ResolverFileConfig {
 }
 
 export interface CompileDocumentsOptions {
-  readonly dialect?: TokenDialect;
   readonly contexts?: ContextDefinition;
   readonly outputs?: readonly TokenBackend[];
   readonly affectedTokens?: ReadonlySet<TokenId>;
@@ -200,12 +196,8 @@ export async function compileDocuments(
     ? resolveResolverDocument(options.resolver, sources, options.resolverInput)
     : options.resolution;
   const effectiveSources = resolution?.sources ?? sources;
-  const dialect = options.dialect ?? (options.resolver ? "dtcg-2025.10" : undefined);
   const documents = effectiveSources.map((source) =>
-    parseTokenDocument(source.content, source.file, {
-      ...(dialect ? { dialect } : {}),
-      ...(source.origin ? { origin: source.origin } : {}),
-    }),
+    parseTokenDocument(source.content, source.file, source.origin ? { origin: source.origin } : {}),
   );
   const parseTime = performance.now() - parseStart;
   return compileParsedDocuments(
@@ -318,7 +310,6 @@ export async function compile(config: CompilerConfig): Promise<CompilationResult
     }
   }
   return compileDocuments(sources, {
-    ...(config.dialect ? { dialect: config.dialect } : {}),
     ...(config.contexts ? { contexts: config.contexts } : {}),
     ...(config.outputs ? { outputs: config.outputs } : {}),
     ...(resolver ? { resolver } : {}),

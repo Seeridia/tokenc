@@ -34,7 +34,7 @@ function percentage(value: ColorComponent): string {
   return value === "none" ? value : `${value}%`;
 }
 
-function colorComponents(value: Exclude<ColorValue, { colorSpace: "css" }>): string {
+function colorComponents(value: ColorValue): string {
   const [first, second, third] = value.components;
   if (value.colorSpace === "hsl" || value.colorSpace === "hwb")
     return [component(first), percentage(second), percentage(third)].join(" ");
@@ -56,8 +56,6 @@ export function tokenIdentifier(id: TokenId): string {
 }
 
 function colorString(value: ColorValue): string {
-  if (value.colorSpace === "css") return value.value;
-  if (value.original) return value.original;
   const components = colorComponents(value);
   const alpha = value.alpha < 1 ? ` / ${value.alpha}` : "";
   if (["hsl", "hwb", "lab", "lch", "oklab", "oklch"].includes(value.colorSpace))

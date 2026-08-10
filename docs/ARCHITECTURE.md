@@ -7,8 +7,8 @@
 ## Pipeline
 
 ```text
-strict DTCG / tokenc compatibility document
-  → dialect parser + normalizer
+DTCG 2025.10 token document
+  → DTCG parser + validator
   → typed TokenNode[] + structured diagnostics
   → optional DTCG Resolver sets/modifiers/resolutionOrder
   → TokenGraph
@@ -21,11 +21,24 @@ strict DTCG / tokenc compatibility document
 
 The high-level `compile()` function performs loading and the full pipeline. `compileDocuments()` accepts virtual inputs. No core stage writes output or terminates a process.
 
-## Dialect and normalization boundary
+## One source language
 
-DTCG 2025.10 is the standard source language. The explicit `dtcg-2025.10` dialect validates strict structured values; the v0.x-default `tokenc` dialect retains conveniences such as CSS color strings. Both paths normalize before graph construction, so the checker, resolver, IR, and backends never branch on source syntax.
+tokenc intentionally supports one compiler source language: DTCG 2025.10. There is no compiler configuration switch for proprietary syntax. This keeps the parser, graph, resolver, checker, and backends operating on one well-defined language model. Non-DTCG token formats must be converted before compilation.
 
-The parser is split from DTCG color and format validation. Color representation is preserved in core while serialization or conversion remains backend policy. The exact supported surface is documented in the [DTCG compatibility matrix](DTCG-COMPATIBILITY.md).
+The DTCG version remains explicit in validation, diagnostics, Resolver documents, and documentation without becoming an end-user language selector. The parser is split from DTCG color and format validation. Color representation is preserved in core while serialization or conversion remains backend policy. The exact supported surface is documented in the [DTCG support matrix](DTCG-SUPPORT.md).
+
+### Importer / migrator boundary
+
+An optional importer sits outside the compiler:
+
+```text
+foreign or legacy syntax
+  → importer / migrator
+  → DTCG 2025.10 source
+  → tokenc compiler
+```
+
+An importer understands foreign syntax, converts values, emits valid DTCG, and reports migration diagnostics. The compiler parses and validates DTCG, builds typed semantic nodes and graph edges, resolves and checks them, then emits platform artifacts. Importers must not bypass the DTCG parser by constructing `TokenNode` objects directly. No migrator is part of the compiler core in this release.
 
 ## Parser and source provenance
 
@@ -77,11 +90,11 @@ An alias is not string interpolation—it is a semantic dependency. Once represe
 
 ## Context resolver
 
-Contexts are immutable key/value inputs such as `theme=dark` or `brand=enterprise`. Base values and sparse compatibility overrides remain attached to one node. Selection uses explicit precedence, specificity, then configured dimension order; equal matches no longer depend on JSON declaration order.
+Contexts are immutable key/value inputs such as `theme=dark` or `brand=enterprise`. Base values and sparse extension overrides remain attached to one node. Selection uses explicit precedence, specificity, then configured dimension order; equal matches no longer depend on JSON declaration order.
 
 Resolution is lazy and cached by `(TokenId, Context)`. The compiler records only the default context and override combinations actually declared in source. It never materializes complete dictionaries for a theme × brand × density Cartesian product.
 
-The namespaced `$extensions["org.token-compiler.contexts"]` form remains compatibility syntax and normalizes into typed context overrides consumed by the same `TokenResolver`.
+The namespaced `$extensions["org.token-compiler.contexts"]` form represents runtime context-dependent values within one compilation and normalizes into typed context overrides consumed by the same `TokenResolver`. DTCG Resolver instead composes sources before graph construction, so the two mechanisms have distinct semantics.
 
 ## DTCG Resolver Module
 

@@ -1,6 +1,6 @@
 # tokenc
 
-![tokenc — A DTCG-native, typed, graph-based Design Token compiler](docs/assets/cover.png)
+![tokenc — A typed, graph-based compiler for DTCG Design Tokens](docs/assets/cover.png)
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
@@ -9,9 +9,9 @@
 [![Node.js](https://img.shields.io/node/v/%40tokenc%2Fcore.svg)](https://nodejs.org/)
 [![License](https://img.shields.io/github/license/Seeridia/tokenc)](LICENSE)
 
-> 一个以 DTCG 2025.10 为一等输入、强类型且基于依赖图的 Design Token 编译器。
+> 一个面向 DTCG Design Token、强类型且基于依赖图的编译器。
 
-`tokenc` 将 Design Token 作为强类型程序编译，而不是将 JSON 合并后套用模板。它解析
+`tokenc` 将 Design Token 作为强类型程序编译。它解析
 DTCG、检查引用和类型、惰性求值 Context，并通过独立 Backend 输出 CSS、Tailwind CSS 或
 TypeScript。
 
@@ -32,9 +32,8 @@ TypeScript。
 
 需要 Node.js 22.13 或更高版本。
 
-下方示例使用默认的 `tokenc` 兼容 dialect：简写颜色会在语义分析前被归一化。若要严格校验结构化
-DTCG 输入，请设置 `dialect: "dtcg-2025.10"`。完整状态参见
-[DTCG 兼容矩阵](docs/DTCG-COMPATIBILITY.zh-CN.md)。
+`tokenc` 只消费 DTCG 2025.10 Token 文档。标准功能的已实现与尚未实现范围参见
+[DTCG 支持矩阵](docs/DTCG-SUPPORT.zh-CN.md)。
 
 ```bash
 npm install --save-dev @tokenc/cli @tokenc/core @tokenc/backend-css
@@ -47,7 +46,14 @@ npm install --save-dev @tokenc/cli @tokenc/core @tokenc/backend-css
   "color": {
     "$type": "color",
     "blue": {
-      "600": { "$value": "#0052D9" }
+      "600": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0, 0.3215686275, 0.8509803922],
+          "alpha": 1,
+          "hex": "#0052D9"
+        }
+      }
     },
     "brand": {
       "default": { "$value": "{color.blue.600}" }
@@ -63,7 +69,6 @@ import { css } from "@tokenc/backend-css";
 import { defineConfig } from "@tokenc/core";
 
 export default defineConfig({
-  dialect: "tokenc",
   source: ["tokens/**/*.json"],
   outputs: [
     css({
@@ -88,7 +93,7 @@ npx tokenc build
 ```
 
 [基础示例](examples/basic)包含 CSS、Tailwind CSS、TypeScript、别名和组件 Token 的完整配置。
-[严格 Resolver 示例](examples/dtcg-resolver)展示结构化 DTCG Color、Set、Modifier 与显式 Resolution Order。
+[Resolver 示例](examples/dtcg-resolver)展示结构化 DTCG Color、Set、Modifier 与显式 Resolution Order。
 
 ## CLI
 
@@ -108,9 +113,9 @@ npx tokenc build
 ## 编译器模型
 
 ```text
-严格 DTCG / tokenc 兼容语法
+DTCG 2025.10
     ↓
-Parser + Normalizer
+Parser
     ↓
 Typed AST + source provenance
     ↓
@@ -137,8 +142,12 @@ typescript({ references: "symbol" });
 ```
 
 DTCG 2025.10 Resolver Module 是一等输入：Set 与 Modifier 按显式 `resolutionOrder` 组合，再在结果
-Graph 上检查 Alias。原有 `org.token-compiler.contexts` 扩展继续作为兼容语法，并归一化为具有确定性
-优先级的强类型 Context Override。
+Graph 上检查 Alias。`org.token-compiler.contexts` 是 DTCG 扩展，用于表示一次编译中的运行时
+Context-dependent value；它与 Resolver 的源组合语义不同，并会归一化为具有确定性优先级的强类型
+Context Override。
+
+非 DTCG 格式不属于编译器输入语言。旧 Token 文件应先转换为 DTCG；Importer/Migrator 的输出必须是
+DTCG，而不能绕过 DTCG Parser 直接构造语义节点。
 
 完整数据模型、Context 语义、增量失效与 Backend 契约参见[架构文档](docs/ARCHITECTURE.zh-CN.md)。
 
@@ -177,8 +186,8 @@ Parser 不依赖文件系统 IO。
 | 完整校验            | `color`、`dimension`、`fontFamily`、`number`、`duration`、`fontWeight`                   |
 | 基础 Composite 模型 | `cubicBezier`、`strokeStyle`、`border`、`transition`、`shadow`、`gradient`、`typography` |
 
-严格模式保留全部 14 种 DTCG 2025.10 颜色空间，兼容模式额外接受 CSS string。平台转换仍由 Backend 负责；Composite 类型将在后续
-版本中补充更深入的字段级校验。
+DTCG Color 保留全部 14 种标准颜色空间、`none` 分量、alpha 与可选 hex fallback。字符串颜色简写
+不是编译器输入。平台转换仍由 Backend 负责；Composite 类型将在后续版本中补充更深入的字段级校验。
 
 ## 开发
 
@@ -196,7 +205,7 @@ vp test --run
 ## 文档
 
 - [架构文档](docs/ARCHITECTURE.zh-CN.md) · [English](docs/ARCHITECTURE.md)
-- [DTCG 2025.10 兼容性](docs/DTCG-COMPATIBILITY.zh-CN.md) · [English](docs/DTCG-COMPATIBILITY.md)
+- [DTCG 2025.10 支持矩阵](docs/DTCG-SUPPORT.zh-CN.md) · [English](docs/DTCG-SUPPORT.md)
 - [Compiler Benchmark](benchmarks/README.md)
 - [参与贡献](CONTRIBUTING.md)
 - [发布流程](docs/RELEASING.md)

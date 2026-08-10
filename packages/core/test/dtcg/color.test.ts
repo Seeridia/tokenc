@@ -10,9 +10,7 @@ const fixture = (name: string): string =>
 
 describe("DTCG 2025.10 colors", () => {
   it("accepts and preserves structured colors without conversion", () => {
-    const result = parseTokenDocument(fixture("valid-structured.json"), "colors.json", {
-      dialect: "dtcg-2025.10",
-    });
+    const result = parseTokenDocument(fixture("valid-structured.json"), "colors.json");
     expect(result.diagnostics).toEqual([]);
     expect(result.tokens[0]?.value).toMatchObject({
       kind: "literal",
@@ -25,30 +23,19 @@ describe("DTCG 2025.10 colors", () => {
     });
   });
 
-  it("rejects string shorthand in strict mode with a discoverable diagnostic", () => {
-    const result = parseTokenDocument(fixture("invalid-shorthand.json"), "shorthand.json", {
-      dialect: "dtcg-2025.10",
-    });
+  it("rejects string shorthand with a DTCG diagnostic", () => {
+    const result = parseTokenDocument(fixture("invalid-shorthand.json"), "shorthand.json");
     expect(result.diagnostics[0]).toMatchObject({
       code: "DTCG_INVALID_COLOR",
-      suggestions: ['Use dialect: "tokenc"'],
+      message: expect.stringContaining("structured DTCG color value"),
       source: { file: "shorthand.json", line: 4 },
     });
-  });
-
-  it("keeps shorthand enabled in the default compatibility dialect", () => {
-    const result = parseTokenDocument(fixture("invalid-shorthand.json"), "shorthand.json");
-    expect(result.diagnostics).toEqual([]);
-    expect(result.tokens[0]?.value).toMatchObject({
-      kind: "literal",
-      value: { colorSpace: "srgb", original: "#0052D9" },
-    });
+    expect(result.diagnostics[0]?.suggestions).toBeUndefined();
+    expect(result.tokens).toEqual([]);
   });
 
   it("validates component ranges before backend emission", () => {
-    const result = parseTokenDocument(fixture("invalid-components.json"), "components.json", {
-      dialect: "dtcg-2025.10",
-    });
+    const result = parseTokenDocument(fixture("invalid-components.json"), "components.json");
     expect(result.diagnostics[0]?.code).toBe("DTCG_INVALID_COLOR");
   });
 
@@ -79,7 +66,6 @@ describe("DTCG 2025.10 colors", () => {
         ),
       ),
       "spaces.json",
-      { dialect: "dtcg-2025.10" },
     );
     expect(result.diagnostics).toEqual([]);
     expect(result.tokens).toHaveLength(14);
@@ -93,5 +79,27 @@ describe("DTCG 2025.10 colors", () => {
           : undefined,
       ),
     ).toEqual(Object.keys(values));
+  });
+
+  it("preserves none components, alpha, and the optional hex fallback", () => {
+    const result = parseTokenDocument(
+      JSON.stringify({
+        transparent: {
+          $type: "color",
+          $value: {
+            colorSpace: "srgb",
+            components: ["none", 0.25, 0.5],
+            alpha: 0,
+            hex: "#004080",
+          },
+        },
+      }),
+      "none.json",
+    );
+    expect(result.diagnostics).toEqual([]);
+    expect(result.tokens[0]?.value).toMatchObject({
+      kind: "literal",
+      value: { components: ["none", 0.25, 0.5], alpha: 0, hex: "#004080" },
+    });
   });
 });

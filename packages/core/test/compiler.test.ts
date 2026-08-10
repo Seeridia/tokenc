@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { compileDocuments, type TokenBackend } from "../src/compiler.js";
+import { compileDocuments, defineConfig, type TokenBackend } from "../src/compiler.js";
 import type { ColorValue } from "../src/model.js";
 import { parseTokenId } from "../src/token-id.js";
 
@@ -58,11 +58,33 @@ describe("compiler pipeline", () => {
 
   it("provides a type-directed backend view", async () => {
     const result = await compileDocuments([
-      { file: "typed.json", content: '{"brand":{"$type":"color","$value":"#0052D9"}}' },
+      {
+        file: "typed.json",
+        content: JSON.stringify({
+          brand: {
+            $type: "color",
+            $value: {
+              colorSpace: "srgb",
+              components: [0, 82 / 255, 217 / 255],
+              alpha: 1,
+              hex: "#0052D9",
+            },
+          },
+        }),
+      },
     ]);
     const value: ColorValue | undefined = result.compilation.tokensOfType("color")[0]?.value;
     expect(value).toMatchObject({ colorSpace: "srgb" });
     expect(result.compilation.tokensOfType("number")).toEqual([]);
+  });
+
+  it("exposes no compiler dialect configuration", () => {
+    expect(defineConfig({ source: [] })).toEqual({ source: [] });
+    void defineConfig({
+      source: [],
+      // @ts-expect-error -- tokenc compiles DTCG and no longer accepts a proprietary dialect.
+      dialect: "tokenc",
+    });
   });
 
   it("exposes source and completion queries for language tooling", async () => {

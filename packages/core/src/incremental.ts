@@ -82,10 +82,11 @@ export class IncrementalCompiler {
     for (const source of sources)
       this.#documents.set(
         source.file,
-        parseTokenDocument(source.content, source.file, {
-          ...(this.#options.dialect ? { dialect: this.#options.dialect } : {}),
-          ...(source.origin ? { origin: source.origin } : {}),
-        }),
+        parseTokenDocument(
+          source.content,
+          source.file,
+          source.origin ? { origin: source.origin } : {},
+        ),
       );
     for (const [file, document] of this.#documents)
       for (const token of document.tokens) this.#addOwner(file, token);
@@ -123,10 +124,11 @@ export class IncrementalCompiler {
   async update(source: TokenSourceInput): Promise<IncrementalUpdate> {
     const start = performance.now();
     const previousDocument = this.#documents.get(source.file);
-    const nextDocument = parseTokenDocument(source.content, source.file, {
-      ...(this.#options.dialect ? { dialect: this.#options.dialect } : {}),
-      ...(source.origin ? { origin: source.origin } : {}),
-    });
+    const nextDocument = parseTokenDocument(
+      source.content,
+      source.file,
+      source.origin ? { origin: source.origin } : {},
+    );
     const changed = changedIds(previousDocument, nextDocument);
     this.#documents.set(source.file, nextDocument);
     this.#replaceOwners(source.file, previousDocument, nextDocument);

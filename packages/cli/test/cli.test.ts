@@ -90,7 +90,7 @@ describe("tokenc CLI", () => {
     );
   });
 
-  it("builds and explains a strict DTCG resolver context selected by flags", async () => {
+  it("builds and explains a DTCG resolver context selected by flags", async () => {
     const build = await invokeAt(resolverCwd, ["build", "--theme", "dark"]);
     expect(build).toMatchObject({ code: 0, stderr: "" });
     expect(await readFile(`${resolverOutput}/tokens.css`, "utf8")).toContain(

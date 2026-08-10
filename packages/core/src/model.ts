@@ -19,8 +19,6 @@ export type TokenType =
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
-export type TokenDialect = "dtcg-2025.10" | "tokenc";
-
 export type ColorSpace =
   | "srgb"
   | "srgb-linear"
@@ -45,19 +43,12 @@ export interface DTCGColor {
   readonly components: readonly [ColorComponent, ColorComponent, ColorComponent];
   readonly alpha: number;
   readonly hex?: string;
-  readonly original?: string;
 }
 
 export type SRGBColor = DTCGColor & { readonly colorSpace: "srgb" };
 export type OKLCHColor = DTCGColor & { readonly colorSpace: "oklch" };
 
-/** A valid CSS color that the core deliberately leaves platform-neutral. */
-export interface CSSColor {
-  readonly colorSpace: "css";
-  readonly value: string;
-}
-
-export type ColorValue = DTCGColor | CSSColor;
+export type ColorValue = DTCGColor;
 
 export interface DimensionValue {
   readonly value: number;
@@ -142,7 +133,7 @@ export interface ContextOverride<T extends TokenType = TokenType> {
   readonly source: SourceLocation;
   /** Explicit semantic precedence; higher values win. */
   readonly precedence?: number;
-  readonly origin?: "resolver" | "tokenc-context";
+  readonly origin?: "resolver" | "extension-context";
 }
 
 /** A typed source-language token node, before context evaluation. */
@@ -237,7 +228,7 @@ export interface ResolutionTraceStep {
   readonly expression: TokenExpression;
   readonly source: SourceLocation;
   readonly selector?: CompilationContext;
-  readonly origin?: "resolver" | "tokenc-context";
+  readonly origin?: "resolver" | "extension-context";
   readonly precedence?: number;
 }
 

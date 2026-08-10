@@ -24,21 +24,21 @@ describe("context selection", () => {
   it("uses the base expression in the default context", () => {
     expect(selectTokenExpression(token, defaultContext(contexts))).toMatchObject({
       kind: "literal",
-      value: { original: "#ffffff" },
+      value: { hex: "#ffffff" },
     });
   });
 
   it("selects a dark-mode override", () => {
     expect(selectTokenExpression(token, { theme: "dark", brand: "default" })).toMatchObject({
       kind: "literal",
-      value: { original: "#111111" },
+      value: { hex: "#111111" },
     });
   });
 
   it("selects the most-specific multi-modifier override", () => {
     expect(selectTokenExpression(token, { theme: "dark", brand: "enterprise" })).toMatchObject({
       kind: "literal",
-      value: { original: "#003cab" },
+      value: { hex: "#003cab" },
     });
   });
 

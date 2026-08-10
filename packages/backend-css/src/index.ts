@@ -42,7 +42,7 @@ function percentage(value: ColorComponent): string {
   return value === "none" ? value : `${trimNumber(value)}%`;
 }
 
-function colorComponents(value: Exclude<ColorValue, { colorSpace: "css" }>): string {
+function colorComponents(value: ColorValue): string {
   const [first, second, third] = value.components;
   if (value.colorSpace === "hsl" || value.colorSpace === "hwb")
     return [component(first), percentage(second), percentage(third)].join(" ");
@@ -52,8 +52,6 @@ function colorComponents(value: Exclude<ColorValue, { colorSpace: "css" }>): str
 }
 
 function color(value: ColorValue): string {
-  if (value.colorSpace === "css") return value.value;
-  if (value.original) return value.original.toLowerCase();
   const components = colorComponents(value);
   const alpha = value.alpha < 1 ? ` / ${trimNumber(value.alpha)}` : "";
   if (["hsl", "hwb", "lab", "lch", "oklab", "oklch"].includes(value.colorSpace))

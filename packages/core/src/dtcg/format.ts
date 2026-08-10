@@ -1,12 +1,4 @@
-import type {
-  DimensionValue,
-  DurationValue,
-  TokenDialect,
-  TokenLiteral,
-  TokenType,
-} from "../model.js";
-
-export const DEFAULT_TOKEN_DIALECT: TokenDialect = "tokenc";
+import type { DimensionValue, DurationValue, TokenLiteral, TokenType } from "../model.js";
 
 export const TOKEN_TYPES: ReadonlySet<string> = new Set([
   "color",
@@ -30,10 +22,8 @@ export function isTokenType(value: string): value is TokenType {
   return TOKEN_TYPES.has(value);
 }
 
-export function isValidTokenSegment(segment: string, dialect: TokenDialect): boolean {
-  if (segment === "$root") return dialect === "dtcg-2025.10";
-  if (dialect === "dtcg-2025.10") return DTCG_NAME.test(segment);
-  return /^[^.$\s{}]+$/u.test(segment);
+export function isValidTokenSegment(segment: string): boolean {
+  return segment === "$root" || DTCG_NAME.test(segment);
 }
 
 export function isUnitValue(value: TokenLiteral): value is DimensionValue | DurationValue {

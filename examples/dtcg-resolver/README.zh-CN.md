@@ -1,4 +1,4 @@
-# 严格 DTCG Resolver 示例
+# DTCG Resolver 示例
 
 [English](README.md)
 

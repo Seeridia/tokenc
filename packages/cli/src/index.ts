@@ -174,10 +174,11 @@ function displayLiteral(value: TokenLiteral): string {
   if (
     value !== null &&
     typeof value === "object" &&
-    "original" in value &&
-    typeof value.original === "string"
+    "colorSpace" in value &&
+    "hex" in value &&
+    typeof value.hex === "string"
   )
-    return value.original;
+    return value.hex;
   if (
     value !== null &&
     typeof value === "object" &&
@@ -545,7 +546,6 @@ async function devCommand(parsed: ParsedArguments, io: CliIO): Promise<number> {
   let sources = await loadTokenFiles(config.source, config.cwd);
   let contents = new Map(sources.map((source) => [source.file, source.content]));
   let compiler = new IncrementalCompiler({
-    ...(config.dialect ? { dialect: config.dialect } : {}),
     ...(config.contexts ? { contexts: config.contexts } : {}),
     ...(config.outputs ? { outputs: config.outputs } : {}),
   });
@@ -582,7 +582,6 @@ async function devCommand(parsed: ParsedArguments, io: CliIO): Promise<number> {
           sources = await loadTokenFiles(config.source, config.cwd);
           contents = new Map(sources.map((source) => [source.file, source.content]));
           compiler = new IncrementalCompiler({
-            ...(config.dialect ? { dialect: config.dialect } : {}),
             ...(config.contexts ? { contexts: config.contexts } : {}),
             ...(config.outputs ? { outputs: config.outputs } : {}),
           });

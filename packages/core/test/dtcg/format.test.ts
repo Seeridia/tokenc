@@ -3,12 +3,11 @@ import { describe, expect, it } from "vite-plus/test";
 import { compileDocuments } from "../../src/compiler.js";
 import { parseTokenDocument } from "../../src/parser.js";
 
-describe("DTCG 2025.10 format dialect", () => {
-  it("passes the dialect through the high-level document compiler", async () => {
-    const result = await compileDocuments(
-      [{ file: "tokens.json", content: '{"a":{"$type":"color","$value":"red"}}' }],
-      { dialect: "dtcg-2025.10" },
-    );
+describe("DTCG 2025.10 format", () => {
+  it("uses DTCG semantics in the high-level document compiler", async () => {
+    const result = await compileDocuments([
+      { file: "tokens.json", content: '{"a":{"$type":"color","$value":"red"}}' },
+    ]);
     expect(result.success).toBe(false);
     expect(result.diagnostics[0]?.code).toBe("DTCG_INVALID_COLOR");
   });
@@ -17,7 +16,6 @@ describe("DTCG 2025.10 format dialect", () => {
     const result = parseTokenDocument(
       '{"font":{"$type":"fontFamily","$value":["Inter","sans-serif"]}}',
       "font.json",
-      { dialect: "dtcg-2025.10" },
     );
     expect(result.diagnostics).toEqual([]);
     expect(result.tokens[0]).toMatchObject({ type: "fontFamily" });
@@ -27,7 +25,6 @@ describe("DTCG 2025.10 format dialect", () => {
     const result = parseTokenDocument(
       '{"old":{"$type":"number","$value":1,"$deprecated":"Use new"}}',
       "deprecated.json",
-      { dialect: "dtcg-2025.10" },
     );
     expect(result.tokens[0]?.deprecated).toBe("Use new");
   });
@@ -36,7 +33,6 @@ describe("DTCG 2025.10 format dialect", () => {
     const result = parseTokenDocument(
       '{"spacing":{"$type":"dimension","$root":{"$value":{"value":16,"unit":"px"}},"small":{"$value":{"value":8,"unit":"px"}}}}',
       "root.json",
-      { dialect: "dtcg-2025.10" },
     );
     expect(result.diagnostics).toEqual([]);
     expect(result.tokens.map((token) => token.id)).toEqual(["spacing.$root", "spacing.small"]);
@@ -46,7 +42,6 @@ describe("DTCG 2025.10 format dialect", () => {
     const result = parseTokenDocument(
       '{"invalid":{"$type":"number","$value":1,"child":{"$value":2}}}',
       "structure.json",
-      { dialect: "dtcg-2025.10" },
     );
     expect(result.diagnostics[0]).toMatchObject({
       code: "DTCG_INVALID_TOKEN_STRUCTURE",
@@ -58,7 +53,6 @@ describe("DTCG 2025.10 format dialect", () => {
     const result = parseTokenDocument(
       '{"derived":{"$extends":"{base}","value":{"$type":"number","$value":1}}}',
       "extends.json",
-      { dialect: "dtcg-2025.10" },
     );
     expect(result.diagnostics[0]?.code).toBe("DTCG_UNSUPPORTED_GROUP_EXTENDS");
   });
@@ -67,7 +61,6 @@ describe("DTCG 2025.10 format dialect", () => {
     const result = parseTokenDocument(
       '{"value":{"$type":"number","$value":1,"$description":2,"$extensions":[],"$deprecated":3}}',
       "metadata.json",
-      { dialect: "dtcg-2025.10" },
     );
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
       "DTCG_INVALID_DESCRIPTION",
@@ -80,7 +73,6 @@ describe("DTCG 2025.10 format dialect", () => {
     const result = parseTokenDocument(
       '{"alias":{"$type":"number","$ref":"#/base/$value"}}',
       "pointer.json",
-      { dialect: "dtcg-2025.10" },
     );
     expect(result.diagnostics[0]?.code).toBe("DTCG_UNSUPPORTED_JSON_POINTER");
   });

@@ -2,6 +2,8 @@
 
 Command-line interface for the tokenc Design Token compiler.
 
+The CLI compiles DTCG 2025.10 token documents; it does not enable proprietary token syntax.
+
 Install the CLI and the backends referenced by your `tokenc.config.ts` as local development dependencies:
 
 ```bash

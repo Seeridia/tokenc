@@ -1,7 +1,7 @@
 {
   "name": "@tokenc/core",
   "version": "0.1.1",
-  "description": "DTCG-native, typed, graph-based Design Token compiler core",
+  "description": "Typed, graph-based compiler core for DTCG Design Tokens",
   "keywords": [
     "compiler",
     "design-system",

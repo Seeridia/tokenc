@@ -7,8 +7,8 @@
 ## 编译流水线
 
 ```text
-严格 DTCG / tokenc 兼容文档
-  → Dialect Parser + Normalizer
+DTCG 2025.10 Token 文档
+  → DTCG Parser + Validator
   → typed TokenNode[] + structured diagnostics
   → 可选 DTCG Resolver sets/modifiers/resolutionOrder
   → TokenGraph
@@ -21,11 +21,24 @@
 
 高层 `compile()` API 负责加载文件并执行完整流水线；`compileDocuments()` 接受虚拟输入。Core 中的任何阶段都不会直接写入输出文件或终止进程。
 
-## Dialect 与归一化边界
+## 单一源语言
 
-DTCG 2025.10 是标准源语言。显式 `dtcg-2025.10` dialect 校验严格结构化值；v0.x 默认的 `tokenc` dialect 保留 CSS 颜色字符串等便利写法。两条路径都会在 Graph 构建前归一化，因此 Checker、Resolver、IR 与 Backend 无需理解源语法差异。
+DTCG 2025.10 是 tokenc 刻意保留的唯一编译器源语言。配置中没有启用专有语法的开关，因此 Parser、Graph、Resolver、Checker 与 Backend 始终工作在一套定义明确的语言模型上。非 DTCG Token 格式必须在编译前完成转换。
 
-Parser 与 DTCG Format/Color 校验分离。Core 保留颜色语义，序列化或转换仍是 Backend policy。准确支持范围参见 [DTCG 兼容矩阵](DTCG-COMPATIBILITY.zh-CN.md)。
+DTCG 版本仍会明确出现在校验、诊断、Resolver 文档与说明中，但不作为用户可选的输入语言。Parser 与 DTCG Format/Color 校验分离。Core 保留颜色语义，序列化或转换仍是 Backend policy。准确支持范围参见 [DTCG 支持矩阵](DTCG-SUPPORT.zh-CN.md)。
+
+### Importer / Migrator 边界
+
+可选 Importer 位于编译器外部：
+
+```text
+Foreign 或 Legacy Syntax
+  → Importer / Migrator
+  → DTCG 2025.10 Source
+  → tokenc Compiler
+```
+
+Importer 负责理解外部语法、转换值、输出有效 DTCG 并报告迁移诊断。Compiler 负责解析和校验 DTCG、构建强类型语义节点与 Graph Edge、执行 Resolve/Check，再生成平台产物。Importer 不能通过直接构造 `TokenNode` 绕过 DTCG Parser。本版本的 Compiler Core 不包含 Migrator。
 
 ## Parser 与 Source Provenance
 
@@ -117,11 +130,11 @@ brand=enterprise
 density=compact
 ```
 
-基础值和稀疏兼容 override 都保留在同一个 Token Node 上。选择顺序为显式 precedence、匹配维度数量、配置中的维度顺序，不再依赖 JSON 声明顺序。
+基础值和稀疏 Extension Override 都保留在同一个 Token Node 上。选择顺序为显式 precedence、匹配维度数量、配置中的维度顺序，不再依赖 JSON 声明顺序。
 
 解析过程是惰性的，并以 `(TokenId, Context)` 为 key 缓存。Compiler 只记录 default context 和源码实际声明的 override 组合，不会物化 theme × brand × density 的完整 Token Dictionary。
 
-`$extensions["org.token-compiler.contexts"]` 继续作为兼容语法，并归一化成由同一个 `TokenResolver` 消费的强类型 Context Override。
+`$extensions["org.token-compiler.contexts"]` 表示一次编译内依赖运行时 Context 的值，并归一化成由同一个 `TokenResolver` 消费的强类型 Context Override。DTCG Resolver 则在构图前组合 Source，因此两种机制具有不同语义。
 
 ## DTCG Resolver Module
 

@@ -43,7 +43,7 @@ function percentage(value: ColorComponent): string {
   return value === "none" ? value : `${trim(value)}%`;
 }
 
-function colorComponents(value: Exclude<ColorValue, { colorSpace: "css" }>): string {
+function colorComponents(value: ColorValue): string {
   const [first, second, third] = value.components;
   if (value.colorSpace === "hsl" || value.colorSpace === "hwb")
     return [component(first), percentage(second), percentage(third)].join(" ");
@@ -57,8 +57,6 @@ function literal(value: TokenLiteral): string {
   if (isUnitValue(value)) return `${trim(value.value)}${value.unit}`;
   if (isColorValue(value)) {
     const color: ColorValue = value;
-    if (color.colorSpace === "css") return color.value;
-    if (color.original) return color.original.toLowerCase();
     const components = colorComponents(color);
     const alpha = color.alpha < 1 ? ` / ${trim(color.alpha)}` : "";
     if (["hsl", "hwb", "lab", "lch", "oklab", "oklch"].includes(color.colorSpace))

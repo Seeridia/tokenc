@@ -18,7 +18,7 @@ describe("TokenResolver", () => {
     );
     const resolver = new TokenResolver(graph);
     const resolved = resolver.resolve(parseTokenId("color.button"));
-    expect(resolved?.value).toMatchObject({ colorSpace: "srgb", original: "#0052D9" });
+    expect(resolved?.value).toMatchObject({ colorSpace: "srgb", hex: "#0052D9" });
     expect(resolver.computations).toBe(3);
     resolver.resolve(parseTokenId("color.button"));
     expect(resolver.computations).toBe(3);
@@ -33,11 +33,11 @@ describe("TokenResolver", () => {
       brand: { default: "default", values: ["default", "enterprise"] },
     });
     expect(resolver.resolve(parseTokenId("color.page"), { theme: "dark" })?.value).toMatchObject({
-      original: "#111111",
+      hex: "#111111",
     });
     expect(
       resolver.resolve(parseTokenId("color.page"), { theme: "dark", brand: "enterprise" })?.value,
-    ).toMatchObject({ original: "#003cab" });
+    ).toMatchObject({ hex: "#003cab" });
   });
 
   it("invalidates only selected cached graph nodes", () => {
@@ -78,7 +78,7 @@ describe("TokenResolver", () => {
           selector: { theme: "dark", brand: "enterprise" },
         },
       ],
-      value: { colorSpace: "srgb", original: "#003cab" },
+      value: { colorSpace: "srgb", hex: "#003cab" },
     });
   });
 

@@ -3,6 +3,13 @@ import { describe, expect, it } from "vite-plus/test";
 
 import { css } from "../src/index.js";
 
+const srgb = (red: number, green: number, blue: number, hex: string) => ({
+  colorSpace: "srgb",
+  components: [red, green, blue],
+  alpha: 1,
+  hex,
+});
+
 const source = {
   file: "tokens.json",
   content: JSON.stringify({
@@ -10,8 +17,12 @@ const source = {
       $type: "color",
       blue: {
         "600": {
-          $value: "#0052D9",
-          $extensions: { "org.token-compiler.contexts": { "theme=dark": "#77aaff" } },
+          $value: srgb(0, 82 / 255, 217 / 255, "#0052D9"),
+          $extensions: {
+            "org.token-compiler.contexts": {
+              "theme=dark": srgb(119 / 255, 170 / 255, 1, "#77aaff"),
+            },
+          },
         },
       },
       brand: { default: { $value: "{color.blue.600}" } },
@@ -56,7 +67,7 @@ describe("CSS backend", () => {
     expect(result.outputs[0]?.content).toContain("--dt-color.blue.600");
   });
 
-  it("serializes strict DTCG color spaces without converting them", async () => {
+  it("serializes structured DTCG color spaces without converting them", async () => {
     const result = await compileDocuments(
       [
         {
@@ -73,7 +84,7 @@ describe("CSS backend", () => {
           }),
         },
       ],
-      { dialect: "dtcg-2025.10", outputs: [css()] },
+      { outputs: [css()] },
     );
     expect(result.outputs[0]?.content).toContain("--accent: hsl(120 50% 25% / 0.5);");
     expect(result.outputs[0]?.content).toContain("--wide: color(display-p3 0.1 0.2 0.3);");

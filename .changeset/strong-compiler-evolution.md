@@ -6,4 +6,6 @@
 "@tokenc/backend-typescript": minor
 ---
 
-Add explicit DTCG 2025.10 and tokenc dialects, structured color conformance, Resolver Module semantics, typed resolution traces, graph patching, affected-subgraph checking, and deterministic graph/context resolution. Extend the CLI and existing backends to consume the evolved compiler IR without breaking compatibility-mode configurations.
+BREAKING: tokenc now accepts DTCG 2025.10 token documents only. The proprietary `tokenc` compatibility dialect, `TokenDialect`, `CompilerConfig.dialect`, parser dialect options, `CSSColor`, and shorthand string-color parsing have been removed. Existing shorthand token files must be converted to structured DTCG colors before compilation.
+
+This release also adds Resolver Module semantics, typed resolution traces, graph patching, affected-subgraph checking, deterministic graph/context resolution, and standard DTCG color serialization across the CLI and backends.

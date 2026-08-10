@@ -8,6 +8,13 @@ import { parseTokenDocument } from "../src/parser.js";
 const fixture = (name: string): string =>
   readFileSync(fileURLToPath(new URL(`fixtures/${name}`, import.meta.url)), "utf8");
 
+const srgb = (components: readonly [number, number, number], hex: string) => ({
+  colorSpace: "srgb",
+  components,
+  alpha: 1,
+  hex,
+});
+
 describe("DTCG parser", () => {
   it("parses typed literals and inherited group types", () => {
     const result = parseTokenDocument(fixture("basic/tokens.json"), "tokens.json");
@@ -45,7 +52,7 @@ describe("DTCG parser", () => {
   });
 
   it("reports missing inherited type", () => {
-    const result = parseTokenDocument('{"color":{"brand":{"$value":"red"}}}', "missing.json");
+    const result = parseTokenDocument('{"color":{"brand":{"$value":1}}}', "missing.json");
     expect(result.diagnostics[0]?.code).toBe("TOKEN_MISSING_TYPE");
   });
 
@@ -57,7 +64,7 @@ describe("DTCG parser", () => {
   it("parses sRGB and OKLCH into explicit color models", () => {
     const result = parseTokenDocument(
       JSON.stringify({
-        a: { $type: "color", $value: "#0052D9" },
+        a: { $type: "color", $value: srgb([0, 82 / 255, 217 / 255], "#0052D9") },
         b: {
           $type: "color",
           $value: { colorSpace: "oklch", components: [0.62, 0.2, 250], alpha: 1 },
@@ -80,8 +87,12 @@ describe("DTCG parser", () => {
       JSON.stringify({
         page: {
           $type: "color",
-          $value: "#fff",
-          $extensions: { "org.token-compiler.contexts": { "theme=dark": { $value: "#111" } } },
+          $value: srgb([1, 1, 1], "#ffffff"),
+          $extensions: {
+            "org.token-compiler.contexts": {
+              "theme=dark": { $value: srgb([17 / 255, 17 / 255, 17 / 255], "#111111") },
+            },
+          },
         },
       }),
       "themes.json",
