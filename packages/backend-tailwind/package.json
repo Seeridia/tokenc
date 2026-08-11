@@ -1,6 +1,6 @@
 {
   "name": "@tokenc/backend-tailwind",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Tailwind CSS v4 backend for the tokenc Design Token compiler",
   "keywords": [
     "compiler",

@@ -1,6 +1,6 @@
 {
   "name": "@tokenc/backend-typescript",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "TypeScript constants backend for the tokenc Design Token compiler",
   "keywords": [
     "compiler",
