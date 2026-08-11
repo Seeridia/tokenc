@@ -1,6 +1,9 @@
 import {
   contextKey,
   defaultContext,
+  isColorValue,
+  isUnitValue,
+  type ColorComponent,
   type ColorValue,
   type Compilation,
   type CompilationContext,
@@ -32,34 +35,35 @@ function byte(value: number): string {
     .padStart(2, "0");
 }
 
-function isColor(value: TokenLiteral): value is ColorValue {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "colorSpace" in value &&
-    (value.colorSpace === "srgb" || value.colorSpace === "oklch" || value.colorSpace === "css")
-  );
+function component(value: ColorComponent): string {
+  return value === "none" ? value : trim(value);
 }
 
-function isUnitValue(value: TokenLiteral): value is Extract<TokenLiteral, { unit: string }> {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "unit" in value &&
-    "value" in value &&
-    typeof value.value === "number"
-  );
+function percentage(value: ColorComponent): string {
+  return value === "none" ? value : `${trim(value)}%`;
+}
+
+function colorComponents(value: ColorValue): string {
+  const [first, second, third] = value.components;
+  if (value.colorSpace === "hsl" || value.colorSpace === "hwb")
+    return [component(first), percentage(second), percentage(third)].join(" ");
+  if (value.colorSpace === "lab" || value.colorSpace === "lch")
+    return [percentage(first), component(second), component(third)].join(" ");
+  return value.components.map(component).join(" ");
 }
 
 function literal(value: TokenLiteral): string {
   if (typeof value === "number" || typeof value === "string") return String(value);
   if (isUnitValue(value)) return `${trim(value.value)}${value.unit}`;
-  if (isColor(value)) {
+  if (isColorValue(value)) {
     const color: ColorValue = value;
-    if (color.colorSpace === "css") return color.value;
-    if (color.colorSpace === "oklch")
-      return `oklch(${color.components.map(trim).join(" ")}${color.alpha < 1 ? ` / ${trim(color.alpha)}` : ""})`;
-    return `#${color.components.map(byte).join("")}${color.alpha < 1 ? byte(color.alpha) : ""}`;
+    const components = colorComponents(color);
+    const alpha = color.alpha < 1 ? ` / ${trim(color.alpha)}` : "";
+    if (["hsl", "hwb", "lab", "lch", "oklab", "oklch"].includes(color.colorSpace))
+      return `${color.colorSpace}(${components}${alpha})`;
+    if (color.colorSpace === "srgb" && color.components.every((entry) => typeof entry === "number"))
+      return `#${color.components.map(byte).join("")}${color.alpha < 1 ? byte(color.alpha) : ""}`;
+    return `color(${color.colorSpace} ${components}${alpha})`;
   }
   return JSON.stringify(value);
 }

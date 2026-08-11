@@ -7,8 +7,11 @@
 ## Pipeline
 
 ```text
-DTCG document
-  → parseTokenDocument(content, source)
+DTCG 2025.10 token document
+  → optional DTCG Resolver source composition
+  → syntax parser + unresolved source model
+  → reference linking (curly aliases, JSON Pointer $ref, group $extends)
+  → reference-driven type resolution
   → typed TokenNode[] + structured diagnostics
   → TokenGraph
   → context validation + reference type checking
@@ -20,13 +23,40 @@ DTCG document
 
 The high-level `compile()` function performs loading and the full pipeline. `compileDocuments()` accepts virtual inputs. No core stage writes output or terminates a process.
 
+## One source language
+
+tokenc intentionally supports one compiler source language: DTCG 2025.10. There is no compiler configuration switch for proprietary syntax. This keeps the parser, graph, resolver, checker, and backends operating on one well-defined language model. Non-DTCG token formats must be converted before compilation.
+
+The DTCG version remains explicit in validation, diagnostics, Resolver documents, and documentation without becoming an end-user language selector. The parser is split from DTCG color and format validation. Color representation is preserved in core while serialization or conversion remains backend policy. The exact supported surface is documented in the [DTCG support matrix](DTCG-SUPPORT.md).
+
+### Importer / migrator boundary
+
+An optional importer sits outside the compiler:
+
+```text
+foreign or legacy syntax
+  → importer / migrator
+  → DTCG 2025.10 source
+  → tokenc compiler
+```
+
+An importer understands foreign syntax, converts values, emits valid DTCG, and reports migration diagnostics. The compiler parses and validates DTCG, builds typed semantic nodes and graph edges, resolves and checks them, then emits platform artifacts. Importers must not bypass the DTCG parser by constructing `TokenNode` objects directly. No migrator is part of the compiler core in this release.
+
 ## Parser and source provenance
 
 The parser consumes content and a source identity, not a filename to open. `jsonc-parser` provides an offset-preserving JSON AST. A lightweight line index converts every relevant AST offset into file, line, column, length, and source excerpt.
 
 Every token and reference retains a `SourceLocation`. Diagnostics therefore remain useful after the raw JSON object representation is gone. Invalid JSON produces a structured diagnostic and an empty document, allowing watch mode to continue.
 
-Groups pass their nearest `$type` to descendants. A property becomes a token only when it owns `$value`; groups are never confused with token nodes.
+The syntax parser records explicit and inherited type candidates without requiring every token's
+final type. The linking stage resolves forward, backward, chained, and cross-document aliases.
+Final type precedence is explicit token `$type`, referenced token type, then inherited group type.
+Only the resulting typed `TokenNode` reaches the graph, checker, resolver, or backends.
+
+Groups pass their nearest `$type` to descendants. A property becomes a token when it owns `$value`
+or is a `$ref` reference object; an object containing both a token definition and children is
+diagnosed. Reserved `$root` tokens retain their explicit canonical path segment. Group `$extends`
+is represented as an inheritance edge and effective membership, not a global object deep merge.
 
 ## Typed AST
 
@@ -36,13 +66,23 @@ The core model is explicit:
 TokenNode
   id: TokenId
   type: TokenType
-  value: TokenLiteralExpression | TokenReference
+  value: TokenLiteralExpression | TokenReference | JsonPointerReferenceExpression
   overrides: ContextOverride[]
   dependencies: TokenId[]
+  propertyReferences: JsonPointerDependency[]
+  inheritance?: TokenInheritance
   source: SourceLocation
 ```
 
-`color`, `dimension`, `number`, `duration`, and `fontWeight` have concrete internal value models and validators. Composite types retain JSON-safe data in v0.1 so later validators can become stricter without changing the graph or backend boundary.
+All standard token types have concrete internal value models and validators.
+`cubicBezier`, `strokeStyle`, `border`, `transition`, `shadow`, `gradient`, and `typography` validate
+their required fields, closed shapes, and applicable ranges. `TokenExpression<T>`, `TokenNode<T>`,
+`ResolvedToken<T>`, and `CompiledToken<T>` carry the resolved token type through the pipeline.
+
+The RFC 6901 engine is an IO-independent DTCG module. A pointer to a token or its complete `$value`
+normalizes to a token reference. A pointer to a nested component retains its pointer expression and
+resolved component value, while `TokenNode.dependencies` records the owning token ID. Backends never
+parse raw pointers and resolve component references when a platform cannot preserve them.
 
 ## Token ID
 
@@ -58,9 +98,15 @@ Map<TokenId, Set<TokenId>>    forward dependencies
 Map<TokenId, Set<TokenId>>    reverse dependents
 ```
 
-Lookup is O(1). Topological sorting, cycle detection, affected-node traversal, and impact analysis are O(V + E). Both `explain` and `usages` query this graph; they never scan source strings.
+Lookup is O(1). A stable Kahn sort uses a lexical heap and costs O((V + E) log V); iterative cycle detection, affected traversal, and impact analysis cost O(V + E). Both `explain` and `usages` query this graph; they never scan source strings.
+
+`TokenGraph.patch()` updates token, forward-edge, and reverse-edge indexes in place. It reports a graph delta and unions affected nodes from the pre-patch and post-patch reverse graph, preserving correctness when edges disappear or change target.
 
 Cycles are reported as closed paths with related source locations. Unknown references are still retained as graph edges, which lets the checker provide nearby canonical-ID suggestions.
+
+Inherited tokens add an edge to their base token, and component pointers add an edge to the token
+that owns the component. Consequently cycle detection, `explain`, `usages`, impact analysis, and
+incremental invalidation use the same graph semantics for every reference form.
 
 ### Why model tokens as a graph?
 
@@ -68,11 +114,27 @@ An alias is not string interpolation—it is a semantic dependency. Once represe
 
 ## Context resolver
 
-Contexts are immutable key/value inputs such as `theme=dark` or `brand=enterprise`. Base values and sparse token overrides remain attached to one node. The resolver selects the matching override with the greatest specificity, then evaluates references through the graph.
+Contexts are immutable key/value inputs such as `theme=dark` or `brand=enterprise`. Base values and sparse extension overrides remain attached to one node. Selection uses explicit precedence, specificity, then configured dimension order; equal matches no longer depend on JSON declaration order.
 
 Resolution is lazy and cached by `(TokenId, Context)`. The compiler records only the default context and override combinations actually declared in source. It never materializes complete dictionaries for a theme × brand × density Cartesian product.
 
-The v0.1 context source form is the namespaced `$extensions["org.token-compiler.contexts"]` object. This is an isolated extension point pending broader standardization in the DTCG Resolver Module.
+The namespaced `$extensions["org.token-compiler.contexts"]` form is a non-standard tokenc extension.
+Its dedicated interpreter produces typed context overrides consumed by the same `TokenResolver`;
+standard DTCG token parsing does not depend on it. DTCG Resolver instead composes sources before
+graph construction, so the two mechanisms have distinct semantics.
+
+## DTCG Resolver Module
+
+`parseResolverDocument(content, source)` is an IO-independent frontend for DTCG 2025.10 resolver
+documents. It creates typed `TokenSet`, `ResolverModifier`, `ResolutionSource`, and ordered
+resolution items with source locations. Resolver reference objects reuse the canonical RFC 6901
+parser. Local sibling fields form a shallow semantic view over the referenced set or modifier:
+objects and arrays replace the referenced field, the original is not mutated, and provenance for
+both locations is retained. The IO layer loads relative whole-file references; semantic resolution
+validates runtime inputs, expands same-document set references, selects modifier contexts, and emits
+a source stream in exact `resolutionOrder`.
+
+Conflicts follow the standard last-source-wins rule only inside a Resolver resolution. Ordinary multi-file compilation continues diagnosing duplicate canonical IDs. Aliases are parsed and checked after the selected stream is assembled, so a Resolver is not implemented as a global deep-merge hook.
 
 ### Why not global deep merge?
 
@@ -86,7 +148,7 @@ Duplicate canonical IDs are detected across documents before output. Graph cycle
 
 ## Compiler IR
 
-`Compilation` is the sole backend-facing input. It exposes topologically ordered `CompiledToken` values, the validated graph, declared contexts, and a context-aware `resolveToken` operation. A backend does not parse, validate, merge, or search source documents.
+`Compilation` is the sole backend-facing input. It exposes topologically ordered `CompiledToken` values, typed `tokensOfType()` views, the validated graph, declared contexts, `resolveToken()`, and structured `explainToken()` traces. A backend does not parse, validate, merge, or search source documents.
 
 This boundary keeps source-language concerns on the frontend and platform policy on the backend.
 
@@ -122,12 +184,15 @@ Emits `--token-*` runtime properties, sparse context overrides, and `@theme` bin
 
 `IncrementalCompiler` caches parsed documents by source. On update:
 
-1. Parse only the changed document.
-2. Compare semantic node signatures to identify changed IDs.
-3. Traverse reverse edges in both the old and new graphs.
-4. Union those sets to cover changed, removed, and newly connected nodes.
-5. Seed the next resolver with cached evaluations whose IDs are outside the affected set.
-6. Recompute affected evaluations lazily as IR/backends request them.
+1. Parse only the changed document into the unresolved source cache.
+2. Relink cached syntax documents so cross-document inference, pointers, and inheritance observe the
+   new semantic state without reparsing unchanged files.
+3. Compare semantic node signatures to identify changed IDs.
+4. Patch only added, changed, and removed graph nodes and adjacency edges.
+5. Union reverse traversal from before and after the patch.
+6. Check references and cycles in the affected region (falling back to a full check after an invalid build).
+7. Seed the next resolver with cached evaluations whose IDs are outside the affected set.
+8. Recompute affected evaluations lazily as IR/backends request them.
 
 Backends may rewrite a complete output file in v0.1, but that does not reparse or reevaluate unrelated tokens. Add, change, and remove share the same invalidation path. Invalid JSON replaces only that cached document, reports diagnostics, and can recover on the next edit.
 
@@ -137,7 +202,11 @@ Backends may rewrite a complete output file in v0.1, but that does not reparse o
 
 ## Computed-token extension point
 
-The current expression union contains literal and reference nodes. A future `ComputedTokenNode` can be added as a third expression kind and contribute dependency edges before graph construction. Function parsing and evaluation would be compiler stages; backends would continue consuming the same resolved IR. v0.1 does not introduce a non-standard function syntax.
+The current expression union contains literal, whole-token reference, and resolved JSON Pointer
+component nodes. A future `ComputedTokenNode` can be added as another expression kind and contribute
+dependency edges before graph construction. Function parsing and evaluation would be compiler
+stages; backends would continue consuming the same resolved IR. v0.1 does not introduce a
+non-standard function syntax.
 
 ## Package boundaries
 

@@ -2,6 +2,8 @@
 
 Command-line interface for the tokenc Design Token compiler.
 
+The CLI compiles DTCG 2025.10 token documents; it does not enable proprietary token syntax.
+
 Install the CLI and the backends referenced by your `tokenc.config.ts` as local development dependencies:
 
 ```bash
@@ -21,6 +23,8 @@ pnpm tokenc explain button.primary.background
 pnpm tokenc usages color.blue.600
 pnpm tokenc graph --format mermaid
 ```
+
+Resolver modifier inputs use normal flags, for example `pnpm tokenc build --theme dark` or `pnpm tokenc explain color.background --theme dark`.
 
 Local installation is recommended so pnpm can resolve backend imports from the project configuration reliably.
 

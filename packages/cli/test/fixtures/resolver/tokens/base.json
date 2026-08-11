@@ -1,0 +1,17 @@
+{
+  "color": {
+    "$type": "color",
+    "blue": {
+      "600": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0, 0.32157, 0.85098],
+          "hex": "#0052d9"
+        }
+      }
+    },
+    "brand": {
+      "default": { "$value": "{color.blue.600}" }
+    }
+  }
+}

@@ -1,10 +1,19 @@
 import type {
   CompilationContext,
+  ContextOverride,
   ContextDefinition,
   Diagnostic,
   TokenExpression,
   TokenNode,
 } from "./model.js";
+
+export interface SelectedTokenExpression {
+  readonly expression: TokenExpression;
+  readonly source: TokenNode["source"];
+  readonly selector?: CompilationContext;
+  readonly precedence?: number;
+  readonly origin?: ContextOverride["origin"];
+}
 
 /** Materialize only the declared defaults; no context Cartesian product is created. */
 export function defaultContext(definition: ContextDefinition = {}): CompilationContext {
@@ -35,18 +44,60 @@ function matches(selector: CompilationContext, context: CompilationContext): boo
   return Object.entries(selector).every(([name, value]) => context[name] === value);
 }
 
-/** Select the most-specific matching expression for one token and context. */
+function compareSelectors(
+  left: CompilationContext,
+  right: CompilationContext,
+  order: readonly string[],
+): number {
+  const specificity = Object.keys(left).length - Object.keys(right).length;
+  if (specificity !== 0) return specificity;
+  for (let index = order.length - 1; index >= 0; index -= 1) {
+    const dimension = order[index];
+    if (!dimension) continue;
+    const difference = Number(dimension in left) - Number(dimension in right);
+    if (difference !== 0) return difference;
+  }
+  return 0;
+}
+
+/** Select by explicit precedence, specificity, then configured dimension order. */
 export function selectTokenExpression(
   token: TokenNode,
   context: CompilationContext,
+  resolutionOrder: readonly string[] = Object.keys(context),
 ): TokenExpression {
-  let selected = token.value;
-  let specificity = -1;
+  return selectTokenCandidate(token, context, resolutionOrder).expression;
+}
+
+/** Return the expression together with the semantic reason it won. */
+export function selectTokenCandidate(
+  token: TokenNode,
+  context: CompilationContext,
+  resolutionOrder: readonly string[] = Object.keys(context),
+): SelectedTokenExpression {
+  let selected: SelectedTokenExpression = {
+    expression: token.value,
+    source: token.source,
+  };
+  let selectedSelector: CompilationContext = {};
+  let selectedPrecedence = Number.NEGATIVE_INFINITY;
   for (const override of token.overrides) {
-    const score = Object.keys(override.selector).length;
-    if (score > specificity && matches(override.selector, context)) {
-      selected = override.expression;
-      specificity = score;
+    if (!matches(override.selector, context)) continue;
+    const precedence = override.precedence ?? 0;
+    if (
+      precedence > selectedPrecedence ||
+      (precedence === selectedPrecedence &&
+        compareSelectors(override.selector, selectedSelector, resolutionOrder) > 0)
+    ) {
+      selected = {
+        expression: override.expression,
+        source: override.source,
+        selector: override.selector,
+        ...(override.precedence === undefined ? {} : { precedence: override.precedence }),
+        ...(override.origin === undefined ? {} : { origin: override.origin }),
+      };
+      selectedSelector = override.selector;
+      selectedPrecedence = precedence;
     }
   }
   return selected;
@@ -68,7 +119,19 @@ export function checkContexts(
     }
   }
   for (const token of tokens) {
+    const selectors = new Map<string, ContextOverride>();
     for (const override of token.overrides) {
+      const selectorKey = contextKey(override.selector);
+      const previous = selectors.get(selectorKey);
+      if (previous) {
+        diagnostics.push({
+          code: "TOKEN_RESOLUTION_AMBIGUOUS",
+          severity: "error",
+          message: `Token \`${token.id}\` declares context selector \`${selectorKey}\` more than once`,
+          source: override.source,
+          related: [{ message: "First declared here", source: previous.source }],
+        });
+      } else selectors.set(selectorKey, override);
       for (const [name, value] of Object.entries(override.selector)) {
         const dimension = definition[name];
         if (!dimension) {

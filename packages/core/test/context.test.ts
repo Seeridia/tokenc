@@ -24,21 +24,21 @@ describe("context selection", () => {
   it("uses the base expression in the default context", () => {
     expect(selectTokenExpression(token, defaultContext(contexts))).toMatchObject({
       kind: "literal",
-      value: { original: "#ffffff" },
+      value: { hex: "#ffffff" },
     });
   });
 
   it("selects a dark-mode override", () => {
     expect(selectTokenExpression(token, { theme: "dark", brand: "default" })).toMatchObject({
       kind: "literal",
-      value: { original: "#111111" },
+      value: { hex: "#111111" },
     });
   });
 
   it("selects the most-specific multi-modifier override", () => {
     expect(selectTokenExpression(token, { theme: "dark", brand: "enterprise" })).toMatchObject({
       kind: "literal",
-      value: { original: "#003cab" },
+      value: { hex: "#003cab" },
     });
   });
 
@@ -46,5 +46,37 @@ describe("context selection", () => {
     expect(
       checkContexts([token], { theme: contexts.theme! }).map((diagnostic) => diagnostic.code),
     ).toContain("TOKEN_CONTEXT_UNKNOWN_DIMENSION");
+  });
+
+  it("uses explicit context dimension order for equally specific matches", () => {
+    const parsed = parseTokenDocument(
+      JSON.stringify({
+        value: {
+          $type: "number",
+          $value: 0,
+          $extensions: {
+            "org.token-compiler.contexts": {
+              "brand=enterprise": 2,
+              "theme=dark": 1,
+            },
+          },
+        },
+      }),
+      "precedence.json",
+    );
+    expect(
+      selectTokenExpression(parsed.tokens[0]!, { theme: "dark", brand: "enterprise" }, [
+        "theme",
+        "brand",
+      ]),
+    ).toMatchObject({ kind: "literal", value: 2 });
+  });
+
+  it("diagnoses duplicate selectors rather than using declaration order", () => {
+    const parsed = parseTokenDocument(
+      '{"value":{"$type":"number","$value":0,"$extensions":{"org.token-compiler.contexts":{"theme=dark":1,"theme=dark":2}}}}',
+      "ambiguous.json",
+    );
+    expect(checkContexts(parsed.tokens, contexts)[0]?.code).toBe("TOKEN_RESOLUTION_AMBIGUOUS");
   });
 });

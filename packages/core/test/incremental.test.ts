@@ -22,9 +22,13 @@ describe("IncrementalCompiler", () => {
     const initial = await compiler.initialize([primitive(1), semantic, unrelated]);
     expect(initial.recomputed).toBe(3);
     const update = await compiler.update(primitive(2));
+    expect(update.result.graph).toBe(initial.result.graph);
+    expect(update.result.graph.revision).toBe(1);
+    expect(update.graphDelta).toMatchObject({ touchedNodes: 1, touchedEdges: 0 });
     expect(update.changed).toEqual(["base"]);
     expect([...update.affected]).toEqual(["base", "alias"]);
     expect(update.recomputed).toBe(2);
+    expect(update.result.stats.checkedTokens).toBe(2);
     expect(update.result.compilation.resolveToken(parseTokenId("alias"))?.value).toBe(2);
   });
 
@@ -53,5 +57,102 @@ describe("IncrementalCompiler", () => {
     const update = await compiler.update(semantic);
     expect(update.changed).toEqual(["alias"]);
     expect(update.result.stats.tokens).toBe(2);
+  });
+
+  it("refreshes source provenance without invalidating unchanged token values", async () => {
+    const compiler = new IncrementalCompiler();
+    const content = JSON.stringify({ value: { $type: "number", $value: 1 } }, null, 2);
+    const initial = await compiler.initialize([{ file: "/tokens/source-shift.json", content }]);
+    expect(initial.result.compilation.getDefinition(parseTokenId("value"))?.line).toBe(2);
+
+    const update = await compiler.update({
+      file: "/tokens/source-shift.json",
+      content: `\n\n${content}`,
+    });
+    expect(update.changed).toEqual([]);
+    expect(update.affected).toEqual(new Set());
+    expect(update.recomputed).toBe(0);
+    expect(update.graphDelta.refreshed).toEqual(["value"]);
+    expect(update.result.compilation.getDefinition(parseTokenId("value"))?.line).toBe(4);
+    expect(update.result.compilation.resolveToken(parseTokenId("value"))?.source.line).toBe(4);
+  });
+
+  it("refreshes provenance excerpts for inline sources", async () => {
+    const compiler = new IncrementalCompiler();
+    const file = "/tokens/inline-source.json";
+    const content = JSON.stringify({ value: { $type: "number", $value: 1 } });
+    const origin = {
+      file: "/config/theme.json",
+      line: 20,
+      column: 3,
+      offset: 200,
+      length: content.length,
+      excerpt: "old inline source",
+    };
+    await compiler.initialize([{ file, content, origin }]);
+
+    const update = await compiler.update({
+      file,
+      content,
+      origin: { ...origin, excerpt: "new inline source" },
+    });
+    expect(update.changed).toEqual([]);
+    expect(update.recomputed).toBe(0);
+    expect(update.graphDelta.refreshed).toEqual(["value"]);
+    expect(update.result.compilation.getDefinition(parseTokenId("value"))?.excerpt).toBe(
+      "new inline source",
+    );
+  });
+
+  it("detects duplicate IDs introduced within an incrementally edited document", async () => {
+    const compiler = new IncrementalCompiler();
+    await compiler.initialize([primitive(1)]);
+    const duplicated = await compiler.update({
+      file: primitive(1).file,
+      content: '{"base":{"$type":"number","$value":1},"base":{"$type":"number","$value":1}}',
+    });
+    expect(duplicated.result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      "TOKEN_DUPLICATE_ID",
+    );
+    const duplicate = duplicated.result.diagnostics.find(
+      (diagnostic) => diagnostic.code === "TOKEN_DUPLICATE_ID",
+    );
+    expect(duplicate?.source?.offset).not.toBe(duplicate?.related?.[0]?.source?.offset);
+    const recovered = await compiler.update(primitive(2));
+    expect(recovered.result.success).toBe(true);
+  });
+
+  it("limits a 10k-token edit to the affected semantic subgraph", async () => {
+    const independent = {
+      file: "/tokens/independent.json",
+      content: JSON.stringify(
+        Object.fromEntries(
+          Array.from({ length: 10_000 }, (_, index) => [
+            `independent${index}`,
+            { $type: "number", $value: index },
+          ]),
+        ),
+      ),
+    };
+    const dependents = {
+      file: "/tokens/dependents.json",
+      content: JSON.stringify({
+        semantic: { $type: "number", $value: "{base}" },
+        ...Object.fromEntries(
+          Array.from({ length: 10 }, (_, index) => [
+            `component${index}`,
+            { $type: "number", $value: "{semantic}" },
+          ]),
+        ),
+      }),
+    };
+    const compiler = new IncrementalCompiler();
+    const initial = await compiler.initialize([independent, primitive(1), dependents]);
+    const update = await compiler.update(primitive(2));
+    expect(update.changed).toEqual(["base"]);
+    expect(update.affected.size).toBe(12);
+    expect(update.recomputed).toBe(12);
+    expect(update.result.stats.checkedTokens).toBe(12);
+    expect(update.result.graph).toBe(initial.result.graph);
   });
 });

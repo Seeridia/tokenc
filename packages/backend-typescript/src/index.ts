@@ -1,5 +1,8 @@
 import {
+  isColorValue,
+  isUnitValue,
   tokenIdSegments,
+  type ColorComponent,
   type ColorValue,
   type Compilation,
   type TokenBackend,
@@ -23,6 +26,23 @@ function byte(value: number): string {
     .padStart(2, "0");
 }
 
+function component(value: ColorComponent): string {
+  return value === "none" ? value : String(value);
+}
+
+function percentage(value: ColorComponent): string {
+  return value === "none" ? value : `${value}%`;
+}
+
+function colorComponents(value: ColorValue): string {
+  const [first, second, third] = value.components;
+  if (value.colorSpace === "hsl" || value.colorSpace === "hwb")
+    return [component(first), percentage(second), percentage(third)].join(" ");
+  if (value.colorSpace === "lab" || value.colorSpace === "lch")
+    return [percentage(first), component(second), component(third)].join(" ");
+  return value.components.map(component).join(" ");
+}
+
 /** Convert a canonical token ID to a safe camelCase binding name. */
 export function tokenIdentifier(id: TokenId): string {
   const parts = String(id)
@@ -36,38 +56,19 @@ export function tokenIdentifier(id: TokenId): string {
 }
 
 function colorString(value: ColorValue): string {
-  if (value.colorSpace === "css") return value.value;
-  if (value.colorSpace === "oklch") {
-    const [l, c, h] = value.components;
-    return `oklch(${l} ${c} ${h}${value.alpha < 1 ? ` / ${value.alpha}` : ""})`;
-  }
-  if (value.original) return value.original;
-  return `#${value.components.map(byte).join("")}${value.alpha < 1 ? byte(value.alpha) : ""}`;
-}
-
-function isColor(value: TokenLiteral): value is ColorValue {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "colorSpace" in value &&
-    (value.colorSpace === "srgb" || value.colorSpace === "oklch" || value.colorSpace === "css")
-  );
-}
-
-function isUnitValue(value: TokenLiteral): value is Extract<TokenLiteral, { unit: string }> {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "unit" in value &&
-    "value" in value &&
-    typeof value.value === "number"
-  );
+  const components = colorComponents(value);
+  const alpha = value.alpha < 1 ? ` / ${value.alpha}` : "";
+  if (["hsl", "hwb", "lab", "lch", "oklab", "oklch"].includes(value.colorSpace))
+    return `${value.colorSpace}(${components}${alpha})`;
+  if (value.colorSpace === "srgb" && value.components.every((entry) => typeof entry === "number"))
+    return `#${value.components.map(byte).join("")}${value.alpha < 1 ? byte(value.alpha) : ""}`;
+  return `color(${value.colorSpace} ${components}${alpha})`;
 }
 
 function jsLiteral(value: TokenLiteral): string {
   if (typeof value === "number") return String(value);
   if (typeof value === "string") return JSON.stringify(value);
-  if (isColor(value)) return JSON.stringify(colorString(value));
+  if (isColorValue(value)) return JSON.stringify(colorString(value));
   if (isUnitValue(value)) return JSON.stringify(`${value.value}${value.unit}`);
   return JSON.stringify(value, null, 2);
 }

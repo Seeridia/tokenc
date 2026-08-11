@@ -2,7 +2,7 @@
   "name": "tokenc",
   "version": "0.1.0",
   "private": true,
-  "description": "A DTCG-native, typed, graph-based Design Token compiler",
+  "description": "A typed, graph-based compiler for DTCG Design Tokens",
   "homepage": "https://github.com/Seeridia/tokenc#readme",
   "bugs": {
     "url": "https://github.com/Seeridia/tokenc/issues"
@@ -14,6 +14,7 @@
   },
   "type": "module",
   "scripts": {
+    "bench": "vp exec tsx benchmarks/compiler.bench.ts",
     "build": "vp run -r build",
     "changeset": "changeset",
     "check": "vp check",

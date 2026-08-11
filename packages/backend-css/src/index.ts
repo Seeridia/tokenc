@@ -1,11 +1,13 @@
 import {
   contextKey,
   defaultContext,
+  isColorValue,
+  isUnitValue,
   parseContextKey,
+  type ColorComponent,
   type ColorValue,
   type Compilation,
   type CompilationContext,
-  type JsonValue,
   type TokenBackend,
   type TokenExpression,
   type TokenId,
@@ -31,16 +33,34 @@ function byte(value: number): string {
     .padStart(2, "0");
 }
 
-function color(value: ColorValue): string {
-  if (value.colorSpace === "css") return value.value;
-  if (value.colorSpace === "oklch") {
-    const [lightness, chroma, hue] = value.components;
-    return `oklch(${trimNumber(lightness)} ${trimNumber(chroma)} ${trimNumber(hue)}${value.alpha < 1 ? ` / ${trimNumber(value.alpha)}` : ""})`;
-  }
-  return `#${value.components.map(byte).join("")}${value.alpha < 1 ? byte(value.alpha) : ""}`.toLowerCase();
+function component(value: ColorComponent): string {
+  return value === "none" ? value : trimNumber(value);
 }
 
-function isJson(value: TokenLiteral): value is JsonValue {
+function percentage(value: ColorComponent): string {
+  return value === "none" ? value : `${trimNumber(value)}%`;
+}
+
+function colorComponents(value: ColorValue): string {
+  const [first, second, third] = value.components;
+  if (value.colorSpace === "hsl" || value.colorSpace === "hwb")
+    return [component(first), percentage(second), percentage(third)].join(" ");
+  if (value.colorSpace === "lab" || value.colorSpace === "lch")
+    return [percentage(first), component(second), component(third)].join(" ");
+  return value.components.map(component).join(" ");
+}
+
+function color(value: ColorValue): string {
+  const components = colorComponents(value);
+  const alpha = value.alpha < 1 ? ` / ${trimNumber(value.alpha)}` : "";
+  if (["hsl", "hwb", "lab", "lch", "oklab", "oklch"].includes(value.colorSpace))
+    return `${value.colorSpace}(${components}${alpha})`;
+  if (value.colorSpace === "srgb" && value.components.every((entry) => typeof entry === "number"))
+    return `#${value.components.map(byte).join("")}${value.alpha < 1 ? byte(value.alpha) : ""}`.toLowerCase();
+  return `color(${value.colorSpace} ${components}${alpha})`;
+}
+
+function isJson(value: TokenLiteral): boolean {
   return (
     value === null ||
     ["string", "number", "boolean"].includes(typeof value) ||
@@ -49,30 +69,11 @@ function isJson(value: TokenLiteral): value is JsonValue {
   );
 }
 
-function isColor(value: TokenLiteral): value is ColorValue {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "colorSpace" in value &&
-    (value.colorSpace === "srgb" || value.colorSpace === "oklch" || value.colorSpace === "css")
-  );
-}
-
-function isUnitValue(value: TokenLiteral): value is Extract<TokenLiteral, { unit: string }> {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "unit" in value &&
-    "value" in value &&
-    typeof value.value === "number"
-  );
-}
-
 /** Convert a platform-neutral literal to a CSS value. */
 export function cssValue(value: TokenLiteral): string {
   if (typeof value === "number") return String(value);
   if (typeof value === "string") return value;
-  if (isColor(value)) return color(value);
+  if (isColorValue(value)) return color(value);
   if (isUnitValue(value)) return `${trimNumber(value.value)}${value.unit}`;
   if (isJson(value)) return JSON.stringify(value);
   return JSON.stringify(value);

@@ -1,0 +1,15 @@
+{
+  "name": "@tokenc/example-dtcg-resolver",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vp exec tsx ../../packages/cli/src/bin.ts build",
+    "check": "vp exec tsx ../../packages/cli/src/bin.ts check"
+  },
+  "devDependencies": {
+    "@tokenc/backend-css": "workspace:*",
+    "@tokenc/core": "workspace:*",
+    "tsx": "^4.20.0"
+  }
+}

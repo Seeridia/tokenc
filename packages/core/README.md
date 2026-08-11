@@ -1,6 +1,6 @@
 # @tokenc/core
 
-The compiler core for tokenc: a DTCG-native, typed, graph-based Design Token compiler.
+The compiler core for tokenc: a typed, graph-based compiler for DTCG Design Tokens.
 
 ```bash
 pnpm add -D @tokenc/core
@@ -16,6 +16,8 @@ const result = await compile({
 const impact = result.graph.analyzeImpact([parseTokenId("color.blue.600")]);
 ```
 
-The package exposes the DTCG parser, typed Token AST, `TokenGraph`, context-aware resolver, type checker, compiler IR, structured diagnostics, and incremental compiler. It performs no terminal output, process termination, or artifact writes.
+The package exposes the DTCG 2025.10 token and Resolver document parsers, typed Token AST, patchable `TokenGraph`, context-aware resolution traces, affected-subgraph checking, compiler IR, and structured diagnostics. It performs no terminal output, process termination, or artifact writes.
+
+The compiler has one source language: DTCG 2025.10. Foreign and legacy formats must be converted to DTCG before calling the parser or compiler.
 
 Requires Node.js 22.13 or newer. Licensed under MIT.

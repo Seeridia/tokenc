@@ -3,9 +3,13 @@ import { resolve } from "node:path";
 
 import fg from "fast-glob";
 
+import type { SourceLocation } from "./model.js";
+
 export interface TokenSourceInput {
   readonly file: string;
   readonly content: string;
+  /** Origin when content is an inline slice of another source document. */
+  readonly origin?: SourceLocation;
 }
 
 /** Load token sources. Parsing remains a separate, IO-free compiler stage. */

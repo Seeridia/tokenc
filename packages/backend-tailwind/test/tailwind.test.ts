@@ -8,7 +8,16 @@ const source = {
   content: JSON.stringify({
     color: {
       $type: "color",
-      blue: { "600": { $value: "#0052D9" } },
+      blue: {
+        "600": {
+          $value: {
+            colorSpace: "srgb",
+            components: [0, 82 / 255, 217 / 255],
+            alpha: 1,
+            hex: "#0052D9",
+          },
+        },
+      },
       brand: { primary: { $value: "{color.blue.600}" } },
     },
     spacing: { "4": { $type: "dimension", $value: { value: 16, unit: "px" } } },

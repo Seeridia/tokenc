@@ -1,0 +1,18 @@
+{
+  "version": "2025.10",
+  "sets": {
+    "foundation": {
+      "sources": [{ "$ref": "tokens/base.json" }]
+    }
+  },
+  "modifiers": {
+    "theme": {
+      "contexts": {
+        "light": [{ "$ref": "tokens/light.json" }],
+        "dark": [{ "$ref": "tokens/dark.json" }]
+      },
+      "default": "light"
+    }
+  },
+  "resolutionOrder": [{ "$ref": "#/sets/foundation" }, { "$ref": "#/modifiers/theme" }]
+}

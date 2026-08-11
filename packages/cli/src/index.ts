@@ -174,10 +174,11 @@ function displayLiteral(value: TokenLiteral): string {
   if (
     value !== null &&
     typeof value === "object" &&
-    "original" in value &&
-    typeof value.original === "string"
+    "colorSpace" in value &&
+    "hex" in value &&
+    typeof value.hex === "string"
   )
-    return value.original;
+    return value.hex;
   if (
     value !== null &&
     typeof value === "object" &&
@@ -198,6 +199,18 @@ function displayLiteral(value: TokenLiteral): string {
   )
     return `${value.value}${value.unit}`;
   return JSON.stringify(value);
+}
+
+function applyResolverFlags(
+  config: CompilerConfig,
+  flags: ReadonlyMap<string, string | true>,
+): CompilerConfig {
+  if (!config.resolver) return config;
+  const ignored = new Set(["config", "json", "debug", "format"]);
+  const input: Record<string, string> = { ...config.resolver.input };
+  for (const [name, value] of flags)
+    if (!ignored.has(name) && typeof value === "string") input[name] = value;
+  return { ...config, resolver: { ...config.resolver, input } };
 }
 
 function printDiagnostics(result: CompilationResult, io: CliIO, json: boolean): void {
@@ -226,7 +239,10 @@ async function loadAndCompile(
   emit: boolean,
 ): Promise<{ config: CompilerConfig; result: CompilationResult }> {
   const explicit = parsed.flags.get("config");
-  const config = await loadConfig(io.cwd, typeof explicit === "string" ? explicit : undefined);
+  const config = applyResolverFlags(
+    await loadConfig(io.cwd, typeof explicit === "string" ? explicit : undefined),
+    parsed.flags,
+  );
   const result = await compile(emit ? config : { ...config, outputs: [] });
   return { config, result };
 }
@@ -308,38 +324,77 @@ async function explainCommand(parsed: ParsedArguments, io: CliIO): Promise<numbe
     io.stderr(`Unknown token: ${id}\n`);
     return 1;
   }
-  const context = { ...defaultContext(config.contexts), ...contextFromFlags(config, parsed.flags) };
+  const context = {
+    ...defaultContext(result.compilation.contexts),
+    ...result.compilation.resolution?.context,
+    ...contextFromFlags(config, parsed.flags),
+  };
+  const trace = result.compilation.explainToken(id, context);
+  if (!trace) {
+    io.stderr(`Unable to resolve token: ${id}\n`);
+    return 1;
+  }
   const lines = [String(id)];
-  const seen = new Set<TokenId>([id]);
-  let current = id;
   let depth = 0;
-  while (true) {
-    const resolved = result.compilation.resolveToken(current, context);
-    if (!resolved) break;
+  for (const step of trace.steps) {
     depth += 1;
-    if (resolved.expression.kind === "literal") {
-      lines.push(`${"   ".repeat(depth - 1)}└─ ${displayLiteral(resolved.value)}`);
-      break;
+    if (step.expression.kind === "reference") {
+      lines.push(
+        `${"   ".repeat(depth - 1)}└─ ${step.expression.pointer ? `JSON Pointer ${step.expression.pointer} → ` : ""}${step.expression.target}`,
+      );
+    } else if (step.expression.kind === "json-pointer-reference") {
+      lines.push(
+        `${"   ".repeat(depth - 1)}└─ JSON Pointer ${step.expression.pointer} → ${step.expression.target}`,
+      );
+      lines.push(`${"   ".repeat(depth)}└─ ${displayLiteral(step.expression.value)}`);
+    } else {
+      lines.push(`${"   ".repeat(depth - 1)}└─ ${displayLiteral(step.expression.value)}`);
     }
-    lines.push(`${"   ".repeat(depth - 1)}└─ ${resolved.expression.target}`);
-    if (seen.has(resolved.expression.target)) break;
-    seen.add(resolved.expression.target);
-    current = resolved.expression.target;
   }
   const dependentCount = result.graph.getAffectedTokens([id]).size - 1;
+  const resolutionLines = [
+    ...trace.resolverSteps.map((step) =>
+      step.kind === "modifier" ? `${step.name}.${step.context ?? "default"}` : step.name,
+    ),
+    ...trace.steps.flatMap((step) =>
+      step.selection === "override" && step.selector
+        ? [
+            Object.entries(step.selector)
+              .map(([name, value]) => `${name}.${value}`)
+              .join(" & "),
+          ]
+        : [],
+    ),
+  ];
+  const resolvedThrough = trace.steps
+    .slice(1)
+    .map(
+      (step) =>
+        `${relative(config.cwd ?? io.cwd, step.source.file)}:${step.source.line}:${step.source.column}`,
+    );
   lines.push(
     "",
     `Type:\n  ${token.type}`,
     "",
     `Context:\n${
-      Object.entries(context)
+      Object.entries(trace.context)
         .map(([name, value]) => `  ${name} = ${value}`)
         .join("\n") || "  default"
     }`,
+    ...(resolutionLines.length > 0 ? ["", `Resolution:\n  ${resolutionLines.join("\n  → ")}`] : []),
     "",
     `Defined at:\n  ${relative(config.cwd ?? io.cwd, token.source.file)}:${token.source.line}:${token.source.column}`,
+    ...(token.inheritance
+      ? [
+          "",
+          `Inherited from:\n  ${token.inheritance.token}\n\nBase group:\n  ${token.inheritance.group}`,
+        ]
+      : []),
+    ...(resolvedThrough.length > 0
+      ? ["", `Resolved through:\n${resolvedThrough.map((location) => `  ${location}`).join("\n")}`]
+      : []),
     "",
-    `Dependencies:\n  ${seen.size - 1}`,
+    `Dependencies:\n  ${token.dependencies.length}`,
     "",
     `Reverse dependencies:\n  ${dependentCount}`,
   );
@@ -420,7 +475,7 @@ async function graphCommand(parsed: ParsedArguments, io: CliIO): Promise<number>
     return 1;
   }
   const ids = root
-    ? [...result.graph.getAffectedTokens([root])]
+    ? [...result.graph.getDependencyClosure([root])]
     : result.graph.tokens.map((token) => token.id);
   if (parsed.flags.get("format") === "mermaid") {
     const idSet = new Set(ids);
@@ -439,10 +494,68 @@ async function graphCommand(parsed: ParsedArguments, io: CliIO): Promise<number>
   return 0;
 }
 
+async function resolverDevCommand(
+  parsed: ParsedArguments,
+  io: CliIO,
+  configPath: string | undefined,
+  initialConfig: CompilerConfig,
+): Promise<number> {
+  let config = initialConfig;
+  const build = async (): Promise<void> => {
+    const result = await compile(config);
+    if (result.success) {
+      await writeOutputs(config, result, io);
+      io.stdout(`✓ ${result.stats.tokens} tokens compiled\n`);
+    } else printDiagnostics(result, io, false);
+  };
+  await build();
+  const root = config.cwd ?? io.cwd;
+  io.stdout(`✓ watching ${root}\n`);
+  const watcher = watch(root, {
+    ignoreInitial: true,
+    ignored: (path) => /(?:^|\/)(?:node_modules|dist|\.git)(?:\/|$)/u.test(path),
+    awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 10 },
+  });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let busy = Promise.resolve();
+  const rebuild = (): void => {
+    const previous = busy;
+    busy = (async () => {
+      await previous;
+      try {
+        config = applyResolverFlags(await loadConfig(io.cwd, configPath), parsed.flags);
+        await build();
+      } catch (error) {
+        io.stderr(
+          `${error instanceof Error ? error.message : String(error)}\n✗ waiting for a valid edit\n`,
+        );
+      }
+    })();
+  };
+  watcher.on("all", () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(rebuild, 75);
+  });
+  watcher.on("error", (error) => io.stderr(`Watcher error: ${String(error)}\n`));
+  return new Promise<number>((finish) => {
+    const stop = (): void => {
+      if (timer) clearTimeout(timer);
+      void (async () => {
+        await busy;
+        await watcher.close();
+        finish(0);
+      })();
+    };
+    process.once("SIGINT", stop);
+    process.once("SIGTERM", stop);
+  });
+}
+
 async function devCommand(parsed: ParsedArguments, io: CliIO): Promise<number> {
   const explicit = parsed.flags.get("config");
   const configPath = typeof explicit === "string" ? explicit : undefined;
-  let config = await loadConfig(io.cwd, configPath);
+  let config = applyResolverFlags(await loadConfig(io.cwd, configPath), parsed.flags);
+  if (config.resolver) return resolverDevCommand(parsed, io, configPath, config);
   let sources = await loadTokenFiles(config.source, config.cwd);
   let contents = new Map(sources.map((source) => [source.file, source.content]));
   let compiler = new IncrementalCompiler({

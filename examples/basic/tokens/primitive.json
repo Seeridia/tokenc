@@ -3,13 +3,28 @@
     "$type": "color",
     "blue": {
       "100": {
-        "$value": "#EAF2FF"
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.9176470588, 0.9490196078, 1],
+          "alpha": 1,
+          "hex": "#EAF2FF"
+        }
       },
       "600": {
-        "$value": "#0052D9"
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0, 0.3215686275, 0.8509803922],
+          "alpha": 1,
+          "hex": "#0052D9"
+        }
       },
       "700": {
-        "$value": "#003CAB"
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0, 0.2352941176, 0.6705882353],
+          "alpha": 1,
+          "hex": "#003CAB"
+        }
       }
     }
   },
