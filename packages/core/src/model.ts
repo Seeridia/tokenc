@@ -77,9 +77,68 @@ export type FontWeightValue =
   | "extra-bold"
   | "ultra-bold"
   | "black"
-  | "heavy";
+  | "heavy"
+  | "extra-black"
+  | "ultra-black";
 
 export type FontFamilyValue = string | readonly string[];
+
+export type CubicBezierValue = readonly [number, number, number, number];
+
+export type StrokeStyleKeyword =
+  | "solid"
+  | "dashed"
+  | "dotted"
+  | "double"
+  | "groove"
+  | "ridge"
+  | "outset"
+  | "inset";
+
+export interface StrokeStyleObjectValue {
+  readonly dashArray: readonly DimensionValue[];
+  readonly lineCap: "round" | "butt" | "square";
+}
+
+export type StrokeStyleValue = StrokeStyleKeyword | StrokeStyleObjectValue;
+
+export interface BorderValue {
+  readonly color: ColorValue;
+  readonly width: DimensionValue;
+  readonly style: StrokeStyleValue;
+}
+
+export interface TransitionValue {
+  readonly duration: DurationValue;
+  readonly delay: DurationValue;
+  readonly timingFunction: CubicBezierValue;
+}
+
+export interface ShadowValue {
+  readonly color: ColorValue;
+  readonly offsetX: DimensionValue;
+  readonly offsetY: DimensionValue;
+  readonly blur: DimensionValue;
+  readonly spread: DimensionValue;
+  readonly inset?: boolean;
+}
+
+export type ShadowTokenValue = ShadowValue | readonly ShadowValue[];
+
+export interface GradientStopValue {
+  readonly color: ColorValue;
+  readonly position: number;
+}
+
+export type GradientValue = readonly GradientStopValue[];
+
+export interface TypographyValue {
+  readonly fontFamily: FontFamilyValue;
+  readonly fontSize: DimensionValue;
+  readonly fontWeight: FontWeightValue;
+  readonly letterSpacing: DimensionValue;
+  readonly lineHeight: number;
+}
 
 export interface TokenValueMap {
   readonly color: ColorValue;
@@ -88,13 +147,13 @@ export interface TokenValueMap {
   readonly number: number;
   readonly duration: DurationValue;
   readonly fontWeight: FontWeightValue;
-  readonly cubicBezier: JsonValue;
-  readonly strokeStyle: JsonValue;
-  readonly border: JsonValue;
-  readonly transition: JsonValue;
-  readonly shadow: JsonValue;
-  readonly gradient: JsonValue;
-  readonly typography: JsonValue;
+  readonly cubicBezier: CubicBezierValue;
+  readonly strokeStyle: StrokeStyleValue;
+  readonly border: BorderValue;
+  readonly transition: TransitionValue;
+  readonly shadow: ShadowTokenValue;
+  readonly gradient: GradientValue;
+  readonly typography: TypographyValue;
 }
 
 export type TokenLiteral = TokenValueMap[TokenType];
@@ -112,6 +171,8 @@ export interface TokenReference<T extends TokenType = TokenType> {
   readonly kind: "reference";
   readonly target: TokenId;
   readonly source: SourceLocation;
+  /** Present when the source spelling was a DTCG JSON Pointer `$ref`. */
+  readonly pointer?: string;
   /** Carries the owning token type without changing the runtime representation. */
   readonly __type?: T;
 }
@@ -121,9 +182,32 @@ export interface TokenLiteralExpression<T extends TokenType = TokenType> {
   readonly value: TokenValueMap[T];
 }
 
+export interface JsonPointerReferenceExpression<T extends TokenType = TokenType> {
+  readonly kind: "json-pointer-reference";
+  readonly pointer: string;
+  /** Token that owns the referenced component and therefore receives the graph edge. */
+  readonly target: TokenId;
+  readonly value: TokenValueMap[T];
+  readonly source: SourceLocation;
+}
+
 export type TokenExpression<T extends TokenType = TokenType> =
   | TokenReference<T>
-  | TokenLiteralExpression<T>;
+  | TokenLiteralExpression<T>
+  | JsonPointerReferenceExpression<T>;
+
+export interface JsonPointerDependency {
+  readonly pointer: string;
+  readonly target: TokenId;
+  readonly source: SourceLocation;
+}
+
+export interface TokenInheritance {
+  readonly token: TokenId;
+  readonly group: string;
+  readonly source: SourceLocation;
+  readonly extendsSource: SourceLocation;
+}
 
 export type CompilationContext = Readonly<Record<string, string>>;
 
@@ -148,6 +232,8 @@ export interface TokenNode<T extends TokenType = TokenType> {
   readonly overrides: readonly ContextOverride<T>[];
   readonly source: SourceLocation;
   readonly dependencies: readonly TokenId[];
+  readonly propertyReferences?: readonly JsonPointerDependency[];
+  readonly inheritance?: TokenInheritance;
 }
 
 export interface ParsedTokenDocument {

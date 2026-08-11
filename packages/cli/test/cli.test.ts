@@ -9,6 +9,7 @@ const cwd = fileURLToPath(new URL("fixtures/basic", import.meta.url));
 const output = fileURLToPath(new URL("fixtures/basic/dist", import.meta.url));
 const resolverCwd = fileURLToPath(new URL("fixtures/resolver", import.meta.url));
 const resolverOutput = fileURLToPath(new URL("fixtures/resolver/dist", import.meta.url));
+const referencesCwd = fileURLToPath(new URL("fixtures/references", import.meta.url));
 
 function invokeAt(workingDirectory: string, args: readonly string[]) {
   let stdout = "";
@@ -88,6 +89,24 @@ describe("tokenc CLI", () => {
     expect(result.stdout).toBe(
       "button.primary.background\n└─ color.brand.default\n   └─ color.blue.600\n",
     );
+  });
+
+  it("explains JSON Pointer components and inherited provenance", async () => {
+    const pointer = await invokeAt(referencesCwd, ["explain", "firstX"]);
+    expect(pointer).toMatchObject({ code: 0, stderr: "" });
+    expect(pointer.stdout).toContain("JSON Pointer #/curve/$value/0 → curve");
+    expect(pointer.stdout).toContain("Dependencies:\n  1");
+
+    const inherited = await invokeAt(referencesCwd, ["explain", "derived.small"]);
+    expect(inherited).toMatchObject({ code: 0, stderr: "" });
+    expect(inherited.stdout).toContain("Inherited from:\n  base.small");
+    expect(inherited.stdout).toContain("Base group:\n  base");
+  });
+
+  it("finds usages introduced by a JSON Pointer component", async () => {
+    const result = await invokeAt(referencesCwd, ["usages", "curve"]);
+    expect(result).toMatchObject({ code: 0, stderr: "" });
+    expect(result.stdout).toContain("Direct usages:\n\n└─ firstX");
   });
 
   it("builds and explains a DTCG resolver context selected by flags", async () => {

@@ -12,4 +12,6 @@ export * from "./compiler.js";
 export * from "./incremental.js";
 export * from "./dtcg/color.js";
 export * from "./dtcg/format.js";
+export * from "./dtcg/json-pointer.js";
 export * from "./dtcg/resolver-document.js";
+export * from "./extensions/context.js";

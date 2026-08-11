@@ -64,7 +64,7 @@ export class TokenResolver {
       active.add(current);
       const expression = selectTokenCandidate(token, context, this.#resolutionOrder).expression;
       path.push({ token, expression });
-      if (expression.kind === "literal") {
+      if (expression.kind !== "reference") {
         value = expression.value;
         break;
       }

@@ -142,9 +142,9 @@ typescript({ references: "symbol" });
 ```
 
 DTCG 2025.10 Resolver Module 是一等输入：Set 与 Modifier 按显式 `resolutionOrder` 组合，再在结果
-Graph 上检查 Alias。`org.token-compiler.contexts` 是 DTCG 扩展，用于表示一次编译中的运行时
-Context-dependent value；它与 Resolver 的源组合语义不同，并会归一化为具有确定性优先级的强类型
-Context Override。
+Graph 上检查 Alias。`org.token-compiler.contexts` 是非标准 tokenc 扩展，用于表示一次编译中的运行时
+Context-dependent value；它与标准 DTCG Parser 隔离、与 Resolver 的源组合语义不同，并会归一化为
+具有确定性优先级的强类型 Context Override。
 
 非 DTCG 格式不属于编译器输入语言。旧 Token 文件应先转换为 DTCG；Importer/Migrator 的输出必须是
 DTCG，而不能绕过 DTCG Parser 直接构造语义节点。
@@ -181,13 +181,13 @@ Parser 不依赖文件系统 IO。
 
 ## Token 支持
 
-| 支持级别            | 类型                                                                                     |
-| ------------------- | ---------------------------------------------------------------------------------------- |
-| 完整校验            | `color`、`dimension`、`fontFamily`、`number`、`duration`、`fontWeight`                   |
-| 基础 Composite 模型 | `cubicBezier`、`strokeStyle`、`border`、`transition`、`shadow`、`gradient`、`typography` |
+| 支持级别 | 类型                                                                                     |
+| -------- | ---------------------------------------------------------------------------------------- |
+| 完整校验 | `color`、`dimension`、`fontFamily`、`number`、`duration`、`fontWeight`                   |
+| 完整校验 | `cubicBezier`、`strokeStyle`、`border`、`transition`、`shadow`、`gradient`、`typography` |
 
 DTCG Color 保留全部 14 种标准颜色空间、`none` 分量、alpha 与可选 hex fallback。字符串颜色简写
-不是编译器输入。平台转换仍由 Backend 负责；Composite 类型将在后续版本中补充更深入的字段级校验。
+不是编译器输入。平台转换仍由 Backend 负责；Composite 值会按 DTCG 字段形状与数值范围校验。
 
 ## 开发
 

@@ -11,6 +11,7 @@ import {
   type ResolverDocument,
   type ResolverResolution,
 } from "./dtcg/resolver-document.js";
+import { linkTokenDocuments, parseUnresolvedTokenDocument } from "./frontend.js";
 import { TokenGraph } from "./graph.js";
 import { loadTokenFiles, type TokenSourceInput } from "./loader.js";
 import type {
@@ -26,7 +27,6 @@ import type {
   TokenId,
   TokenNode,
 } from "./model.js";
-import { parseTokenDocument } from "./parser.js";
 import { TokenResolver } from "./resolver.js";
 
 export interface TokenBackend {
@@ -196,9 +196,14 @@ export async function compileDocuments(
     ? resolveResolverDocument(options.resolver, sources, options.resolverInput)
     : options.resolution;
   const effectiveSources = resolution?.sources ?? sources;
-  const documents = effectiveSources.map((source) =>
-    parseTokenDocument(source.content, source.file, source.origin ? { origin: source.origin } : {}),
+  const unresolved = effectiveSources.map((source) =>
+    parseUnresolvedTokenDocument(
+      source.content,
+      source.file,
+      source.origin ? { origin: source.origin } : {},
+    ),
   );
+  const documents = linkTokenDocuments(unresolved);
   const parseTime = performance.now() - parseStart;
   return compileParsedDocuments(
     documents,

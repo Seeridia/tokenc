@@ -69,6 +69,10 @@ describe("IncrementalCompiler", () => {
     expect(duplicated.result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
       "TOKEN_DUPLICATE_ID",
     );
+    const duplicate = duplicated.result.diagnostics.find(
+      (diagnostic) => diagnostic.code === "TOKEN_DUPLICATE_ID",
+    );
+    expect(duplicate?.source?.offset).not.toBe(duplicate?.related?.[0]?.source?.offset);
     const recovered = await compiler.update(primitive(2));
     expect(recovered.result.success).toBe(true);
   });

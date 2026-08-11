@@ -5,10 +5,14 @@ import {
   type CompilationResult,
   type CompileDocumentsOptions,
 } from "./compiler.js";
+import {
+  linkTokenDocuments,
+  parseUnresolvedTokenDocument,
+  type UnresolvedTokenDocument,
+} from "./frontend.js";
 import { TokenGraph, type TokenGraphDelta } from "./graph.js";
 import type { TokenSourceInput } from "./loader.js";
 import type { Diagnostic, ParsedTokenDocument, TokenId, TokenNode } from "./model.js";
-import { parseTokenDocument } from "./parser.js";
 
 export interface IncrementalUpdate {
   readonly changed: readonly TokenId[];
@@ -18,23 +22,38 @@ export interface IncrementalUpdate {
   readonly result: CompilationResult;
 }
 
+function semanticExpression(value: TokenNode["value"]): object {
+  return value.kind === "reference"
+    ? { kind: value.kind, target: value.target, pointer: value.pointer }
+    : value.kind === "json-pointer-reference"
+      ? {
+          kind: value.kind,
+          target: value.target,
+          pointer: value.pointer,
+          value: value.value,
+        }
+      : value;
+}
+
 function semanticSignature(token: TokenNode): string {
   return JSON.stringify({
     type: token.type,
-    value:
-      token.value.kind === "reference"
-        ? { kind: token.value.kind, target: token.value.target }
-        : token.value,
+    value: semanticExpression(token.value),
     description: token.description,
     deprecated: token.deprecated,
     extensions: token.extensions,
     overrides: token.overrides.map((override) => ({
       selector: override.selector,
-      expression:
-        override.expression.kind === "reference"
-          ? { kind: override.expression.kind, target: override.expression.target }
-          : override.expression,
+      expression: semanticExpression(override.expression),
     })),
+    dependencies: token.dependencies,
+    propertyReferences: token.propertyReferences?.map((reference) => ({
+      pointer: reference.pointer,
+      target: reference.target,
+    })),
+    inheritance: token.inheritance
+      ? { token: token.inheritance.token, group: token.inheritance.group }
+      : undefined,
   });
 }
 
@@ -58,6 +77,7 @@ function changedIds(
 
 /** Stateful compilation session that reparses only changed documents. */
 export class IncrementalCompiler {
+  readonly #syntaxDocuments = new Map<string, UnresolvedTokenDocument>();
   readonly #documents = new Map<string, ParsedTokenDocument>();
   readonly #options: CompileDocumentsOptions;
   #lastResult: CompilationResult | undefined;
@@ -69,7 +89,7 @@ export class IncrementalCompiler {
   }
 
   get files(): readonly string[] {
-    return [...this.#documents.keys()];
+    return [...this.#syntaxDocuments.keys()];
   }
   get result(): CompilationResult | undefined {
     return this.#lastResult;
@@ -77,17 +97,23 @@ export class IncrementalCompiler {
 
   async initialize(sources: readonly TokenSourceInput[]): Promise<IncrementalUpdate> {
     const start = performance.now();
+    this.#syntaxDocuments.clear();
     this.#documents.clear();
     this.#owners.clear();
     for (const source of sources)
-      this.#documents.set(
+      this.#syntaxDocuments.set(
         source.file,
-        parseTokenDocument(
+        parseUnresolvedTokenDocument(
           source.content,
           source.file,
           source.origin ? { origin: source.origin } : {},
         ),
       );
+    const linked = linkTokenDocuments([...this.#syntaxDocuments.values()]);
+    for (const [index, file] of [...this.#syntaxDocuments.keys()].entries()) {
+      const document = linked[index];
+      if (document) this.#documents.set(file, document);
+    }
     for (const [file, document] of this.#documents)
       for (const token of document.tokens) this.#addOwner(file, token);
     const changed = [...this.#documents.values()].flatMap((document) =>
@@ -123,25 +149,27 @@ export class IncrementalCompiler {
 
   async update(source: TokenSourceInput): Promise<IncrementalUpdate> {
     const start = performance.now();
-    const previousDocument = this.#documents.get(source.file);
-    const nextDocument = parseTokenDocument(
+    const previousDocuments = new Map(this.#documents);
+    const nextSyntaxDocument = parseUnresolvedTokenDocument(
       source.content,
       source.file,
       source.origin ? { origin: source.origin } : {},
     );
-    const changed = changedIds(previousDocument, nextDocument);
-    this.#documents.set(source.file, nextDocument);
-    this.#replaceOwners(source.file, previousDocument, nextDocument);
+    this.#syntaxDocuments.set(source.file, nextSyntaxDocument);
+    this.#relink();
+    const changed = this.#changedIds(previousDocuments);
+    this.#rebuildOwners();
     const delta = this.#patchGraph(changed);
     return this.#rebuild(changed, delta, performance.now() - start, start);
   }
 
   async remove(file: string): Promise<IncrementalUpdate> {
     const start = performance.now();
-    const previous = this.#documents.get(file);
-    const changed = changedIds(previous, undefined);
-    this.#documents.delete(file);
-    this.#replaceOwners(file, previous, undefined);
+    const previousDocuments = new Map(this.#documents);
+    this.#syntaxDocuments.delete(file);
+    this.#relink();
+    const changed = this.#changedIds(previousDocuments);
+    this.#rebuildOwners();
     const delta = this.#patchGraph(changed);
     return this.#rebuild(changed, delta, 0, start);
   }
@@ -159,17 +187,29 @@ export class IncrementalCompiler {
     this.#owners.set(token.id, owners);
   }
 
-  #replaceOwners(
-    file: string,
-    previous: ParsedTokenDocument | undefined,
-    next: ParsedTokenDocument | undefined,
-  ): void {
-    for (const token of previous?.tokens ?? []) {
-      const owners = this.#owners.get(token.id);
-      owners?.delete(file);
-      if (owners?.size === 0) this.#owners.delete(token.id);
+  #relink(): void {
+    const files = [...this.#syntaxDocuments.keys()];
+    const linked = linkTokenDocuments([...this.#syntaxDocuments.values()]);
+    this.#documents.clear();
+    for (const [index, file] of files.entries()) {
+      const document = linked[index];
+      if (document) this.#documents.set(file, document);
     }
-    for (const token of next?.tokens ?? []) this.#addOwner(file, token);
+  }
+
+  #changedIds(previous: ReadonlyMap<string, ParsedTokenDocument>): readonly TokenId[] {
+    const files = new Set([...previous.keys(), ...this.#documents.keys()]);
+    return [
+      ...new Set(
+        [...files].flatMap((file) => changedIds(previous.get(file), this.#documents.get(file))),
+      ),
+    ];
+  }
+
+  #rebuildOwners(): void {
+    this.#owners.clear();
+    for (const [file, document] of this.#documents)
+      for (const token of document.tokens) this.#addOwner(file, token);
   }
 
   #duplicateDiagnostics(ids: readonly TokenId[]): readonly Diagnostic[] {

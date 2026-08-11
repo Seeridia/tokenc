@@ -89,6 +89,30 @@ describe("DTCG 2025.10 resolver documents", () => {
     });
   });
 
+  it("diagnoses non-string runtime inputs without throwing", () => {
+    const source = fixturePath("valid.resolver.json");
+    const parsed = parseResolverDocument(fixture("valid.resolver.json"), source);
+    if (!parsed.document) throw new Error("Expected a valid resolver document");
+    const resolution = resolveResolverDocument(parsed.document, [], { theme: 42 });
+    expect(resolution.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "DTCG_INVALID_RESOLVER_INPUT",
+        message: "Resolver modifier input `theme` must be a string",
+      }),
+    );
+  });
+
+  it.each([null, 42, []])("diagnoses a malformed runtime input object", (input) => {
+    const source = fixturePath("valid.resolver.json");
+    const parsed = parseResolverDocument(fixture("valid.resolver.json"), source);
+    if (!parsed.document) throw new Error("Expected a valid resolver document");
+    const resolution = resolveResolverDocument(parsed.document, [], input);
+    expect(resolution.diagnostics[0]).toMatchObject({
+      code: "DTCG_INVALID_RESOLVER_INPUT",
+      message: "Resolver input must be an object whose values are strings",
+    });
+  });
+
   it("accepts inputs for inline modifiers", () => {
     const parsed = parseResolverDocument(
       JSON.stringify({
@@ -109,16 +133,100 @@ describe("DTCG 2025.10 resolver documents", () => {
     expect(resolution.context).toEqual({ density: "compact" });
   });
 
-  it("diagnoses reference sibling overrides instead of ignoring them", () => {
+  it("applies reference sibling overrides without mutating the target", () => {
     const parsed = parseResolverDocument(
       JSON.stringify({
         version: "2025.10",
-        sets: { base: { sources: [] } },
-        resolutionOrder: [{ $ref: "#/sets/base", description: "override" }],
+        sets: { base: { description: "base", sources: [{ $ref: "base.json" }] } },
+        resolutionOrder: [
+          {
+            $ref: "#/sets/base",
+            description: "override",
+            sources: [{ $ref: "override.json" }],
+          },
+        ],
       }),
       "/tokens/override.resolver.json",
     );
-    expect(parsed.diagnostics[0]?.code).toBe("DTCG_UNSUPPORTED_RESOLVER_REFERENCE_OVERRIDE");
+    expect(parsed.diagnostics).toEqual([]);
+    const base = parsed.document?.sets.get("base");
+    expect(base).toMatchObject({
+      description: "base",
+      sources: [{ ref: "base.json" }],
+    });
+    expect(base?.reference).toBeUndefined();
+    expect(parsed.document?.resolutionOrder[0]).toMatchObject({
+      description: "override",
+      sources: [{ ref: "override.json" }],
+      reference: {
+        ref: "#/sets/base",
+        source: { file: "/tokens/override.resolver.json" },
+        target: { file: "/tokens/override.resolver.json" },
+      },
+    });
+  });
+
+  it("shallowly replaces modifier contexts", () => {
+    const parsed = parseResolverDocument(
+      JSON.stringify({
+        version: "2025.10",
+        modifiers: {
+          theme: {
+            contexts: { light: [], dark: [] },
+            default: "light",
+          },
+        },
+        resolutionOrder: [
+          {
+            $ref: "#/modifiers/theme",
+            contexts: { highContrast: [] },
+            default: "highContrast",
+          },
+        ],
+      }),
+      "/tokens/modifier-override.resolver.json",
+    );
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.document?.modifiers.get("theme")?.contexts).toHaveProperty("light");
+    expect(parsed.document?.resolutionOrder[0]).toMatchObject({
+      contexts: { highContrast: [] },
+      default: "highContrast",
+    });
+  });
+
+  it("applies set overrides on nested source references", () => {
+    const source = "/tokens/source-override.resolver.json";
+    const parsed = parseResolverDocument(
+      JSON.stringify({
+        version: "2025.10",
+        sets: {
+          base: { sources: [{ $ref: "base.json" }] },
+          wrapper: {
+            sources: [
+              {
+                $ref: "#/sets/base",
+                description: "local semantic view",
+                sources: [{ $ref: "override.json" }],
+              },
+            ],
+          },
+        },
+        resolutionOrder: [{ $ref: "#/sets/wrapper" }],
+      }),
+      source,
+    );
+    if (!parsed.document) throw new Error("Expected a valid resolver document");
+    expect(parsed.diagnostics).toEqual([]);
+    expect(resolverSourceFiles(parsed.document)).toEqual([
+      "/tokens/base.json",
+      "/tokens/override.json",
+    ]);
+    const resolution = resolveResolverDocument(parsed.document, [
+      { file: "/tokens/base.json", content: "{}" },
+      { file: "/tokens/override.json", content: "{}" },
+    ]);
+    expect(resolution.diagnostics).toEqual([]);
+    expect(resolution.sources.map((item) => item.file)).toEqual(["/tokens/override.json"]);
   });
 
   it("emits stable diagnostics for invalid documents", () => {

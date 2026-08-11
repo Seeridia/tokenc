@@ -8,9 +8,11 @@
 
 ```text
 DTCG 2025.10 Token 文档
-  → DTCG Parser + Validator
+  → 可选 DTCG Resolver Source Composition
+  → Syntax Parser + Unresolved Source Model
+  → Reference Linking（Curly Alias、JSON Pointer $ref、Group $extends）
+  → Reference-driven Type Resolution
   → typed TokenNode[] + structured diagnostics
-  → 可选 DTCG Resolver sets/modifiers/resolutionOrder
   → TokenGraph
   → Context validation + reference type checking
   → lazy TokenResolver
@@ -56,7 +58,13 @@ source excerpt
 
 无效 JSON 会生成结构化诊断和一个空 document，而不是让 watch process 崩溃。修复文件后，同一增量 Session 可以自动恢复。
 
-Group 会把最近的 `$type` 传递给子节点。只有拥有 `$value` 的对象才会成为 Token；同时拥有 `$value` 与子节点的非法结构会被诊断。保留字 `$root` Token 会显式保留在 canonical path 中。
+Syntax Parser 记录显式与继承类型候选，而不要求当场确定所有 Token 的最终类型。Linker 解析前向、后向、
+链式与跨文档 Alias。最终优先级为 Token 显式 `$type`、引用目标类型、Group 继承类型。只有完成链接的
+强类型 `TokenNode` 才会进入 Graph、Checker、Resolver 与 Backend。
+
+Group 会把最近的 `$type` 传递给子节点。拥有 `$value` 或构成 `$ref` 引用对象的属性会成为 Token；
+同时包含 Token 定义与子节点的非法结构会被诊断。保留字 `$root` Token 会显式保留在 canonical path
+中。Group `$extends` 使用继承边与有效成员关系表达，而不是全局对象 Deep Merge。
 
 ## Typed AST
 
@@ -66,15 +74,22 @@ Group 会把最近的 `$type` 传递给子节点。只有拥有 `$value` 的对�
 TokenNode
   id: TokenId
   type: TokenType
-  value: TokenLiteralExpression | TokenReference
+  value: TokenLiteralExpression | TokenReference | JsonPointerReferenceExpression
   overrides: ContextOverride[]
   dependencies: TokenId[]
+  propertyReferences: JsonPointerDependency[]
+  inheritance?: TokenInheritance
   source: SourceLocation
 ```
 
-`color`、`dimension`、`fontFamily`、`number`、`duration` 和 `fontWeight` 具有具体的内部模型和 validator。`TokenExpression<T>`、`TokenNode<T>`、`ResolvedToken<T>` 与 `CompiledToken<T>` 会让声明类型贯穿整个流水线。
+全部标准 Token 类型都有具体的内部模型与 Validator。`cubicBezier`、`strokeStyle`、`border`、
+`transition`、`shadow`、`gradient` 与 `typography` 会校验必填字段、封闭结构和适用的数值范围。
+`TokenExpression<T>`、`TokenNode<T>`、`ResolvedToken<T>` 与 `CompiledToken<T>` 让解析后的类型贯穿
+整个流水线。
 
-复合类型在 v0.1 中保留 JSON-safe 数据。这允许未来逐步加强 validator，而不需要改变 Graph 或 Backend 边界。
+RFC 6901 引擎是独立于 IO 的 DTCG 模块。指向完整 Token 或完整 `$value` 的 Pointer 会归一化为
+Token Reference；指向嵌套分量的 Pointer 保留表达式和解析值，同时在 `TokenNode.dependencies` 中记录
+拥有该分量的 Token ID。Backend 不解析原始 Pointer；平台无法保留分量引用时使用解析后的值。
 
 ## Token ID
 
@@ -108,6 +123,9 @@ Token 和邻接关系查询为 O(1)。使用 lexical heap 的稳定 Kahn 排序�
 
 循环引用会输出闭合路径和相关源码位置。未知 Reference 仍然会作为 Graph Edge 保留，让 Checker 可以根据所有 canonical ID 提供相似名称建议。
 
+继承 Token 会指向 Base Token，分量 Pointer 会指向拥有该分量的 Token。因此 Cycle Detection、
+`explain`、`usages`、Impact Analysis 与 Incremental Invalidation 对所有引用形式使用同一套 Graph 语义。
+
 ### 为什么将 Token 建模为 Graph？
 
 Alias 不是字符串插值，而是语义依赖。一旦 Reference 被表示为 Edge，以下能力就变成同一种 Graph Operation：
@@ -134,11 +152,17 @@ density=compact
 
 解析过程是惰性的，并以 `(TokenId, Context)` 为 key 缓存。Compiler 只记录 default context 和源码实际声明的 override 组合，不会物化 theme × brand × density 的完整 Token Dictionary。
 
-`$extensions["org.token-compiler.contexts"]` 表示一次编译内依赖运行时 Context 的值，并归一化成由同一个 `TokenResolver` 消费的强类型 Context Override。DTCG Resolver 则在构图前组合 Source，因此两种机制具有不同语义。
+`$extensions["org.token-compiler.contexts"]` 是非标准 tokenc 扩展。独立 Interpreter 将其转换为由
+同一 `TokenResolver` 消费的强类型 Context Override；标准 DTCG Token Parser 不依赖该扩展。DTCG
+Resolver 则在构图前组合 Source，因此两种机制具有不同语义。
 
 ## DTCG Resolver Module
 
-`parseResolverDocument(content, source)` 是不执行 IO 的 DTCG 2025.10 Resolver Frontend。它生成带源码位置的 `TokenSet`、`ResolverModifier`、`ResolutionSource` 与有序 Resolution Item。IO 层加载相对路径完整文件；语义解析负责校验 Input、展开同文档 Set 引用、选择 Modifier Context，并严格按照 `resolutionOrder` 产生 Source Stream。
+`parseResolverDocument(content, source)` 是不执行 IO 的 DTCG 2025.10 Resolver Frontend。它生成带
+源码位置的 `TokenSet`、`ResolverModifier`、`ResolutionSource` 与有序 Resolution Item。Resolver
+引用对象复用统一 RFC 6901 Parser。本地 sibling 字段在引用目标上形成浅层语义视图：Object/Array
+字段整体替换，不修改目标，并保留两处来源。IO 层加载相对路径完整文件；语义解析负责校验运行时
+Input、展开同文档 Set 引用、选择 Modifier Context，并严格按照 `resolutionOrder` 产生 Source Stream。
 
 只有 Resolver Resolution 内部使用标准规定的“后 Source 覆盖前 Source”规则；普通多文件编译仍会诊断重复 canonical ID。Alias 会在 Source Stream 组合完成后进入 Graph 检查，因此 Resolver 不是全局 deep merge hook。
 
@@ -238,15 +262,17 @@ Tailwind variable 指向运行时层，因此普通 CSS 和 utility 可以共享
 
 ## Incremental Compilation
 
-`IncrementalCompiler` 以 source 为 key 缓存已解析 Document。文件变化时：
+`IncrementalCompiler` 以 source 为 key 缓存 Unresolved Syntax Document。文件变化时：
 
 1. 只解析发生变化的 Document。
-2. 比较语义节点签名，得到 changed Token IDs。
-3. 仅 patch 新增、修改、删除的 Graph Node 与邻接边。
-4. 合并 patch 前后的 reverse affected set。
-5. 在 affected region 内检查 Reference 与 Cycle；无效构建后的下一次编辑回退为全量检查。
-6. 将 affected set 以外的求值缓存迁移到新 Resolver。
-7. 在 IR 或 Backend 请求值时，惰性重算受影响节点。
+2. 重新链接缓存的 Syntax Document，让跨文档类型推断、Pointer 与 Inheritance 观察新的语义状态，
+   无需重解析未变化文件。
+3. 比较语义节点签名，得到 changed Token IDs。
+4. 仅 patch 新增、修改、删除的 Graph Node 与邻接边。
+5. 合并 patch 前后的 reverse affected set。
+6. 在 affected region 内检查 Reference 与 Cycle；无效构建后的下一次编辑回退为全量检查。
+7. 将 affected set 以外的求值缓存迁移到新 Resolver。
+8. 在 IR 或 Backend 请求值时，惰性重算受影响节点。
 
 Backend 在 v0.1 中仍可能重写完整文件，但这不会导致 Core 重新解析或重新求值无关 Token。
 
@@ -271,9 +297,11 @@ indirectlyAffected
 ```text
 Literal Node
 Reference Node
+Resolved JSON Pointer Component Node
 ```
 
-未来可以加入第三种 `ComputedTokenNode`。Computed Node 会在 Graph Construction 前提供 dependencies，Function Parsing 和 Evaluation 作为新的 Compiler Stage 实现，而 Backend 继续消费相同的 Resolved IR。
+未来可以加入新的 `ComputedTokenNode`。Computed Node 会在 Graph Construction 前提供 dependencies，
+Function Parsing 和 Evaluation 作为新的 Compiler Stage 实现，而 Backend 继续消费相同的 Resolved IR。
 
 v0.1 不会为了提前支持这个能力而创造非标准 Function Syntax。
 

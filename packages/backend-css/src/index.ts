@@ -8,7 +8,6 @@ import {
   type ColorValue,
   type Compilation,
   type CompilationContext,
-  type JsonValue,
   type TokenBackend,
   type TokenExpression,
   type TokenId,
@@ -61,7 +60,7 @@ function color(value: ColorValue): string {
   return `color(${value.colorSpace} ${components}${alpha})`;
 }
 
-function isJson(value: TokenLiteral): value is JsonValue {
+function isJson(value: TokenLiteral): boolean {
   return (
     value === null ||
     ["string", "number", "boolean"].includes(typeof value) ||

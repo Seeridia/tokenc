@@ -102,4 +102,18 @@ describe("DTCG parser", () => {
       expression: { kind: "literal" },
     });
   });
+
+  it("diagnoses malformed tokenc context extension data", () => {
+    const result = parseTokenDocument(
+      JSON.stringify({
+        value: {
+          $type: "number",
+          $value: 1,
+          $extensions: { "org.token-compiler.contexts": "dark" },
+        },
+      }),
+      "invalid-context-extension.json",
+    );
+    expect(result.diagnostics[0]?.code).toBe("TOKEN_INVALID_CONTEXT_EXTENSION");
+  });
 });

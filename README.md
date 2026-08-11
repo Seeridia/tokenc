@@ -11,7 +11,7 @@
 
 > A typed, graph-based compiler for DTCG Design Tokens.
 
-Compile design tokens as a typed program,
+`tokenc` compiles DTCG Design Tokens as a typed program,
 checks references and types, evaluates contexts lazily, and emits CSS, Tailwind CSS, or TypeScript
 through independent backends.
 
@@ -149,10 +149,10 @@ typescript({ references: "symbol" });
 ```
 
 The DTCG 2025.10 Resolver Module is a first-class input: sets and modifiers are composed in explicit
-`resolutionOrder`, then aliases are checked on the resulting graph. The
-`org.token-compiler.contexts` DTCG extension represents runtime context-dependent values within one
-compilation; it is distinct from Resolver source composition and normalizes to deterministic typed
-context overrides.
+`resolutionOrder`, then aliases are checked on the resulting graph. The non-standard tokenc
+extension `org.token-compiler.contexts` represents runtime context-dependent values within one
+compilation; it is distinct from Resolver source composition, isolated from standard DTCG parsing,
+and normalizes to deterministic typed context overrides.
 
 Non-DTCG formats are outside the compiler language. Convert legacy token files to DTCG before
 compilation; an importer or migrator should emit DTCG rather than bypassing the DTCG parser.
@@ -190,14 +190,14 @@ For virtual or remote inputs, use `parseTokenDocument(content, source)` and
 
 ## Token support
 
-| Level                 | Types                                                                                    |
-| --------------------- | ---------------------------------------------------------------------------------------- |
-| Fully validated       | `color`, `dimension`, `fontFamily`, `number`, `duration`, `fontWeight`                   |
-| Basic composite model | `cubicBezier`, `strokeStyle`, `border`, `transition`, `shadow`, `gradient`, `typography` |
+| Level           | Types                                                                                    |
+| --------------- | ---------------------------------------------------------------------------------------- |
+| Fully validated | `color`, `dimension`, `fontFamily`, `number`, `duration`, `fontWeight`                   |
+| Fully validated | `cubicBezier`, `strokeStyle`, `border`, `transition`, `shadow`, `gradient`, `typography` |
 
 DTCG colors preserve all 14 standard color spaces, `none` components, alpha, and the optional hex
 fallback. String color shorthand is not compiler input. Platform conversion remains a backend
-responsibility. Composite types will receive deeper field-level validation in future releases.
+responsibility. Composite values are validated against their DTCG field shapes and numeric ranges.
 
 ## Development
 

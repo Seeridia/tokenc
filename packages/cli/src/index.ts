@@ -339,7 +339,14 @@ async function explainCommand(parsed: ParsedArguments, io: CliIO): Promise<numbe
   for (const step of trace.steps) {
     depth += 1;
     if (step.expression.kind === "reference") {
-      lines.push(`${"   ".repeat(depth - 1)}└─ ${step.expression.target}`);
+      lines.push(
+        `${"   ".repeat(depth - 1)}└─ ${step.expression.pointer ? `JSON Pointer ${step.expression.pointer} → ` : ""}${step.expression.target}`,
+      );
+    } else if (step.expression.kind === "json-pointer-reference") {
+      lines.push(
+        `${"   ".repeat(depth - 1)}└─ JSON Pointer ${step.expression.pointer} → ${step.expression.target}`,
+      );
+      lines.push(`${"   ".repeat(depth)}└─ ${displayLiteral(step.expression.value)}`);
     } else {
       lines.push(`${"   ".repeat(depth - 1)}└─ ${displayLiteral(step.expression.value)}`);
     }
@@ -377,11 +384,17 @@ async function explainCommand(parsed: ParsedArguments, io: CliIO): Promise<numbe
     ...(resolutionLines.length > 0 ? ["", `Resolution:\n  ${resolutionLines.join("\n  → ")}`] : []),
     "",
     `Defined at:\n  ${relative(config.cwd ?? io.cwd, token.source.file)}:${token.source.line}:${token.source.column}`,
+    ...(token.inheritance
+      ? [
+          "",
+          `Inherited from:\n  ${token.inheritance.token}\n\nBase group:\n  ${token.inheritance.group}`,
+        ]
+      : []),
     ...(resolvedThrough.length > 0
       ? ["", `Resolved through:\n${resolvedThrough.map((location) => `  ${location}`).join("\n")}`]
       : []),
     "",
-    `Dependencies:\n  ${trace.steps.filter((step) => step.expression.kind === "reference").length}`,
+    `Dependencies:\n  ${token.dependencies.length}`,
     "",
     `Reverse dependencies:\n  ${dependentCount}`,
   );

@@ -49,12 +49,12 @@ describe("DTCG 2025.10 format", () => {
     });
   });
 
-  it("reports unsupported group extension semantics explicitly", () => {
+  it("reports a missing group extension target explicitly", () => {
     const result = parseTokenDocument(
       '{"derived":{"$extends":"{base}","value":{"$type":"number","$value":1}}}',
       "extends.json",
     );
-    expect(result.diagnostics[0]?.code).toBe("DTCG_UNSUPPORTED_GROUP_EXTENDS");
+    expect(result.diagnostics[0]?.code).toBe("DTCG_GROUP_EXTENDS_INVALID_TARGET");
   });
 
   it("validates standard metadata shapes", () => {
@@ -69,11 +69,11 @@ describe("DTCG 2025.10 format", () => {
     ]);
   });
 
-  it("does not silently interpret unsupported JSON Pointer aliases", () => {
+  it("reports a missing JSON Pointer target", () => {
     const result = parseTokenDocument(
       '{"alias":{"$type":"number","$ref":"#/base/$value"}}',
       "pointer.json",
     );
-    expect(result.diagnostics[0]?.code).toBe("DTCG_UNSUPPORTED_JSON_POINTER");
+    expect(result.diagnostics[0]?.code).toBe("DTCG_JSON_POINTER_NOT_FOUND");
   });
 });

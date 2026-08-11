@@ -16,11 +16,27 @@ import type {
   JsonValue,
   SourceLocation,
 } from "../model.js";
+import { parseJsonPointer } from "./json-pointer.js";
+
+export interface ResolverReferenceProvenance {
+  readonly ref: string;
+  readonly source: SourceLocation;
+  readonly target: SourceLocation;
+}
+
+export interface ResolverSetOverride {
+  readonly name?: string;
+  readonly description?: string;
+  readonly sources?: readonly ResolutionSource[];
+  readonly extensions?: Readonly<Record<string, JsonValue>>;
+  readonly source: SourceLocation;
+}
 
 export interface ResolverReferenceSource {
   readonly kind: "reference";
   readonly ref: string;
   readonly source: SourceLocation;
+  readonly overrides?: ResolverSetOverride;
 }
 
 export interface ResolverInlineSource {
@@ -40,6 +56,7 @@ export interface TokenSet {
   readonly sources: readonly ResolutionSource[];
   readonly extensions?: Readonly<Record<string, JsonValue>>;
   readonly source: SourceLocation;
+  readonly reference?: ResolverReferenceProvenance;
 }
 
 export interface ResolverModifier {
@@ -50,6 +67,7 @@ export interface ResolverModifier {
   readonly default?: string;
   readonly extensions?: Readonly<Record<string, JsonValue>>;
   readonly source: SourceLocation;
+  readonly reference?: ResolverReferenceProvenance;
 }
 
 export type ResolutionOrderItem = TokenSet | ResolverModifier;
@@ -162,6 +180,38 @@ function extensions(node: Node | undefined): Readonly<Record<string, JsonValue>>
   return objectValue(propertyValue(findProperty(node, "$extensions")));
 }
 
+interface InternalResolverTarget {
+  readonly collection: "sets" | "modifiers" | "resolutionOrder";
+  readonly name: string;
+}
+
+function internalResolverTarget(reference: string): InternalResolverTarget | undefined {
+  const parsed = parseJsonPointer(reference);
+  if (!parsed.ok || parsed.reference.documentUri || parsed.reference.pointer.tokens.length !== 2)
+    return undefined;
+  const [collection, name] = parsed.reference.pointer.tokens;
+  return (collection === "sets" ||
+    collection === "modifiers" ||
+    collection === "resolutionOrder") &&
+    name
+    ? { collection, name }
+    : undefined;
+}
+
+function invalidOverrideProperty(
+  property: Node,
+  locator: Locator,
+  diagnostics: Diagnostic[],
+  detail: string,
+): void {
+  diagnostics.push({
+    code: "DTCG_INVALID_RESOLVER_REFERENCE_OVERRIDE",
+    severity: "error",
+    message: detail,
+    source: locator.at(property.offset, property.length),
+  });
+}
+
 function parseSources(
   node: Node | undefined,
   locator: Locator,
@@ -190,18 +240,8 @@ function parseSources(
     }
     const reference = optionalString(child, "$ref");
     if (reference !== undefined) {
-      if (properties(child).some((property) => propertyName(property) !== "$ref"))
-        diagnostics.push({
-          code: "DTCG_UNSUPPORTED_RESOLVER_REFERENCE_OVERRIDE",
-          severity: "error",
-          message: "Resolver reference-object sibling overrides are not supported in this release",
-          source: locator.at(child.offset, child.length),
-        });
-      if (
-        reference.startsWith("#/resolutionOrder/") ||
-        (owner === "modifier" && reference.startsWith("#/modifiers/")) ||
-        (owner === "set" && reference.startsWith("#/modifiers/"))
-      ) {
+      const target = reference.startsWith("#") ? internalResolverTarget(reference) : undefined;
+      if (target?.collection === "resolutionOrder" || target?.collection === "modifiers") {
         diagnostics.push({
           code: "DTCG_INVALID_RESOLVER_REFERENCE",
           severity: "error",
@@ -210,11 +250,72 @@ function parseSources(
         });
         return [];
       }
+      const siblingNames = new Set(["name", "description", "sources", "$extensions"]);
+      for (const property of properties(child)) {
+        const name = propertyName(property);
+        if (name !== "$ref" && !siblingNames.has(name))
+          invalidOverrideProperty(
+            property,
+            locator,
+            diagnostics,
+            `Unknown resolver set override property \`${name}\``,
+          );
+      }
+      const nameProperty = findProperty(child, "name");
+      const descriptionProperty = findProperty(child, "description");
+      const sourcesProperty = findProperty(child, "sources");
+      const extensionsProperty = findProperty(child, "$extensions");
+      const nameValue = propertyValue(nameProperty)?.value;
+      const descriptionValue = propertyValue(descriptionProperty)?.value;
+      const extensionValues = extensions(child);
+      if (nameProperty && typeof nameValue !== "string")
+        invalidOverrideProperty(
+          nameProperty,
+          locator,
+          diagnostics,
+          "Resolver set override `name` must be a string",
+        );
+      if (descriptionProperty && typeof descriptionValue !== "string")
+        invalidOverrideProperty(
+          descriptionProperty,
+          locator,
+          diagnostics,
+          "Resolver set override `description` must be a string",
+        );
+      if (extensionsProperty && !extensionValues)
+        invalidOverrideProperty(
+          extensionsProperty,
+          locator,
+          diagnostics,
+          "Resolver set override `$extensions` must be an object",
+        );
+      const hasOverrides = properties(child).some((property) => propertyName(property) !== "$ref");
+      const overrideSource = locator.at(child.offset, child.length);
+      const overrides: ResolverSetOverride | undefined = hasOverrides
+        ? {
+            ...(typeof nameValue === "string" ? { name: nameValue } : {}),
+            ...(typeof descriptionValue === "string" ? { description: descriptionValue } : {}),
+            ...(sourcesProperty
+              ? {
+                  sources: parseSources(
+                    propertyValue(sourcesProperty),
+                    locator,
+                    diagnostics,
+                    `${pointer}/${index}/sources`,
+                    "set",
+                  ),
+                }
+              : {}),
+            ...(extensionValues ? { extensions: extensionValues } : {}),
+            source: overrideSource,
+          }
+        : undefined;
       return [
         {
           kind: "reference" as const,
           ref: reference,
           source: locator.at(child.offset, child.length),
+          ...(overrides ? { overrides } : {}),
         },
       ];
     }
@@ -315,8 +416,150 @@ function parseModifier(
   };
 }
 
-function decodePointerName(value: string): string {
-  return value.replaceAll("~1", "/").replaceAll("~0", "~");
+function overrideResolutionItem(
+  target: ResolutionOrderItem,
+  node: Node,
+  locator: Locator,
+  diagnostics: Diagnostic[],
+  pointer: string,
+  reference: string,
+): ResolutionOrderItem {
+  const siblings = properties(node).filter((property) => propertyName(property) !== "$ref");
+  if (siblings.length === 0) return target;
+  const allowed = new Set(
+    target.kind === "set"
+      ? ["$ref", "type", "name", "description", "sources", "$extensions"]
+      : ["$ref", "type", "name", "description", "contexts", "default", "$extensions"],
+  );
+  for (const property of properties(node)) {
+    const name = propertyName(property);
+    if (!allowed.has(name))
+      invalidOverrideProperty(
+        property,
+        locator,
+        diagnostics,
+        `Property \`${name}\` cannot override a resolver ${target.kind}`,
+      );
+  }
+  const nameProperty = findProperty(node, "name");
+  const typeProperty = findProperty(node, "type");
+  const descriptionProperty = findProperty(node, "description");
+  const extensionsProperty = findProperty(node, "$extensions");
+  const nameValue = propertyValue(nameProperty)?.value;
+  const typeValue = propertyValue(typeProperty)?.value;
+  const descriptionValue = propertyValue(descriptionProperty)?.value;
+  const extensionValues = extensions(node);
+  if (nameProperty && typeof nameValue !== "string")
+    invalidOverrideProperty(
+      nameProperty,
+      locator,
+      diagnostics,
+      "Resolver reference override `name` must be a string",
+    );
+  if (typeProperty && typeValue !== target.kind)
+    invalidOverrideProperty(
+      typeProperty,
+      locator,
+      diagnostics,
+      `Resolver reference override cannot change ${target.kind} to \`${String(typeValue)}\``,
+    );
+  if (descriptionProperty && typeof descriptionValue !== "string")
+    invalidOverrideProperty(
+      descriptionProperty,
+      locator,
+      diagnostics,
+      "Resolver reference override `description` must be a string",
+    );
+  if (extensionsProperty && !extensionValues)
+    invalidOverrideProperty(
+      extensionsProperty,
+      locator,
+      diagnostics,
+      "Resolver reference override `$extensions` must be an object",
+    );
+  const source = locator.at(node.offset, node.length);
+  const provenance: ResolverReferenceProvenance = {
+    ref: reference,
+    source,
+    target: target.source,
+  };
+  const common = {
+    ...target,
+    ...(typeof nameValue === "string" ? { name: nameValue } : {}),
+    ...(typeof descriptionValue === "string" ? { description: descriptionValue } : {}),
+    ...(extensionValues ? { extensions: extensionValues } : {}),
+    source,
+    reference: provenance,
+  };
+  if (target.kind === "set") {
+    const sourcesProperty = findProperty(node, "sources");
+    return {
+      ...common,
+      kind: "set",
+      sources: sourcesProperty
+        ? parseSources(
+            propertyValue(sourcesProperty),
+            locator,
+            diagnostics,
+            `${pointer}/sources`,
+            "set",
+          )
+        : target.sources,
+    };
+  }
+  const contextsProperty = findProperty(node, "contexts");
+  const contextsNode = propertyValue(contextsProperty);
+  let contexts = target.contexts;
+  if (contextsProperty) {
+    const contextProperties = properties(contextsNode);
+    if (contextsNode?.type !== "object" || contextProperties.length === 0)
+      invalidOverrideProperty(
+        contextsProperty,
+        locator,
+        diagnostics,
+        "Resolver modifier override `contexts` must be a non-empty object",
+      );
+    else
+      contexts = Object.fromEntries(
+        contextProperties.map((property) => [
+          propertyName(property),
+          parseSources(
+            propertyValue(property),
+            locator,
+            diagnostics,
+            `${pointer}/contexts/${propertyName(property)}`,
+            "modifier",
+          ),
+        ]),
+      );
+  }
+  const defaultProperty = findProperty(node, "default");
+  const defaultValue = propertyValue(defaultProperty)?.value;
+  let selectedDefault = target.default;
+  if (defaultProperty) {
+    if (typeof defaultValue === "string") selectedDefault = defaultValue;
+    else
+      invalidOverrideProperty(
+        defaultProperty,
+        locator,
+        diagnostics,
+        "Resolver modifier override `default` must be a string",
+      );
+  }
+  if (selectedDefault !== undefined && !(selectedDefault in contexts))
+    diagnostics.push({
+      code: "DTCG_INVALID_RESOLVER_DEFAULT",
+      severity: "error",
+      message: `Modifier \`${common.name}\` default \`${selectedDefault}\` is not a declared context`,
+      source,
+      suggestions: Object.keys(contexts),
+    });
+  return {
+    ...common,
+    kind: "modifier",
+    contexts,
+    ...(selectedDefault === undefined ? {} : { default: selectedDefault }),
+  };
 }
 
 /** Parse one DTCG 2025.10 resolver document without performing file-system IO. */
@@ -424,28 +667,35 @@ export function parseResolverDocument(content: string, source: string): ParsedRe
   for (const [index, child] of (orderNode?.children ?? []).entries()) {
     const reference = optionalString(child, "$ref");
     let item: ResolutionOrderItem | undefined;
-    if (
-      reference !== undefined &&
-      properties(child).some((property) => propertyName(property) !== "$ref")
-    )
-      diagnostics.push({
-        code: "DTCG_UNSUPPORTED_RESOLVER_REFERENCE_OVERRIDE",
-        severity: "error",
-        message: "Resolver reference-object sibling overrides are not supported in this release",
-        source: locator.at(child.offset, child.length),
-      });
-    if (reference?.startsWith("#/sets/"))
-      item = sets.get(decodePointerName(reference.slice("#/sets/".length)));
-    else if (reference?.startsWith("#/modifiers/"))
-      item = modifiers.get(decodePointerName(reference.slice("#/modifiers/".length)));
-    else if (reference !== undefined)
-      diagnostics.push({
-        code: "DTCG_INVALID_RESOLUTION_ORDER",
-        severity: "error",
-        message: `Resolution order reference \`${reference}\` must target a set or modifier`,
-        source: locator.at(child.offset, child.length),
-      });
-    else {
+    if (reference !== undefined) {
+      const target = internalResolverTarget(reference);
+      const parsedReference = parseJsonPointer(reference);
+      const referenced =
+        target?.collection === "sets"
+          ? sets.get(target.name)
+          : target?.collection === "modifiers"
+            ? modifiers.get(target.name)
+            : undefined;
+      if (referenced)
+        item = overrideResolutionItem(
+          referenced,
+          child,
+          locator,
+          diagnostics,
+          `resolutionOrder/${index}`,
+          reference,
+        );
+      else if (target?.collection !== "sets" && target?.collection !== "modifiers")
+        diagnostics.push({
+          code:
+            parsedReference.ok && parsedReference.reference.documentUri
+              ? "DTCG_UNSUPPORTED_RESOLVER_REFERENCE"
+              : "DTCG_INVALID_RESOLUTION_ORDER",
+          severity: "error",
+          message: `Resolution order reference \`${reference}\` must target a same-document set or modifier`,
+          source: locator.at(child.offset, child.length),
+        });
+    } else {
       const name = optionalString(child, "name");
       const type = optionalString(child, "type");
       if (name && type === "set")
@@ -461,9 +711,12 @@ export function parseResolverDocument(content: string, source: string): ParsedRe
         });
     }
     if (!item) {
-      if (reference)
+      if (reference && internalResolverTarget(reference))
         diagnostics.push({
-          code: reference.includes("/modifiers/") ? "DTCG_UNKNOWN_MODIFIER" : "DTCG_UNKNOWN_SET",
+          code:
+            internalResolverTarget(reference)?.collection === "modifiers"
+              ? "DTCG_UNKNOWN_MODIFIER"
+              : "DTCG_UNKNOWN_SET",
           severity: "error",
           message: `Unknown resolution order target \`${reference}\``,
           source: locator.at(child.offset, child.length),
@@ -509,12 +762,31 @@ function sourceFile(document: ResolverDocument, reference: string): string | und
 export function resolveResolverDocument(
   document: ResolverDocument,
   availableSources: readonly TokenSourceInput[],
-  input: CompilationContext = {},
+  input: unknown = {},
 ): ResolverResolution {
   const diagnostics: Diagnostic[] = [];
-  const normalizedInput = new Map(
-    Object.entries(input).map(([name, value]) => [name.toLocaleLowerCase(), value]),
-  );
+  const normalizedInput = new Map<string, string>();
+  const invalidInputNames = new Set<string>();
+  const validInputShape = input !== null && typeof input === "object" && !Array.isArray(input);
+  const inputEntries = validInputShape ? Object.entries(input) : [];
+  if (!validInputShape)
+    diagnostics.push({
+      code: "DTCG_INVALID_RESOLVER_INPUT",
+      severity: "error",
+      message: "Resolver input must be an object whose values are strings",
+    });
+  for (const [name, value] of inputEntries) {
+    if (typeof value !== "string") {
+      invalidInputNames.add(name.toLocaleLowerCase());
+      diagnostics.push({
+        code: "DTCG_INVALID_RESOLVER_INPUT",
+        severity: "error",
+        message: `Resolver modifier input \`${name}\` must be a string`,
+      });
+      continue;
+    }
+    normalizedInput.set(name.toLocaleLowerCase(), value);
+  }
   const context: Record<string, string> = {};
   const contexts: Record<string, { default: string; values: readonly string[] }> = {};
   const sourceIndex = new Map(availableSources.map((item) => [resolve(item.file), item]));
@@ -530,7 +802,7 @@ export function resolveResolverDocument(
   ];
   const selectedContexts = new Map<ResolverModifier, string>();
 
-  for (const [inputName] of Object.entries(input)) {
+  for (const inputName of normalizedInput.keys()) {
     if (
       !modifiers.some(
         (modifier) => modifier.name.toLocaleLowerCase() === inputName.toLocaleLowerCase(),
@@ -543,8 +815,11 @@ export function resolveResolverDocument(
       });
   }
   for (const modifier of modifiers) {
+    if (!validInputShape) continue;
     const values = Object.keys(modifier.contexts);
-    const requested = normalizedInput.get(modifier.name.toLocaleLowerCase());
+    const normalizedName = modifier.name.toLocaleLowerCase();
+    if (invalidInputNames.has(normalizedName)) continue;
+    const requested = normalizedInput.get(normalizedName);
     const selected =
       requested === undefined
         ? modifier.default
@@ -581,30 +856,36 @@ export function resolveResolverDocument(
         });
         return [source.source];
       }
-      if (source.ref.startsWith("#/sets/")) {
-        const name = decodePointerName(source.ref.slice("#/sets/".length));
-        const set = document.sets.get(name);
+      const internalTarget = source.ref.startsWith("#")
+        ? internalResolverTarget(source.ref)
+        : undefined;
+      if (internalTarget?.collection === "sets") {
+        const targetName = internalTarget.name;
+        const set = document.sets.get(targetName);
         if (!set) {
           diagnostics.push({
             code: "DTCG_UNKNOWN_SET",
             severity: "error",
-            message: `Unknown resolver set \`${name}\``,
+            message: `Unknown resolver set \`${targetName}\``,
             source: source.source,
           });
           return [];
         }
-        if (activeSets.has(name)) {
+        if (activeSets.has(targetName)) {
           diagnostics.push({
             code: "DTCG_RESOLVER_CIRCULAR_REFERENCE",
             severity: "error",
-            message: `Circular resolver set reference involving \`${name}\``,
+            message: `Circular resolver set reference involving \`${targetName}\``,
             source: source.source,
           });
           return [];
         }
-        return expand(set.sources, new Set(activeSets).add(name));
+        return expand(
+          source.overrides?.sources ?? set.sources,
+          new Set(activeSets).add(targetName),
+        );
       }
-      if (source.ref.includes("#")) {
+      if (source.ref.includes("#") || source.ref.startsWith("#")) {
         diagnostics.push({
           code: "DTCG_UNSUPPORTED_RESOLVER_REFERENCE",
           severity: "error",
@@ -656,7 +937,7 @@ export function resolveResolverDocument(
 
 /** Return external source paths so IO layers can load them before semantic resolution. */
 export function resolverSourceFiles(document: ResolverDocument): readonly string[] {
-  const references = [
+  const roots = [
     ...[...document.sets.values()].flatMap((set) => set.sources),
     ...[...document.modifiers.values()].flatMap((modifier) =>
       Object.values(modifier.contexts).flat(),
@@ -665,6 +946,14 @@ export function resolverSourceFiles(document: ResolverDocument): readonly string
       item.kind === "set" ? item.sources : Object.values(item.contexts).flat(),
     ),
   ];
+  const references: ResolutionSource[] = [];
+  const visit = (sources: readonly ResolutionSource[]): void => {
+    for (const source of sources) {
+      references.push(source);
+      if (source.kind === "reference" && source.overrides?.sources) visit(source.overrides.sources);
+    }
+  };
+  visit(roots);
   return [
     ...new Set(
       references.flatMap((source) => {
