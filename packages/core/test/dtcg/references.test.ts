@@ -95,6 +95,48 @@ describe("DTCG JSON Pointer references", () => {
     });
   });
 
+  it("diagnoses a missing nested curly reference instead of silently dropping its token", async () => {
+    const result = await compileDocuments([
+      {
+        file: "/tokens/nested-missing.json",
+        content: JSON.stringify({
+          border: {
+            $type: "border",
+            $value: {
+              color: "{missing}",
+              width: { value: 1, unit: "px" },
+              style: "solid",
+            },
+          },
+        }),
+      },
+    ]);
+    expect(result.success).toBe(false);
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "TOKEN_UNKNOWN_REFERENCE",
+        message: "Unknown token `missing` in nested value",
+      }),
+    );
+  });
+
+  it("diagnoses nested reference cycles instead of silently dropping their tokens", () => {
+    const parsed = parseTokenDocument(
+      JSON.stringify({
+        a: { $type: "shadow", $value: ["{b}"] },
+        b: { $type: "shadow", $value: ["{a}"] },
+      }),
+      "/tokens/nested-cycle.json",
+    );
+    expect(parsed.tokens).toEqual([]);
+    expect(parsed.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "TOKEN_CIRCULAR_REFERENCE",
+        message: expect.stringContaining("b → a → b"),
+      }),
+    );
+  });
+
   it.each([
     ["#/missing", "DTCG_JSON_POINTER_NOT_FOUND"],
     ["#/curve/$value/4", "DTCG_JSON_POINTER_INVALID_ARRAY_INDEX"],
@@ -118,5 +160,31 @@ describe("DTCG JSON Pointer references", () => {
     const update = await compiler.update(pointerSource(0.5));
     expect(update.affected).toEqual(new Set(["curve", "firstX"]));
     expect(update.result.compilation.resolveToken(parseTokenId("firstX"))?.value).toBe(0.5);
+  });
+
+  it("resolves whole-token and component pointers from the same last-source winner", async () => {
+    const result = await compileDocuments(
+      [
+        {
+          file: "/tokens/base.json",
+          content: JSON.stringify({
+            curve: { $type: "cubicBezier", $value: [0.25, 0, 1, 1] },
+            whole: { $ref: "#/curve" },
+            component: { $type: "number", $ref: "#/curve/$value/0" },
+          }),
+        },
+        {
+          file: "/tokens/override.json",
+          content: JSON.stringify({
+            curve: { $type: "cubicBezier", $value: [0.75, 0, 1, 1] },
+          }),
+        },
+      ],
+      { allowTokenOverrides: true },
+    );
+    expect(result.success).toBe(true);
+    expect(result.compilation.resolveToken(parseTokenId("curve"))?.value).toEqual([0.75, 0, 1, 1]);
+    expect(result.compilation.resolveToken(parseTokenId("whole"))?.value).toEqual([0.75, 0, 1, 1]);
+    expect(result.compilation.resolveToken(parseTokenId("component"))?.value).toBe(0.75);
   });
 });

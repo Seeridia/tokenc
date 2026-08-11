@@ -6,6 +6,7 @@ import type {
   FontFamilyValue,
   FontWeightValue,
   GradientStopValue,
+  GradientValue,
   JsonValue,
   ShadowValue,
   StrokeStyleValue,
@@ -249,22 +250,19 @@ function shadow(value: unknown): ShadowValue | readonly ShadowValue[] | undefine
     : items.filter((item): item is ShadowValue => item !== undefined);
 }
 
-function gradient(value: unknown): readonly GradientStopValue[] | undefined {
+function gradient(value: unknown): GradientValue | undefined {
   if (!Array.isArray(value) || value.length === 0) return undefined;
-  const stops = value.map((stop): GradientStopValue | undefined => {
+  const stops = value.map((stop): GradientStopValue | GradientValue | undefined => {
+    if (Array.isArray(stop)) return gradient(stop);
     if (!isObject(stop) || !hasExactKeys(stop, ["color", "position"])) return undefined;
     const parsedColor = color(stop.color);
-    return parsedColor &&
-      typeof stop.position === "number" &&
-      Number.isFinite(stop.position) &&
-      stop.position >= 0 &&
-      stop.position <= 1
-      ? { color: parsedColor, position: stop.position }
+    return parsedColor && typeof stop.position === "number" && Number.isFinite(stop.position)
+      ? { color: parsedColor, position: Math.max(0, Math.min(1, stop.position)) }
       : undefined;
   });
   return stops.some((stop) => stop === undefined)
     ? undefined
-    : stops.filter((stop): stop is GradientStopValue => stop !== undefined);
+    : stops.filter((stop): stop is GradientStopValue | GradientValue => stop !== undefined);
 }
 
 function typography(value: unknown): TypographyValue | undefined {

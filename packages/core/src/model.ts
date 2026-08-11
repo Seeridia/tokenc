@@ -130,7 +130,8 @@ export interface GradientStopValue {
   readonly position: number;
 }
 
-export type GradientValue = readonly GradientStopValue[];
+/** Gradient-token references remain single array elements and are not flattened. */
+export type GradientValue = readonly (GradientStopValue | GradientValue)[];
 
 export interface TypographyValue {
   readonly fontFamily: FontFamilyValue;

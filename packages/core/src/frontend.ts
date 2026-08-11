@@ -91,6 +91,13 @@ export interface UnresolvedTokenDocument {
   readonly diagnostics: readonly Diagnostic[];
 }
 
+interface ParsedFrontendState {
+  readonly syntax: UnresolvedTokenDocument;
+  readonly batch: readonly UnresolvedTokenDocument[];
+}
+
+const parsedFrontendState = new WeakMap<ParsedTokenDocument, ParsedFrontendState>();
+
 class Locator {
   readonly #starts: number[] = [0];
   readonly #content: string;
@@ -551,13 +558,18 @@ interface EffectiveMember {
   readonly token: UnresolvedToken;
 }
 
-interface PointerAnalysis {
-  readonly kind: "whole" | "property";
+interface PointerAnalysisBase {
   readonly target: UnresolvedToken;
-  readonly value?: JsonValue;
   readonly pointer: string;
   readonly source: SourceLocation;
 }
+
+type PointerAnalysis =
+  | (PointerAnalysisBase & { readonly kind: "whole" })
+  | (PointerAnalysisBase & {
+      readonly kind: "property";
+      readonly path: readonly string[];
+    });
 
 function curlyTarget(expression: RawExpression): TokenId | undefined {
   if (expression.kind !== "value" || typeof expression.value !== "string") return undefined;
@@ -565,8 +577,9 @@ function curlyTarget(expression: RawExpression): TokenId | undefined {
   if (!match?.[1]) return undefined;
   try {
     return parseTokenId(match[1]);
-  } catch {
-    return undefined;
+  } catch (error) {
+    if (error instanceof TypeError) return undefined;
+    throw error;
   }
 }
 
@@ -839,12 +852,6 @@ export function linkTokenDocuments(
         });
       return undefined;
     }
-    const resolved = resolveJsonPointer(owner.syntaxDocument.rootValue, parsed.reference.pointer);
-    if (!resolved.ok) {
-      if (report)
-        addDiagnostic(owner.outputDocument, pointerDiagnostic(resolved.error, reference, source));
-      return undefined;
-    }
     const segments = parsed.reference.pointer.tokens;
     let target: UnresolvedToken | undefined;
     let valueBoundary = -1;
@@ -858,13 +865,23 @@ export function linkTokenDocuments(
       break;
     }
     if (!target) {
-      if (report)
-        addDiagnostic(owner.outputDocument, {
-          code: "DTCG_JSON_POINTER_INVALID_TARGET",
-          severity: "error",
-          message: `JSON Pointer does not resolve inside a token: \`${reference}\``,
-          source,
-        });
+      if (report) {
+        const resolved = resolveJsonPointer(
+          owner.syntaxDocument.rootValue,
+          parsed.reference.pointer,
+        );
+        addDiagnostic(
+          owner.outputDocument,
+          resolved.ok
+            ? {
+                code: "DTCG_JSON_POINTER_INVALID_TARGET",
+                severity: "error",
+                message: `JSON Pointer does not resolve inside a token: \`${reference}\``,
+                source,
+              }
+            : pointerDiagnostic(resolved.error, reference, source),
+        );
+      }
       return undefined;
     }
     const remainder = segments.slice(valueBoundary);
@@ -880,21 +897,16 @@ export function linkTokenDocuments(
         });
       return undefined;
     }
-    if (!isJsonValue(resolved.value)) {
-      if (report)
-        addDiagnostic(owner.outputDocument, {
-          code: "DTCG_JSON_POINTER_INVALID_TARGET",
-          severity: "error",
-          message: `JSON Pointer target is not a JSON value: \`${reference}\``,
-          source,
-        });
-      return undefined;
-    }
-    return { kind: "property", target, value: resolved.value, pointer: reference, source };
+    return {
+      kind: "property",
+      target,
+      path: remainder.slice(1),
+      pointer: reference,
+      source,
+    };
   };
 
   const typeCache = new Map<UnresolvedToken, TokenType | undefined>();
-  const typeStack: UnresolvedToken[] = [];
   const typeCycleTokens = new Set<UnresolvedToken>();
   const inferenceTarget = (token: UnresolvedToken): UnresolvedToken | undefined => {
     const curly = curlyTarget(token.expression);
@@ -904,26 +916,40 @@ export function linkTokenDocuments(
     const analyzed = analyzePointer(pointer, token, token.expression.source, false);
     return analyzed?.kind === "whole" ? analyzed.target : undefined;
   };
-  const inferType = (token: UnresolvedToken): TokenType | undefined => {
-    if (typeCache.has(token)) return typeCache.get(token);
-    if (token.explicitType) {
-      typeCache.set(token, token.explicitType);
-      return token.explicitType;
+  const inferType = (start: UnresolvedToken): TokenType | undefined => {
+    if (typeCache.has(start)) return typeCache.get(start);
+    const path: UnresolvedToken[] = [];
+    const positions = new Map<UnresolvedToken, number>();
+    let current = start;
+    let resolved: TokenType | undefined;
+    while (true) {
+      if (typeCache.has(current)) {
+        resolved = typeCache.get(current);
+        break;
+      }
+      if (current.explicitType) {
+        resolved = current.explicitType;
+        typeCache.set(current, resolved);
+        break;
+      }
+      const cycleIndex = positions.get(current);
+      if (cycleIndex !== undefined) {
+        for (const member of path.slice(cycleIndex)) typeCycleTokens.add(member);
+        break;
+      }
+      positions.set(current, path.length);
+      path.push(current);
+      const referenceTarget = inferenceTarget(current);
+      if (!referenceTarget) break;
+      current = referenceTarget;
     }
-    const cycleIndex = typeStack.indexOf(token);
-    if (cycleIndex !== -1) {
-      for (const member of typeStack.slice(cycleIndex)) typeCycleTokens.add(member);
-      return undefined;
+    for (let index = path.length - 1; index >= 0; index -= 1) {
+      const member = path[index];
+      if (!member) continue;
+      resolved = resolved ?? member.inheritedType ?? effectiveGroupType(member.group);
+      typeCache.set(member, resolved);
     }
-    typeStack.push(token);
-    const referenceTarget = inferenceTarget(token);
-    const type =
-      (referenceTarget ? inferType(referenceTarget) : undefined) ??
-      token.inheritedType ??
-      effectiveGroupType(token.group);
-    typeStack.pop();
-    typeCache.set(token, type);
-    return type;
+    return typeCache.get(start);
   };
   for (const token of allTokens) inferType(token);
 
@@ -994,11 +1020,37 @@ export function linkTokenDocuments(
   }
   const literalCache = new Map<UnresolvedToken, TokenLiteral | undefined>();
   const literalActive = new Set<UnresolvedToken>();
+  const literalStack: UnresolvedToken[] = [];
+  const reportedLiteralCycles = new Set<string>();
   const resolveLiteral = (token: UnresolvedToken): TokenLiteral | undefined => {
     if (literalCache.has(token)) return literalCache.get(token);
     const type = inferType(token);
-    if (!type || literalActive.has(token)) return undefined;
+    if (!type) return undefined;
+    if (literalActive.has(token)) {
+      const cycleIndex = literalStack.indexOf(token);
+      const cycle = [...literalStack.slice(Math.max(0, cycleIndex)), token];
+      const signature = cycle
+        .slice(0, -1)
+        .map((member) => String(member.id))
+        .toSorted()
+        .join("\0");
+      if (!reportedLiteralCycles.has(signature)) {
+        reportedLiteralCycles.add(signature);
+        addDiagnostic(token.outputDocument, {
+          code: "TOKEN_CIRCULAR_REFERENCE",
+          severity: "error",
+          message: `Circular nested token reference detected: ${cycle.map((member) => member.id).join(" → ")}`,
+          source: token.expression.source,
+          related: cycle.slice(1, -1).map((member) => ({
+            message: `\`${member.id}\` participates in this nested reference cycle`,
+            source: member.expression.source,
+          })),
+        });
+      }
+      return undefined;
+    }
     literalActive.add(token);
+    literalStack.push(token);
     const curly = curlyTarget(token.expression);
     const pointer = rawPointer(token.expression);
     let raw: ResolvedRawValue | undefined;
@@ -1012,8 +1064,8 @@ export function linkTokenDocuments(
         const value = resolveLiteral(analyzed.target);
         if (value !== undefined)
           raw = { value, references: [], dependencies: [analyzed.target.id] };
-      } else if (analyzed?.value !== undefined) {
-        const nested = resolveNested(analyzed.value, token, token.expression.source);
+      } else if (analyzed?.kind === "property") {
+        const nested = resolvePointerProperty(analyzed, token, token.expression.source);
         if (nested)
           raw = {
             ...nested,
@@ -1026,6 +1078,7 @@ export function linkTokenDocuments(
       }
     } else if (token.expression.value !== undefined)
       raw = resolveNested(token.expression.value, token, token.expression.source);
+    literalStack.pop();
     literalActive.delete(token);
     if (!raw) {
       literalCache.set(token, undefined);
@@ -1067,7 +1120,16 @@ export function linkTokenDocuments(
           return undefined;
         }
         const target = tokenWinners.get(targetId);
-        const resolved = target ? resolveLiteral(target) : undefined;
+        if (!target) {
+          addDiagnostic(owner.outputDocument, {
+            code: "TOKEN_UNKNOWN_REFERENCE",
+            severity: "error",
+            message: `Unknown token \`${targetId}\` in nested value`,
+            source,
+          });
+          return undefined;
+        }
+        const resolved = resolveLiteral(target);
         if (resolved === undefined) return undefined;
         return { value: resolved, references: [], dependencies: [targetId] };
       }
@@ -1098,8 +1160,7 @@ export function linkTokenDocuments(
               dependencies: [analyzed.target.id],
             };
       }
-      if (analyzed.value === undefined) return undefined;
-      const nested = resolveNested(analyzed.value, owner, source);
+      const nested = resolvePointerProperty(analyzed, owner, source);
       return nested
         ? {
             value: nested.value,
@@ -1125,6 +1186,36 @@ export function linkTokenDocuments(
       dependencies.push(...item.dependencies);
     }
     return { value: object, references, dependencies };
+  }
+
+  function resolvePointerProperty(
+    analyzed: Extract<PointerAnalysis, { readonly kind: "property" }>,
+    owner: UnresolvedToken,
+    source: SourceLocation,
+  ): ResolvedRawValue | undefined {
+    const targetValue = resolveLiteral(analyzed.target);
+    if (targetValue === undefined) return undefined;
+    const resolved = resolveJsonPointer(targetValue, {
+      source: analyzed.pointer,
+      tokens: analyzed.path,
+    });
+    if (!resolved.ok) {
+      addDiagnostic(
+        owner.outputDocument,
+        pointerDiagnostic(resolved.error, analyzed.pointer, source),
+      );
+      return undefined;
+    }
+    if (!isJsonValue(resolved.value)) {
+      addDiagnostic(owner.outputDocument, {
+        code: "DTCG_JSON_POINTER_INVALID_TARGET",
+        severity: "error",
+        message: `JSON Pointer target is not a JSON value: \`${analyzed.pointer}\``,
+        source,
+      });
+      return undefined;
+    }
+    return resolveNested(resolved.value, owner, source);
   }
 
   const buildExpression = (
@@ -1160,8 +1251,7 @@ export function linkTokenDocuments(
           references: [{ pointer, target: analyzed.target.id, source: raw.source }],
           dependencies: [analyzed.target.id],
         };
-      if (analyzed.value === undefined) return undefined;
-      const nested = resolveNested(analyzed.value, owner, raw.source);
+      const nested = resolvePointerProperty(analyzed, owner, raw.source);
       if (!nested) return undefined;
       const parsed = parseTokenLiteral(type, nested.value);
       if (!parsed.ok) {
@@ -1248,10 +1338,35 @@ export function linkTokenDocuments(
     parsedByDocument.get(token.outputDocument)?.push(node);
   }
 
-  return documents.map((document) => ({
-    source: document.source,
-    content: document.content,
-    tokens: parsedByDocument.get(document) ?? [],
-    diagnostics: diagnosticsByDocument.get(document) ?? [],
-  }));
+  const batch = [...documents];
+  return documents.map((document) => {
+    const parsed: ParsedTokenDocument = {
+      source: document.source,
+      content: document.content,
+      tokens: parsedByDocument.get(document) ?? [],
+      diagnostics: diagnosticsByDocument.get(document) ?? [],
+    };
+    parsedFrontendState.set(parsed, { syntax: document, batch });
+    return parsed;
+  });
+}
+
+/** Re-link separately parsed frontend documents while keeping unresolved state internal. */
+export function relinkParsedTokenDocuments(
+  documents: readonly ParsedTokenDocument[],
+): readonly ParsedTokenDocument[] {
+  if (documents.length === 0) return documents;
+  const states = documents.map((document) => parsedFrontendState.get(document));
+  if (states.some((state) => state === undefined)) return documents;
+  const linkedStates = states.filter((state): state is ParsedFrontendState => state !== undefined);
+  const existingBatch = linkedStates[0]?.batch;
+  if (
+    existingBatch &&
+    existingBatch.length === documents.length &&
+    linkedStates.every(
+      (state, index) => state.batch === existingBatch && state.syntax === existingBatch[index],
+    )
+  )
+    return documents;
+  return linkTokenDocuments(linkedStates.map((state) => state.syntax));
 }

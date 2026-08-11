@@ -5,6 +5,7 @@ import {
   type CompilationResult,
   type CompileDocumentsOptions,
 } from "./compiler.js";
+import { selectTokenCandidate } from "./context.js";
 import {
   linkTokenDocuments,
   parseUnresolvedTokenDocument,
@@ -12,7 +13,13 @@ import {
 } from "./frontend.js";
 import { TokenGraph, type TokenGraphDelta } from "./graph.js";
 import type { TokenSourceInput } from "./loader.js";
-import type { Diagnostic, ParsedTokenDocument, TokenId, TokenNode } from "./model.js";
+import type {
+  Diagnostic,
+  ParsedTokenDocument,
+  SourceLocation,
+  TokenId,
+  TokenNode,
+} from "./model.js";
 
 export interface IncrementalUpdate {
   readonly changed: readonly TokenId[];
@@ -57,19 +64,48 @@ function semanticSignature(token: TokenNode): string {
   });
 }
 
-function documentSignatures(document: ParsedTokenDocument | undefined): Map<TokenId, string[]> {
+function provenanceLocations(token: TokenNode): readonly SourceLocation[] {
+  return [
+    token.source,
+    ...(token.value.kind === "literal" ? [] : [token.value.source]),
+    ...token.overrides.flatMap((override) => [
+      override.source,
+      ...(override.expression.kind === "literal" ? [] : [override.expression.source]),
+    ]),
+    ...(token.propertyReferences?.map((reference) => reference.source) ?? []),
+    ...(token.inheritance ? [token.inheritance.source, token.inheritance.extendsSource] : []),
+  ];
+}
+
+function provenanceSignature(token: TokenNode): string {
+  return JSON.stringify(
+    provenanceLocations(token).map(({ file, line, column, offset, length }) => ({
+      file,
+      line,
+      column,
+      offset,
+      length,
+    })),
+  );
+}
+
+function documentSignatures(
+  document: ParsedTokenDocument | undefined,
+  signature: (token: TokenNode) => string,
+): Map<TokenId, string[]> {
   const result = new Map<TokenId, string[]>();
   for (const token of document?.tokens ?? [])
-    result.set(token.id, [...(result.get(token.id) ?? []), semanticSignature(token)]);
+    result.set(token.id, [...(result.get(token.id) ?? []), signature(token)]);
   return result;
 }
 
-function changedIds(
+function differingIds(
   previous: ParsedTokenDocument | undefined,
   next: ParsedTokenDocument | undefined,
+  signature: (token: TokenNode) => string,
 ): readonly TokenId[] {
-  const before = documentSignatures(previous);
-  const after = documentSignatures(next);
+  const before = documentSignatures(previous, signature);
+  const after = documentSignatures(next, signature);
   return [...new Set([...before.keys(), ...after.keys()])].filter(
     (id) => JSON.stringify(before.get(id)) !== JSON.stringify(after.get(id)),
   );
@@ -133,6 +169,7 @@ export class IncrementalCompiler {
     const graphDelta: TokenGraphDelta = {
       added: changed,
       changed: [],
+      refreshed: [],
       removed: [],
       affected,
       touchedNodes: changed.length,
@@ -158,8 +195,15 @@ export class IncrementalCompiler {
     this.#syntaxDocuments.set(source.file, nextSyntaxDocument);
     this.#relink();
     const changed = this.#changedIds(previousDocuments);
+    const changedSet = new Set(changed);
+    const refreshed = [
+      ...new Set([
+        ...this.#provenanceChangedIds(previousDocuments),
+        ...this.#provenanceIdsForFile(source.origin?.file ?? source.file),
+      ]),
+    ].filter((id) => !changedSet.has(id));
     this.#rebuildOwners();
-    const delta = this.#patchGraph(changed);
+    const delta = this.#patchGraph(changed, refreshed);
     return this.#rebuild(changed, delta, performance.now() - start, start);
   }
 
@@ -169,8 +213,12 @@ export class IncrementalCompiler {
     this.#syntaxDocuments.delete(file);
     this.#relink();
     const changed = this.#changedIds(previousDocuments);
+    const changedSet = new Set(changed);
+    const refreshed = this.#provenanceChangedIds(previousDocuments).filter(
+      (id) => !changedSet.has(id),
+    );
     this.#rebuildOwners();
-    const delta = this.#patchGraph(changed);
+    const delta = this.#patchGraph(changed, refreshed);
     return this.#rebuild(changed, delta, 0, start);
   }
 
@@ -198,10 +246,31 @@ export class IncrementalCompiler {
   }
 
   #changedIds(previous: ReadonlyMap<string, ParsedTokenDocument>): readonly TokenId[] {
+    return this.#differingIds(previous, semanticSignature);
+  }
+
+  #provenanceChangedIds(previous: ReadonlyMap<string, ParsedTokenDocument>): readonly TokenId[] {
+    return this.#differingIds(previous, provenanceSignature);
+  }
+
+  #provenanceIdsForFile(file: string): readonly TokenId[] {
+    return [...this.#documents.values()].flatMap((document) =>
+      document.tokens
+        .filter((token) => provenanceLocations(token).some((location) => location.file === file))
+        .map((token) => token.id),
+    );
+  }
+
+  #differingIds(
+    previous: ReadonlyMap<string, ParsedTokenDocument>,
+    signature: (token: TokenNode) => string,
+  ): readonly TokenId[] {
     const files = new Set([...previous.keys(), ...this.#documents.keys()]);
     return [
       ...new Set(
-        [...files].flatMap((file) => changedIds(previous.get(file), this.#documents.get(file))),
+        [...files].flatMap((file) =>
+          differingIds(previous.get(file), this.#documents.get(file), signature),
+        ),
       ),
     ];
   }
@@ -231,9 +300,10 @@ export class IncrementalCompiler {
     });
   }
 
-  #patchGraph(tokenIds: readonly TokenId[]): TokenGraphDelta {
+  #patchGraph(tokenIds: readonly TokenId[], refreshedIds: readonly TokenId[]): TokenGraphDelta {
     const added: TokenNode[] = [];
     const changed: TokenNode[] = [];
+    const refreshed: TokenNode[] = [];
     const removed: TokenId[] = [];
     for (const id of tokenIds) {
       const previous = this.#graph.getToken(id);
@@ -243,7 +313,13 @@ export class IncrementalCompiler {
       else if (previous && next && semanticSignature(previous) !== semanticSignature(next))
         changed.push(next);
     }
-    return this.#graph.patch({ added, changed, removed });
+    for (const id of refreshedIds) {
+      const previous = this.#graph.getToken(id);
+      const next = this.#winningToken(id);
+      if (previous && next && semanticSignature(previous) === semanticSignature(next))
+        refreshed.push(next);
+    }
+    return this.#graph.patch({ added, changed, refreshed, removed });
   }
 
   async #rebuild(
@@ -253,9 +329,20 @@ export class IncrementalCompiler {
     totalStart: number,
   ): Promise<IncrementalUpdate> {
     const affected = delta.affected;
-    const seed = (this.#lastResult?.compilation.resolver.snapshot() ?? []).filter(
-      (resolved) => !affected.has(resolved.id) && this.#graph.hasToken(resolved.id),
-    );
+    const resolutionOrder = Object.keys(this.#options.contexts ?? {});
+    const seed = (this.#lastResult?.compilation.resolver.snapshot() ?? []).flatMap((resolved) => {
+      const token = this.#graph.getToken(resolved.id);
+      if (!token || affected.has(resolved.id)) return [];
+      const selected = selectTokenCandidate(token, resolved.context, resolutionOrder);
+      return [
+        {
+          ...resolved,
+          expression: selected.expression,
+          dependencies: token.dependencies,
+          source: token.source,
+        },
+      ];
+    });
     const result = await compileParsedDocuments(
       [...this.#documents.values()],
       {

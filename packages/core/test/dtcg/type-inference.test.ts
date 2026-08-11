@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { compileDocuments } from "../../src/compiler.js";
+import { compileDocuments, compileParsedDocuments } from "../../src/compiler.js";
+import { TokenGraph } from "../../src/graph.js";
 import { parseTokenDocument } from "../../src/parser.js";
 
 describe("DTCG reference-driven type inference", () => {
@@ -21,6 +22,21 @@ describe("DTCG reference-driven type inference", () => {
     ]);
   });
 
+  it("infers a 10k-token chain without depending on the JavaScript call stack", () => {
+    const length = 10_000;
+    const source = Object.fromEntries(
+      Array.from({ length }, (_, index) => [
+        `token${index}`,
+        index === length - 1 ? { $type: "number", $value: 1 } : { $value: `{token${index + 1}}` },
+      ]),
+    );
+    const parsed = parseTokenDocument(JSON.stringify(source), "/tokens/long-chain.json");
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.tokens).toHaveLength(length);
+    expect(parsed.tokens[0]).toMatchObject({ id: "token0", type: "number" });
+    expect(parsed.tokens.at(-1)).toMatchObject({ id: "token9999", type: "number" });
+  });
+
   it("infers across already-loaded documents", async () => {
     const result = await compileDocuments([
       { file: "/tokens/alias.json", content: '{"alias":{"$value":"{base}"}}' },
@@ -32,6 +48,47 @@ describe("DTCG reference-driven type inference", () => {
       ["alias", "number"],
       ["base", "number"],
     ]);
+  });
+
+  it("re-links documents that were parsed separately before compilation", async () => {
+    const alias = parseTokenDocument(
+      '{"alias":{"$value":"{base}"}}',
+      "/tokens/preparsed-alias.json",
+    );
+    const base = parseTokenDocument(
+      '{"base":{"$type":"number","$value":1}}',
+      "/tokens/preparsed-base.json",
+    );
+    expect(alias.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+      "TOKEN_CANNOT_INFER_TYPE",
+    ]);
+
+    const staleGraph = new TokenGraph([...alias.tokens, ...base.tokens]);
+    const result = await compileParsedDocuments([alias, base], { graph: staleGraph });
+    expect(result.success).toBe(true);
+    expect(result.graph).not.toBe(staleGraph);
+    expect(result.diagnostics).toEqual([]);
+    expect(result.graph.tokens.map((token) => [token.id, token.type])).toEqual([
+      ["alias", "number"],
+      ["base", "number"],
+    ]);
+  });
+
+  it("preserves leading and trailing whitespace in valid DTCG token names", () => {
+    const parsed = parseTokenDocument(
+      JSON.stringify({
+        token: { $type: "number", $value: 1 },
+        " token ": { $type: "number", $value: 2 },
+        alias: { $value: "{ token }" },
+      }),
+      "/tokens/whitespace-names.json",
+    );
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.tokens.map((token) => token.id)).toEqual(["token", " token ", "alias"]);
+    expect(parsed.tokens[2]?.value).toMatchObject({
+      kind: "reference",
+      target: " token ",
+    });
   });
 
   it("uses an explicit token type and lets the checker report a conflict", async () => {

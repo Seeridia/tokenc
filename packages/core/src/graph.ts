@@ -3,12 +3,15 @@ import type { ImpactAnalysis, TokenId, TokenNode } from "./model.js";
 export interface TokenGraphPatch {
   readonly added?: readonly TokenNode[];
   readonly changed?: readonly TokenNode[];
+  /** Replace source/provenance only; dependency edges and affected values stay unchanged. */
+  readonly refreshed?: readonly TokenNode[];
   readonly removed?: readonly TokenId[];
 }
 
 export interface TokenGraphDelta {
   readonly added: readonly TokenId[];
   readonly changed: readonly TokenId[];
+  readonly refreshed?: readonly TokenId[];
   readonly removed: readonly TokenId[];
   readonly affected: ReadonlySet<TokenId>;
   readonly touchedNodes: number;
@@ -150,6 +153,14 @@ export class TokenGraph {
     const changed = [...new Set((patch.changed ?? []).map((token) => token.id))];
     const removed = [...new Set(patch.removed ?? [])];
     const touchedIds = new Set([...added, ...changed, ...removed]);
+    const refreshedNodes = [
+      ...new Map(
+        (patch.refreshed ?? [])
+          .filter((token) => !touchedIds.has(token.id) && this.#tokens.has(token.id))
+          .map((token) => [token.id, token]),
+      ).values(),
+    ];
+    const refreshed = refreshedNodes.map((token) => token.id);
     const before = this.getAffectedTokens(touchedIds);
     let touchedEdges = 0;
 
@@ -172,14 +183,16 @@ export class TokenGraph {
       this.#addEdges(token);
       touchedEdges += token.dependencies.length;
     }
+    for (const token of refreshedNodes) this.#tokens.set(token.id, token);
     const affected = new Set([...before, ...this.getAffectedTokens(touchedIds)]);
-    if (touchedIds.size > 0) this.#revision += 1;
+    if (touchedIds.size > 0 || refreshed.length > 0) this.#revision += 1;
     return {
       added,
       changed,
+      refreshed,
       removed,
       affected,
-      touchedNodes: touchedIds.size,
+      touchedNodes: touchedIds.size + refreshed.length,
       touchedEdges,
     };
   }

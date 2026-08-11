@@ -11,7 +11,11 @@ import {
   type ResolverDocument,
   type ResolverResolution,
 } from "./dtcg/resolver-document.js";
-import { linkTokenDocuments, parseUnresolvedTokenDocument } from "./frontend.js";
+import {
+  linkTokenDocuments,
+  parseUnresolvedTokenDocument,
+  relinkParsedTokenDocuments,
+} from "./frontend.js";
 import { TokenGraph } from "./graph.js";
 import { loadTokenFiles, type TokenSourceInput } from "./loader.js";
 import type {
@@ -229,8 +233,13 @@ export async function compileParsedDocuments(
   parseTime = 0,
   totalStart = performance.now(),
 ): Promise<CompilationResult> {
+  const semanticDocuments = relinkParsedTokenDocuments(documents);
+  const canReuseIncrementalState = semanticDocuments === documents;
   const graphStart = performance.now();
-  const graph = options.graph ?? new TokenGraph(documents.flatMap((document) => document.tokens));
+  const graph =
+    canReuseIncrementalState && options.graph !== undefined
+      ? options.graph
+      : new TokenGraph(semanticDocuments.flatMap((document) => document.tokens));
   const graphTime = performance.now() - graphStart;
   const checkStart = performance.now();
   const contextTokens = options.checkTokens
@@ -243,15 +252,19 @@ export async function compileParsedDocuments(
     ...(options.resolverDiagnostics ?? []),
     ...(options.resolution?.diagnostics ?? []),
     ...(options.additionalDiagnostics ?? []),
-    ...documents.flatMap((document) => document.diagnostics),
+    ...semanticDocuments.flatMap((document) => document.diagnostics),
     ...(options.allowTokenOverrides || options.skipDuplicateCheck
       ? []
-      : duplicateDiagnostics(documents)),
+      : duplicateDiagnostics(semanticDocuments)),
     ...checkTokenGraph(graph, options.checkTokens),
     ...checkContexts(contextTokens, options.contexts ?? {}),
   ];
   const checkTime = performance.now() - checkStart;
-  const resolver = new TokenResolver(graph, options.contexts ?? {}, options.resolverSeed);
+  const resolver = new TokenResolver(
+    graph,
+    options.contexts ?? {},
+    canReuseIncrementalState ? options.resolverSeed : undefined,
+  );
   const compilation = new Compilation({
     graph,
     diagnostics,

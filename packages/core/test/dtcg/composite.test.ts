@@ -67,8 +67,6 @@ const invalidValues: readonly [TokenType, JsonValue][] = [
   ["shadow", { color: red, offsetX: px(0), offsetY: px(2), blur: px(4) }],
   ["shadow", { color: red, offsetX: px(0), offsetY: px(2), blur: px(4), spread: 0 }],
   ["gradient", []],
-  ["gradient", [{ color: red, position: -0.1 }]],
-  ["gradient", [{ color: red, position: 1.1 }]],
   [
     "typography",
     {
@@ -103,5 +101,39 @@ describe("DTCG composite token validation", () => {
     expect(parsed.diagnostics[0]?.code).toBe(
       type === "cubicBezier" ? "DTCG_INVALID_CUBIC_BEZIER" : "DTCG_INVALID_COMPOSITE_VALUE",
     );
+  });
+
+  it("clamps gradient stop positions to the DTCG range", () => {
+    const parsed = parse("gradient", [
+      { color: red, position: -99 },
+      { color: red, position: 42 },
+    ]);
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.tokens[0]?.value).toMatchObject({
+      kind: "literal",
+      value: [{ position: 0 }, { position: 1 }],
+    });
+  });
+
+  it("keeps referenced gradients as individual, non-flattened gradient elements", () => {
+    const parsed = parseTokenDocument(
+      JSON.stringify({
+        start: { $type: "gradient", $value: [{ color: red, position: -1 }] },
+        end: { $type: "gradient", $value: [{ color: red, position: 2 }] },
+        combined: {
+          $type: "gradient",
+          $value: ["{start}", { color: red, position: 0.5 }, "{end}"],
+        },
+      }),
+      "/tokens/gradient-references.json",
+    );
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.tokens.find((token) => token.id === "combined")).toMatchObject({
+      dependencies: ["start", "end"],
+      value: {
+        kind: "literal",
+        value: [[{ position: 0 }], { position: 0.5 }, [{ position: 1 }]],
+      },
+    });
   });
 });
