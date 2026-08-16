@@ -13,6 +13,6 @@
     "@tokenc/backend-tailwind": "workspace:*",
     "@tokenc/backend-typescript": "workspace:*",
     "@tokenc/core": "workspace:*",
-    "tsx": "^4.20.0"
+    "tsx": "^4.23.12"
   }
 }
