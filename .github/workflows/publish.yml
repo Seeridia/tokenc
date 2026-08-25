@@ -16,19 +16,40 @@ on:
 concurrency:
   group: npm-publish
 
-permissions:
-  contents: write
-  id-token: write
+permissions: {}
 
 jobs:
-  publish:
-    name: Publish to npm
+  preflight:
+    name: Require main branch
     runs-on: ubuntu-latest
-    environment: npm
+    permissions: {}
 
     steps:
+      - name: Verify release ref
+        env:
+          RELEASE_REF: ${{ github.ref }}
+        run: |
+          if [[ "$RELEASE_REF" != "refs/heads/main" ]]; then
+            echo "Releases must be dispatched from refs/heads/main; received $RELEASE_REF" >&2
+            exit 1
+          fi
+
+  publish:
+    name: Publish to npm
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: npm
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Configure release path
+        run: echo "RELEASE_OUTPUT=$RUNNER_TEMP/tokenc-release" >> "$GITHUB_ENV"
+
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           fetch-depth: 0
 
@@ -50,19 +71,82 @@ jobs:
           vp run -r build
           vp test --run
 
+      - name: Verify release inputs are clean
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "Build or tests modified release inputs:"
+            git status --short
+            exit 1
+          fi
+
+      - name: Pack and verify release candidate
+        run: |
+          vp run verify-release \
+            --phase packed \
+            --tag "${{ inputs.npm_tag }}" \
+            --commit "${{ github.sha }}" \
+            --output "$RELEASE_OUTPUT"
+
+      - name: Verify release against npm
+        run: >-
+          vp run verify-release --phase prepublish
+          --manifest "$RELEASE_OUTPUT/release-manifest.json"
+
+      - name: Create release tags
+        run: vp exec changeset git-tag
+
+      - name: Verify local release tags
+        run: >-
+          vp run verify-release --phase local-tags
+          --manifest "$RELEASE_OUTPUT/release-manifest.json"
+
       - name: Publish packages
-        run: vp run publish-packages --tag "${{ inputs.npm_tag }}"
+        run: >-
+          vp run publish-packages
+          --manifest "$RELEASE_OUTPUT/release-manifest.json"
+          --tag "${{ inputs.npm_tag }}"
+
+      - name: Verify published packages
+        run: >-
+          vp run verify-release --phase published
+          --manifest "$RELEASE_OUTPUT/release-manifest.json"
 
       - name: Push release tags
         run: |
-          vp exec changeset git-tag
-          mapfile -t release_tags < <(git tag --points-at HEAD)
+          tags_file="$RELEASE_OUTPUT/release-tags.txt"
 
+          if [[ ! -s "$tags_file" ]]; then
+            echo "Release tag list is missing or empty: $tags_file" >&2
+            exit 1
+          fi
+
+          mapfile -t release_tags < "$tags_file"
           if (( ${#release_tags[@]} == 0 )); then
-            echo "No release tags were created for $(git rev-parse HEAD)" >&2
+            echo "Release tag list contains no tags: $tags_file" >&2
             exit 1
           fi
 
           for release_tag in "${release_tags[@]}"; do
+            if [[ -z "$release_tag" ]]; then
+              echo "Release tag list contains an empty line: $tags_file" >&2
+              exit 1
+            fi
+            if ! git check-ref-format "refs/tags/${release_tag}"; then
+              echo "Release tag list contains an invalid tag: $release_tag" >&2
+              exit 1
+            fi
             git push origin "refs/tags/${release_tag}:refs/tags/${release_tag}"
           done
+
+      - name: Verify remote release tags
+        run: >-
+          vp run verify-release --phase remote-tags
+          --manifest "$RELEASE_OUTPUT/release-manifest.json"
+
+      - name: Verify release leaves the worktree clean
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "Release generated or modified files outside ignored output directories:"
+            git status --short
+            exit 1
+          fi

@@ -16,6 +16,10 @@ The root package and examples are private and are never published.
 
 Normal releases use [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers) from the GitHub-hosted `publish.yml` workflow. Authentication uses short-lived OpenID Connect credentials; no npm token or 2FA bypass is stored in GitHub.
 
+The workflow first runs a permissionless preflight job that fails visibly unless the dispatch ref is
+exactly `refs/heads/main`. Only after that check passes can the publish job enter the `npm`
+environment and request release permissions.
+
 The publish job provides:
 
 - GitHub `id-token: write` permission.
@@ -24,12 +28,18 @@ The publish job provides:
 - npm 11, which exceeds npm CLI 11.5.1, the minimum OIDC-capable release.
 - The GitHub environment named `npm`.
 
-As observed during the M0 acceptance on 2026-08-25, that environment does not yet have a deployment
-branch policy, protection rule, or reviewer. M1-00 requires a protected-branch policy before the next
-public release; an independent reviewer should be added when one is available, otherwise the
-single-maintainer exception must be recorded explicitly.
+As configured during M1-00 on 2026-08-25, that environment accepts deployments only from protected
+branches. The repository currently has one direct collaborator, so no required reviewer is
+configured: this is the explicit single-maintainer exception. Add an independent environment
+reviewer when another maintainer is available. The environment policy complements the workflow
+preflight and cannot be enforced by the workflow file itself.
 
-Trusted Publishing automatically generates npm provenance for public packages published from this public repository. No `--provenance` flag or package-level provenance option is required.
+The active `Protect tokenc release tags` repository ruleset matches `refs/tags/@tokenc/**` and
+forbids both updates and deletion without a bypass actor. Release tags therefore remain immutable
+after their initial creation.
+
+The publish command also passes `--provenance` explicitly. Together with Trusted Publishing, this
+requires npm to generate provenance for every public package from this public repository.
 
 ## Current package state
 
@@ -39,16 +49,16 @@ that commit. There are no pending release changesets on `main`.
 
 Treat this paragraph as an observed state, not as permission to skip the checks below. Before every
 later release, compare the workspace, changeset plan, registry versions, requested dist-tag, and
-release commit again.
+release commit again. The repository-owned release verifier performs these checks against one
+manifest that binds the five packed tarballs, requested dist-tag, and commit.
 
-Until the idempotent registry-verification work tracked in the
-[M1 execution plan](M1-PLAN.md) lands, do not use the workflow to promote an already-published
-version from `beta` or `next` to `latest`: the current script skips versions that already exist and
-does not update their dist-tag.
-
-> **Release freeze:** do not start a new public release or retry a partial release with the current
-> workflow until M1-00 is complete. The remaining sections document the intended operator flow, but
-> they do not override this gate.
+An existing version is an idempotent success only when its registry tarball, internal dependencies,
+dist-tag, provenance subject, workflow source, and release commit all match that manifest. A partial
+publication retry publishes only the missing packages, then verifies the full five-package release.
+An existing version under a different dist-tag fails closed; dist-tag promotion remains a separate,
+manually reviewed operation. A missing candidate must also be newer than every version already in
+that package's registry metadata, preventing an explicit npm tag from rolling back to an older
+version.
 
 Before preparing any release, compare the workspace versions with npm and inspect the exact
 Changesets plan:
@@ -59,14 +69,16 @@ npm view @tokenc/cli version
 vp exec changeset status
 ```
 
-The five packages are a Changesets fixed group, so they advance together. An actual publish is
-rejected while any unconsumed `.changeset/*.md` file remains; `--dry-run` still packs the candidate
-and reports that the release is blocked. `@tokenc/core` derives its exported `VERSION` from its own
-package manifest, and CI runs `check:versions` to enforce that all public manifests remain aligned.
+The five packages are a Changesets fixed group, so they advance together. The manifest-driven
+publish path is rejected while any unconsumed `.changeset/*.md` file remains. `@tokenc/core` derives
+its exported `VERSION` from its own package manifest, and CI runs `check:versions` to enforce that
+all public manifests remain aligned.
 
-`publish-packages` asks Vite+ to delegate packing to the configured package manager (pnpm), so
-`workspace:*` ranges become real versions, then publishes the tarballs with the npm CLI in dependency
-order.
+The packed verification phase asks Vite+ to delegate packing to the configured package manager
+(pnpm), so `workspace:*` ranges become real versions. It checks the exact package set, package
+contents and internal dependency versions, writes an immutable release manifest and tag list, and
+runs a consumer smoke test against the tarballs. Publishing consumes those exact manifest-bound
+tarballs in dependency order instead of packing them again.
 
 ## Configure Trusted Publishers
 
@@ -112,38 +124,63 @@ vp run version-packages
 
 ## Inspecting package contents
 
-Run the complete pack pipeline without contacting npm publish:
+Run the complete packed-candidate verification without contacting npm publish:
 
 ```bash
-vp run publish-packages --tag next --dry-run
+release_output="$(mktemp -d)"
+vp run verify-release \
+  --phase packed \
+  --tag next \
+  --commit "$(git rev-parse HEAD)" \
+  --output "$release_output"
 ```
 
-Each package should contain only package metadata, README, license, JavaScript output, and TypeScript declarations. The temporary tarballs are removed automatically.
+Inspect `$release_output/release-manifest.json` and the five tarballs. Each package should contain
+only package metadata, README, license, JavaScript output, and TypeScript declarations. The command
+also runs the packed-tarball consumer smoke test and writes the exact expected annotated tags to
+`$release_output/release-tags.txt`.
+
+Before creating tags or publishing, reproduce the read-only pre-publish registry scan with:
+
+```bash
+vp run verify-release --phase prepublish \
+  --manifest "$release_output/release-manifest.json"
+```
+
+This rejects pending changesets or any mismatched existing package before publication begins.
 
 ## Publishing with GitHub Actions
 
 Open the repository's Actions page, select `Publish Packages`, choose `latest`, `next`, or `beta`, and run the workflow. The job:
 
-1. Installs and validates the project.
-2. Packs packages with pnpm.
-3. Skips versions already present on npm.
-4. Publishes each new tarball using the OIDC-aware npm CLI.
-5. Creates Changesets package tags, verifies that tags exist for the release commit, and pushes each
-   full tag ref to GitHub.
+1. Fails in a separate permissionless preflight job unless the selected ref is `main`.
+2. Installs, validates, builds, and tests the project, then refuses to continue if those steps changed
+   any tracked or untracked release input.
+3. Packs the five candidates once, verifies their manifest and contents, and runs a tarball consumer
+   smoke test.
+4. Performs a read-only, full-package registry scan and rejects pending changesets or any mismatched
+   existing release.
+5. Creates the five Changesets annotated tags and verifies that each peels to the manifest commit.
+6. Rechecks the registry fail-closed, then publishes only missing manifest-bound tarballs
+   using the OIDC-aware npm CLI.
+7. Waits for npm registry visibility, verifies all five packages, their requested dist-tag and
+   provenance, and runs a registry-installed consumer smoke test.
+8. Pushes only the exact refs listed in `release-tags.txt`, then verifies the remote annotated tags.
+9. Fails if any release step leaves the worktree dirty.
 
-The `npm` GitHub environment can require maintainer approval for an additional release gate.
+The `npm` GitHub environment requires a protected branch. Add independent maintainer approval when
+a second maintainer is available. If GitHub Actions is unavailable, restore the trusted workflow
+instead of publishing locally or creating a long-lived npm write token.
 
-## Local emergency release
-
-If GitHub Actions is unavailable, a maintainer may use normal interactive npm authentication:
+For a read-only post-publication recheck from the release commit, first reproduce the packed manifest
+as above, then run:
 
 ```bash
-npm login --auth-type=web
-npm whoami
-vp run release --tag latest
+vp run verify-release --phase published \
+  --manifest "$release_output/release-manifest.json"
+vp run verify-release --phase remote-tags \
+  --manifest "$release_output/release-manifest.json"
 ```
-
-Do not create or share a long-lived npm write token for this fallback.
 
 ## References
 

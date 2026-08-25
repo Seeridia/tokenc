@@ -1,17 +1,29 @@
 import { readdir, readFile } from "node:fs/promises";
+import { join } from "node:path";
 
-const publicPackages = [
-  { directory: "packages/core", name: "@tokenc/core" },
-  { directory: "packages/backend-css", name: "@tokenc/backend-css" },
-  { directory: "packages/backend-tailwind", name: "@tokenc/backend-tailwind" },
-  { directory: "packages/backend-typescript", name: "@tokenc/backend-typescript" },
-  { directory: "packages/cli", name: "@tokenc/cli" },
-];
+export const PUBLIC_PACKAGES = Object.freeze(
+  [
+    { directory: "packages/core", name: "@tokenc/core" },
+    { directory: "packages/backend-css", name: "@tokenc/backend-css" },
+    { directory: "packages/backend-tailwind", name: "@tokenc/backend-tailwind" },
+    { directory: "packages/backend-typescript", name: "@tokenc/backend-typescript" },
+    { directory: "packages/cli", name: "@tokenc/cli" },
+  ].map((definition) => Object.freeze(definition)),
+);
 
-export async function readPublicPackageDefinitions() {
+export function packageArchiveName(name, version) {
+  return `${name.replace(/^@/u, "").replace("/", "-")}-${version}.tgz`;
+}
+
+export function packageReleaseTag(name, version) {
+  return `${name}@${version}`;
+}
+
+export async function readPublicPackageDefinitions(repositoryRoot = process.cwd()) {
   return Promise.all(
-    publicPackages.map(async ({ directory, name: expectedName }) => {
-      const manifest = JSON.parse(await readFile(`${directory}/package.json`, "utf8"));
+    PUBLIC_PACKAGES.map(async ({ directory, name: expectedName }) => {
+      const manifestPath = join(repositoryRoot, directory, "package.json");
+      const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
       if (
         typeof manifest !== "object" ||
         manifest === null ||
@@ -20,12 +32,12 @@ export async function readPublicPackageDefinitions() {
         typeof manifest.name !== "string" ||
         typeof manifest.version !== "string"
       )
-        throw new TypeError(`Invalid package manifest: ${directory}/package.json`);
+        throw new TypeError(`Invalid package manifest: ${manifestPath}`);
       if (manifest.name !== expectedName)
         throw new Error(
           `Unexpected package name in ${directory}/package.json: expected ${expectedName}, received ${manifest.name}`,
         );
-      return { directory, manifest: { name: manifest.name, version: manifest.version } };
+      return { directory, manifest };
     }),
   );
 }
@@ -43,8 +55,8 @@ export function assertAlignedPublicVersions(packageDefinitions) {
   return version;
 }
 
-export async function readPendingChangesets() {
-  const entries = await readdir(".changeset", { withFileTypes: true });
+export async function readPendingChangesets(repositoryRoot = process.cwd()) {
+  const entries = await readdir(join(repositoryRoot, ".changeset"), { withFileTypes: true });
   return entries
     .filter((entry) => entry.isFile() && entry.name.endsWith(".md") && entry.name !== "README.md")
     .map((entry) => entry.name)
