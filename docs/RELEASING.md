@@ -22,17 +22,33 @@ The publish job provides:
 - A GitHub-hosted runner.
 - Node.js 24, which exceeds npm's Node.js 22.14 minimum for Trusted Publishing.
 - npm 11, which exceeds npm CLI 11.5.1, the minimum OIDC-capable release.
-- The protected GitHub environment named `npm`.
+- The GitHub environment named `npm`.
+
+As observed during the M0 acceptance on 2026-08-25, that environment does not yet have a deployment
+branch policy, protection rule, or reviewer. M1-00 requires a protected-branch policy before the next
+public release; an independent reviewer should be added when one is available, otherwise the
+single-maintainer exception must be recorded explicitly.
 
 Trusted Publishing automatically generates npm provenance for public packages published from this public repository. No `--provenance` flag or package-level provenance option is required.
 
 ## Current package state
 
-All five public packages have completed their initial publication. Do not repeat a bootstrap release.
-At the time of the M0 release candidate, npm `latest` is `0.1.1`, the manifests contain the already
-merged but unpublished `0.2.0` version result, and the M0 `minor` changeset plans `0.3.0`. Therefore
-M0 must be published as `0.3.0`, after the generated Version Packages pull request is merged. Do not
-publish the current `0.2.0` manifests while that changeset is pending.
+All five public packages are published at npm `latest` version `0.3.0`. The M0 release was produced
+from commit `2939441` on 2026-08-25 with npm provenance; the five annotated package tags resolve to
+that commit. There are no pending release changesets on `main`.
+
+Treat this paragraph as an observed state, not as permission to skip the checks below. Before every
+later release, compare the workspace, changeset plan, registry versions, requested dist-tag, and
+release commit again.
+
+Until the idempotent registry-verification work tracked in the
+[M1 execution plan](M1-PLAN.md) lands, do not use the workflow to promote an already-published
+version from `beta` or `next` to `latest`: the current script skips versions that already exist and
+does not update their dist-tag.
+
+> **Release freeze:** do not start a new public release or retry a partial release with the current
+> workflow until M1-00 is complete. The remaining sections document the intended operator flow, but
+> they do not override this gate.
 
 Before preparing any release, compare the workspace versions with npm and inspect the exact
 Changesets plan:
@@ -112,7 +128,8 @@ Open the repository's Actions page, select `Publish Packages`, choose `latest`, 
 2. Packs packages with pnpm.
 3. Skips versions already present on npm.
 4. Publishes each new tarball using the OIDC-aware npm CLI.
-5. Creates Changesets package tags and pushes them to GitHub.
+5. Creates Changesets package tags, verifies that tags exist for the release commit, and pushes each
+   full tag ref to GitHub.
 
 The `npm` GitHub environment can require maintainer approval for an additional release gate.
 

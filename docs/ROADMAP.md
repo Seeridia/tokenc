@@ -2,7 +2,7 @@
 
 [English](ROADMAP.md) | [简体中文](ROADMAP.zh-CN.md)
 
-> Status: directional plan, not a release commitment. Updated: 2026-08-24.
+> Status: directional plan, not a release commitment. Updated: 2026-08-25.
 
 This document defines tokenc's intended market position, architecture evolution, delivery order,
 and exit criteria. It complements [Architecture](ARCHITECTURE.md), which describes how the system
@@ -262,14 +262,12 @@ dates so elapsed time is not confused with completion.
 
 **Goal:** remove behavior that silently produces incorrect output or rejects common DTCG input.
 
-**Status (2026-08-24): engineering implementation validated locally; versioning and release
-pending.** The codebase includes the deliverables below, plus backend validation during `tokenc
-check`, output-path collision protection, and explicit safeguards for incomplete multi-dimensional
-CSS/Tailwind context output. The pinned ecosystem baseline records exact, categorized diagnostics;
-the full local verification and package dry-run pass. The manifests contain an earlier, unpublished
-`0.2.0` version result while npm `latest` remains `0.1.1`; the M0 `minor` changeset therefore makes
-`0.3.0` the release target. The protected release workflow must not run until the generated Version
-Packages pull request is reviewed and merged.
+**Status (2026-08-25): complete.** All exit criteria passed, and the five public packages were
+published as `0.3.0` with npm provenance and annotated package tags. Backend validation during
+`tokenc check`, output-path collision protection, safeguards for incomplete multi-dimensional
+CSS/Tailwind context output, and a pinned categorized ecosystem baseline are all part of the
+released behavior. Evidence and release-governance follow-ups are recorded in the
+[M0 acceptance record](M0-ACCEPTANCE.md).
 
 Deliverables:
 
@@ -294,6 +292,10 @@ Exit criteria:
 
 **Goal:** expose the differentiated compiler behavior as reliable public APIs.
 
+**Status (2026-08-25): planned.** Ordered work packages, dependencies, and automated acceptance
+evidence are defined in the [M1 execution plan](M1-PLAN.md). Public API implementation merges only
+after its release-integrity and measurement gates.
+
 Deliverables:
 
 - Conditional edges and context-aware graph queries.
@@ -309,8 +311,8 @@ Exit criteria:
 - A one-file edit does not reparse unchanged files.
 - Differential tests prove incremental output equals a full build.
 - Concurrent reads from one snapshot are deterministic.
-- Backends discover all symbol and capability errors before emit.
-- CLI uses the public Session and Query APIs without private bypasses.
+- Backends discover all symbol, value-representation, capability, and output-path errors before emit.
+- CLI and bundled backends use public Session, Query, IR, and planning APIs without private bypasses.
 
 ### M2 — CI and change intelligence
 
@@ -463,17 +465,18 @@ into Architecture or the support matrix. The roadmap must not become a second, s
 
 ## 11. Immediate execution order
 
-M0 engineering gates pass locally. The remaining release and follow-up steps are:
+M0 is complete and published as `0.3.0`. M1 follows the detailed [execution plan](M1-PLAN.md):
 
-1. Review and merge the Version Packages pull request that advances the fixed package group to
-   `0.3.0`, then publish through the protected release workflow.
-2. Measure conditional-cycle projection on representative corpora and tune the existing
-   16,384-projection bound and `TOKEN_CONTEXT_PROJECTION_LIMIT` failure mode before expanding the
-   Context predicate model.
-3. Specify `DependencyEdge.condition`, Context predicate algebra, backend capabilities, and shared
-   symbol allocation in M1 RFCs.
-4. Design the public `CompilationSnapshot` and `CompilerSession` APIs.
-5. Prove incremental/full equivalence before building diff, SARIF, and LSP features.
+1. Close release-integrity gaps before the next public release: verify existing registry artifacts
+   and dist-tags, restrict publishing to `main`, protect the npm environment, and automate
+   post-publish verification.
+2. Measure conditional-cycle projections and end-to-end incremental costs on repeatable corpora.
+3. Approve the Conditional Graph, Snapshot/Session, and Backend/Diagnostic RFCs.
+4. Implement conditional edges, stable queries and traces, Diagnostic v1, and shared backend
+   contracts.
+5. Build immutable snapshots and the public Compiler Session, then prove incremental/full
+   equivalence.
+6. Migrate the CLI to the public API before starting diff, SARIF, LSP, or adapter work.
 
 The strategic test remains:
 

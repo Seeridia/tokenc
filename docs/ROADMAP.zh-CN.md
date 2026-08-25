@@ -2,7 +2,7 @@
 
 [English](ROADMAP.md) | [简体中文](ROADMAP.zh-CN.md)
 
-> 状态：方向性规划，不是版本承诺。更新时间：2026-08-24。
+> 状态：方向性规划，不是版本承诺。更新时间：2026-08-25。
 
 本文定义 tokenc 在未来几个里程碑中的产品定位、架构演进、交付顺序与验收标准。它补充
 [架构文档](ARCHITECTURE.zh-CN.md)和
@@ -331,12 +331,10 @@ Terrazzo adapter 不能把 Terrazzo transform pipeline 引入 Core，也不承�
 
 **目标：** 消除会静默产生错误结果或阻断常见 DTCG 输入的问题。
 
-**状态（2026-08-24）：工程实现已通过本地验证，等待版本化与发布。** 下列交付物已经实现，并额外补齐了
-`tokenc check` 的 Backend 预检、输出路径碰撞保护，以及 CSS/Tailwind 多维 Context 覆盖不完整时的
-显式失败。固定版本的生态基线记录精确且已分类的 Diagnostic；完整本地验证与 package dry-run 均已通过。
-仓库 manifest 已包含此前合并但尚未发布的 `0.2.0` 版本结果，而 npm `latest` 仍为 `0.1.1`；因此当前
-M0 `minor` changeset 的发布目标是 `0.3.0`。必须先审查并合并生成的 Version Packages PR，才能运行
-受保护发布流程。
+**状态（2026-08-25）：已完成。** 五项退出条件全部通过，五个公开包已经以 `0.3.0` 发布，并带有 npm
+provenance 和 annotated package tags。`tokenc check` Backend 预检、输出路径碰撞保护、CSS/Tailwind
+多维 Context 覆盖不完整时的显式失败，以及固定且分类的生态兼容性基线均已进入发布版本。验收证据与发布
+治理后续项记录在 [M0 验收记录](M0-ACCEPTANCE.zh-CN.md)中。
 
 交付物：
 
@@ -362,6 +360,9 @@ M0 `minor` changeset 的发布目标是 `0.3.0`。必须先审查并合并生成
 
 **目标：** 把差异化从内部实现转成可靠的公共接口。
 
+**状态（2026-08-25）：计划就绪。** 有序任务、依赖关系和自动化验收矩阵见
+[M1 执行计划](M1-PLAN.zh-CN.md)。完成计划中的发布完整性与测量 Gate 后，才开始合并公共 API。
+
 交付物：
 
 - 条件依赖边和带 Context 的 Graph Query API。
@@ -377,8 +378,8 @@ M0 `minor` changeset 的发布目标是 `0.3.0`。必须先审查并合并生成
 - 单文件编辑不会重新解析未变化文件。
 - 失效集合与全量重编译结果通过 differential tests 保持一致。
 - 同一 snapshot 的并发只读查询结果确定。
-- Backend 可在 emit 前完整发现 symbol 与 capability 错误。
-- CLI 已迁移到公共 Session/Query API，没有私有旁路。
+- Backend 可在 emit 前完整发现 symbol、值表达、capability 与 output-path 错误。
+- CLI 与内置 Backend 已迁移到公共 Session、Query、IR 和 planning API，没有私有旁路。
 
 ### M2 — CI 与变更智能
 
@@ -570,16 +571,15 @@ area:lsp         milestone:M3       kind:developer-experience
 
 ## 11. 下一步执行清单
 
-M0 工程门禁已在本地通过，剩余发布与后续工作按以下顺序推进：
+M0 已完成并以 `0.3.0` 发布。M1 按详细[执行计划](M1-PLAN.zh-CN.md)依次推进：
 
-1. 审查并合并把固定 package 组升级到 `0.3.0` 的 Version Packages PR，再通过受保护的 release
-   workflow 正式发布。
-2. 在代表性项目上测量条件循环投影，并据此调优已有的 16,384 次投影预算和
-   `TOKEN_CONTEXT_PROJECTION_LIMIT` 失败机制，再扩展 Context predicate 模型。
-3. 在 M1 RFC 中定义 `DependencyEdge.condition`、Context predicate algebra、Backend
-   capabilities 与共享 symbol allocation。
-4. 设计公共 `CompilationSnapshot` 与 `CompilerSession` API。
-5. 用 differential test 证明增量与全量结果一致，再开始 diff、SARIF 和 LSP。
+1. 在下一次公开发布前补齐发布完整性：验证已存在的 registry 产物与 dist-tag、只允许从 `main`
+   发布、保护 npm environment，并自动执行发布后核对。
+2. 在可重复 corpus 上测量条件循环投影与端到端增量成本。
+3. 审查并通过 Conditional Graph、Snapshot/Session、Backend/Diagnostic 三份 RFC。
+4. 实现条件边、稳定 Query/Trace、Diagnostic v1 与共享 Backend contract。
+5. 建立不可变 Snapshot 和公共 Compiler Session，再证明增量与全量编译等价。
+6. CLI 完整迁移到公共 API 后，才开始 diff、SARIF、LSP 或 adapter 工作。
 
 这一路线的核心判断标准始终是：
 
