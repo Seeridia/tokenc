@@ -67,6 +67,7 @@ TokenNode
   id: TokenId
   type: TokenType
   value: TokenLiteralExpression | TokenReference | JsonPointerReferenceExpression
+  baseDependencies: TokenId[]
   overrides: ContextOverride[]
   dependencies: TokenId[]
   propertyReferences: JsonPointerDependency[]
@@ -98,11 +99,23 @@ Map<TokenId, Set<TokenId>>    forward dependencies
 Map<TokenId, Set<TokenId>>    reverse dependents
 ```
 
+The forward and reverse indexes hold a conservative union of base and override dependencies for
+usages, impact, and incremental invalidation. `TokenNode.baseDependencies` and each
+`ContextOverride.dependencies` retain the dependencies of individual candidate expressions. The
+checker first locates strongly connected candidate regions in the union graph, then lazily projects
+only the context dimensions used by that region and applies the same selection rules as the
+resolver. Mutually exclusive context edges therefore do not produce false cycles, while a real
+cycle requiring a multi-dimensional context is still diagnosed. Projection cardinality is checked
+before enumeration and is capped at the exported `CONTEXT_CYCLE_PROJECTION_LIMIT` of 16,384
+contexts per candidate region. Exceeding that bound produces a source-backed
+`TOKEN_CONTEXT_PROJECTION_LIMIT` error containing the region root, token count, relevant dimensions,
+and limit; an incomplete cycle analysis is never accepted silently.
+
 Lookup is O(1). A stable Kahn sort uses a lexical heap and costs O((V + E) log V); iterative cycle detection, affected traversal, and impact analysis cost O(V + E). Both `explain` and `usages` query this graph; they never scan source strings.
 
 `TokenGraph.patch()` updates token, forward-edge, and reverse-edge indexes in place. It reports a graph delta and unions affected nodes from the pre-patch and post-patch reverse graph, preserving correctness when edges disappear or change target.
 
-Cycles are reported as closed paths with related source locations. Unknown references are still retained as graph edges, which lets the checker provide nearby canonical-ID suggestions.
+Cycles are reported as closed paths with the active context and related source locations. Unknown references are still retained as graph edges, which lets the checker provide nearby canonical-ID suggestions.
 
 Inherited tokens add an edge to their base token, and component pointers add an edge to the token
 that owns the component. Consequently cycle detection, `explain`, `usages`, impact analysis, and
@@ -148,7 +161,11 @@ Duplicate canonical IDs are detected across documents before output. Graph cycle
 
 ## Compiler IR
 
-`Compilation` is the sole backend-facing input. It exposes topologically ordered `CompiledToken` values, typed `tokensOfType()` views, the validated graph, declared contexts, `resolveToken()`, and structured `explainToken()` traces. A backend does not parse, validate, merge, or search source documents.
+`Compilation` is the sole backend-facing input. Token order is computed from the active dependency
+projection of the default context, so symbol targets are declared first even when the conservative
+union graph contains mutually exclusive conditional cycles. It also exposes typed `tokensOfType()`
+views, the validated graph, declared contexts, `resolveToken()`, and structured `explainToken()`
+traces. A backend does not parse, validate, merge, or search source documents.
 
 This boundary keeps source-language concerns on the frontend and platform policy on the backend.
 
@@ -164,13 +181,17 @@ The resolver can always provide a value, but the chosen expression remains in IR
 
 ## Why platform outputs are backends
 
-CSS and TypeScript are compilation targets, not formatting callbacks. A backend receives a complete semantic compilation and returns `OutputFile[]` through one method. There are no public transform/filter/action hook taxonomies. This prevents platform rules from leaking into parsing or evaluation.
+CSS and TypeScript are compilation targets, not formatting callbacks. A backend receives a complete semantic compilation and returns `OutputFile[]`. An optional `validate(compilation)` preflight reports target namespace collisions and platform capability errors before any backend emits. If one backend returns an error, the compilation fails and no partial artifacts are generated. `compile(config, { emit: false })` still runs this preflight, which is how `tokenc check` validates targets without generating files. Artifact collision keys use resolved absolute paths normalized to Unicode NFC and lowercase, so case-only and canonically equivalent paths fail the compilation before the CLI writes anything, regardless of the current filesystem's case behavior. Backend diagnostics use the same structure and appear in both `CompilationResult` and the final `Compilation`.
+
+There are no public transform/filter/action hook taxonomies. This prevents platform rules from leaking into parsing or evaluation.
 
 ## Backends
 
 ### CSS
 
-Emits canonical custom properties. `preserve` maps references to `var()`, while `resolve` inlines evaluated literals. Context selector blocks compare their emitted representation to the default and include differences only.
+Emits canonical custom properties. `preserve` maps references to `var()`, while `resolve` inlines evaluated literals. Context selector blocks compare their emitted representation to the default and include differences only. Automatic selectors identify one complete canonical context; unsafe UTF-16 code units in its key use `%XXXX` encoding. They fail with `BACKEND_CONTEXT_COVERAGE` when a sparse predicate omits another varying dimension whose combinations have not all been declared. A custom base selector with automatic non-default contexts is rejected because the backend cannot prove the generated selectors will override it. A non-empty `selectors` map instead defines the explicit, validated context output set; different contexts cannot reuse the same selector, and a custom base with explicit variants must appear as the map's default-context entry.
+
+Numbers retain their source precision, and sRGB uses hexadecimal only when every component can be represented exactly by 8 bits. Cubic Bézier, border, transition, and shadow values use valid CSS serialization; typography is split losslessly into suffixed variables, with control characters encoded using CSS string escapes. Negative fields that CSS forbids, unrepresentable font-family code units, and custom dash-array stroke styles produce `BACKEND_UNSUPPORTED_VALUE`. DTCG gradients contain stops but no CSS gradient function or geometry, so the backend rejects them until an explicit platform transform supplies that policy. Custom-property syntax, normalized names, and generated suffixes are checked before emit.
 
 ### TypeScript
 
@@ -178,7 +199,7 @@ Flat mode emits topologically ordered bindings and supports symbol references. O
 
 ### Tailwind v4
 
-Emits `--token-*` runtime properties, sparse context overrides, and `@theme` bindings. Tailwind variables point at the runtime layer so ordinary CSS and utilities share values and theme switching does not duplicate the semantic token store.
+Emits `--token-*` runtime properties, sparse context overrides, and `@theme` bindings. Tailwind variables point at the runtime layer so ordinary CSS and utilities share values and theme switching does not duplicate the semantic token store. It uses the same encoded, exact-context output contract and coverage checks as CSS instead of depending on source-order cascade between dimensions. The backend reuses the CSS value serializer, including its precision and unsupported-value policy. Tailwind theme names are canonicalized and collision checked; top-level namespace tokens use `default` instead of producing an empty suffix.
 
 ## Incremental compilation
 
@@ -214,9 +235,12 @@ non-standard function syntax.
 @tokenc/core
   ↑
   ├─ @tokenc/backend-css
-  ├─ @tokenc/backend-tailwind
+  │    ↑
+  │    └─ @tokenc/backend-tailwind
   ├─ @tokenc/backend-typescript
   └─ @tokenc/cli → backends
 ```
 
 Core never imports the CLI or a backend. Backends depend only on public core IR. The CLI owns configuration loading, filesystem writes, terminal output, signals, and watch lifecycle.
+The Tailwind backend additionally reuses the CSS backend's public value serializer, while still
+reading Core IR without mutating either the CSS backend or Compilation state.

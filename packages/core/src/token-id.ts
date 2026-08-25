@@ -1,14 +1,14 @@
 import { isValidTokenSegment } from "./dtcg/format.js";
 import type { TokenId } from "./model.js";
 
+function isTokenId(input: string): input is TokenId {
+  return Boolean(input) && input.split(".").every(isValidTokenSegment);
+}
+
 /** Parse and validate a canonical dot-separated token ID. */
 export function parseTokenId(input: string): TokenId {
-  if (!input || input.split(".").some((part) => !isValidTokenSegment(part))) {
-    throw new TypeError(`Invalid token ID: ${input}`);
-  }
-  // Branded strings have no runtime constructor; this is the single assertion after validation.
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-  return input as TokenId;
+  if (!isTokenId(input)) throw new TypeError(`Invalid token ID: ${input}`);
+  return input;
 }
 
 /** Format a token ID for display or serialization. */

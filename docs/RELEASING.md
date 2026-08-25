@@ -26,20 +26,31 @@ The publish job provides:
 
 Trusted Publishing automatically generates npm provenance for public packages published from this public repository. No `--provenance` flag or package-level provenance option is required.
 
-## Bootstrap: first publication only
+## Current package state
 
-Trusted Publisher settings are configured from an existing package's npm settings. Because the five `@tokenc/*` packages have not been published yet, bootstrap them once from a maintainer machine using normal interactive npm authentication and normal 2FA. Do not create a token that bypasses 2FA.
+All five public packages have completed their initial publication. Do not repeat a bootstrap release.
+At the time of the M0 release candidate, npm `latest` is `0.1.1`, the manifests contain the already
+merged but unpublished `0.2.0` version result, and the M0 `minor` changeset plans `0.3.0`. Therefore
+M0 must be published as `0.3.0`, after the generated Version Packages pull request is merged. Do not
+publish the current `0.2.0` manifests while that changeset is pending.
+
+Before preparing any release, compare the workspace versions with npm and inspect the exact
+Changesets plan:
 
 ```bash
-npm login --auth-type=web
-npm whoami
-vp check
-vp run -r build
-vp test --run
-vp run publish-packages --tag latest
+npm view @tokenc/core version
+npm view @tokenc/cli version
+vp exec changeset status
 ```
 
-`publish-packages` asks Vite+ to delegate packing to the configured package manager (pnpm), so `workspace:*` ranges become real versions, then publishes the tarballs with the npm CLI in dependency order. The npm CLI can prompt for normal 2FA during this one-time bootstrap.
+The five packages are a Changesets fixed group, so they advance together. An actual publish is
+rejected while any unconsumed `.changeset/*.md` file remains; `--dry-run` still packs the candidate
+and reports that the release is blocked. `@tokenc/core` derives its exported `VERSION` from its own
+package manifest, and CI runs `check:versions` to enforce that all public manifests remain aligned.
+
+`publish-packages` asks Vite+ to delegate packing to the configured package manager (pnpm), so
+`workspace:*` ranges become real versions, then publishes the tarballs with the npm CLI in dependency
+order.
 
 ## Configure Trusted Publishers
 

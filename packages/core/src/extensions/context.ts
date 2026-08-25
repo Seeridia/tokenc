@@ -1,3 +1,4 @@
+import { parseContextKey } from "../context.js";
 import type { CompilationContext, JsonValue } from "../model.js";
 
 export const CONTEXT_EXTENSION = "org.token-compiler.contexts";
@@ -27,15 +28,12 @@ export interface RawContextExtensionEntry {
 }
 
 function contextSelector(input: string): CompilationContext | undefined {
-  const context: Record<string, string> = {};
-  for (const clause of input.split("&")) {
-    const [rawName, rawValue, ...rest] = clause.split("=");
-    const name = rawName?.trim();
-    const value = rawValue?.trim();
-    if (!name || !value || rest.length > 0) return undefined;
-    context[name] = value;
+  if (!input.trim()) return undefined;
+  try {
+    return parseContextKey(input);
+  } catch {
+    return undefined;
   }
-  return context;
 }
 
 /** Interpret tokenc's runtime-context extension independently of standard DTCG semantics. */

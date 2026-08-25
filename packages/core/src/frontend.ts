@@ -515,6 +515,7 @@ export function parseUnresolvedTokenDocument(
       "$deprecated",
       "$root",
     ]);
+    if (!parent) allowed.add("$schema");
     for (const property of properties(node)) {
       const name = propertyName(property);
       if (name.startsWith("$") && !allowed.has(name))
@@ -1314,6 +1315,7 @@ export function linkTokenDocuments(
       overrides.push({
         selector: override.selector,
         expression: built.expression,
+        dependencies: [...new Set(built.dependencies)],
         source: override.source,
         origin: "extension-context",
       });
@@ -1326,6 +1328,7 @@ export function linkTokenDocuments(
       id: token.id,
       type,
       value: base.expression,
+      baseDependencies: [...new Set(base.dependencies)],
       overrides,
       source: token.source,
       dependencies: [...new Set(dependencies)],

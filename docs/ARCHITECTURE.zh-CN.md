@@ -75,6 +75,7 @@ TokenNode
   id: TokenId
   type: TokenType
   value: TokenLiteralExpression | TokenReference | JsonPointerReferenceExpression
+  baseDependencies: TokenId[]
   overrides: ContextOverride[]
   dependencies: TokenId[]
   propertyReferences: JsonPointerDependency[]
@@ -115,13 +116,22 @@ Map<TokenId, Set<TokenId>>    forward dependencies
 Map<TokenId, Set<TokenId>>    reverse dependents
 ```
 
+Graph 中的正反向索引保存 base 与全部 override dependency 的保守并集，用于 usages、impact 与增量失效；
+`TokenNode.baseDependencies` 和每个 `ContextOverride.dependencies` 则保留候选表达式各自的依赖。Checker
+先在并集 Graph 中定位强连通候选区域，再只对该区域实际涉及的 Context 维度进行惰性投影，并使用与
+Resolver 相同的选择规则判断环是否可满足。因此不同 Context 下互斥的边不会被误报为循环，而仅在多维
+Context 组合中成立的真实循环仍会被诊断。Checker 会在枚举前计算投影规模，并对每个候选区域执行公开
+常量 `CONTEXT_CYCLE_PROJECTION_LIMIT` 所定义的 16,384 个 Context 上限。超限时返回带源码位置的
+`TOKEN_CONTEXT_PROJECTION_LIMIT` error，其中包含区域根、Token 数、相关维度和上限；不完整的循环
+分析绝不会被静默接受。
+
 Token 和邻接关系查询为 O(1)。使用 lexical heap 的稳定 Kahn 排序为 O((V + E) log V)；迭代式环检测、affected traversal 与 impact analysis 为 O(V + E)。
 
 `TokenGraph.patch()` 原位更新 Token、正向边和反向边索引，返回 Graph Delta，并合并 patch 前后的反向影响集合，确保边被删除或改向时仍然正确。
 
 `explain` 和 `usages` 都直接查询同一张 Graph，不会搜索源文件字符串。
 
-循环引用会输出闭合路径和相关源码位置。未知 Reference 仍然会作为 Graph Edge 保留，让 Checker 可以根据所有 canonical ID 提供相似名称建议。
+循环引用会输出闭合路径、使其成立的 Context 和相关源码位置。未知 Reference 仍然会作为 Graph Edge 保留，让 Checker 可以根据所有 canonical ID 提供相似名称建议。
 
 继承 Token 会指向 Base Token，分量 Pointer 会指向拥有该分量的 Token。因此 Cycle Detection、
 `explain`、`usages`、Impact Analysis 与 Incremental Invalidation 对所有引用形式使用同一套 Graph 语义。
@@ -195,7 +205,9 @@ Graph Cycle 会在递归求值前独立校验，因此用户看到的是完整�
 
 ## Compiler IR
 
-`Compilation` 是 Backend 唯一可以消费的输入。它还公开强类型 `tokensOfType()` 视图与结构化 `explainToken()` trace，并继续提供：
+`Compilation` 是 Backend 唯一可以消费的输入。Token 顺序使用 default Context 的有效依赖投影计算，
+因此即使保守并集 Graph 含有互斥的条件环，TypeScript 等符号型目标仍会先声明当前实际依赖。它还公开
+强类型 `tokensOfType()` 视图与结构化 `explainToken()` trace，并继续提供：
 
 - 按拓扑顺序排列的 `CompiledToken`
 - 已验证的 `TokenGraph`
@@ -230,9 +242,17 @@ CSS 和 TypeScript 是编译目标，不是格式化 callback。Backend 接收�
 ```ts
 interface TokenBackend {
   name: string;
+  validate?(compilation: Compilation): Promise<Diagnostic[]> | Diagnostic[];
   emit(compilation: Compilation): Promise<readonly OutputFile[]> | readonly OutputFile[];
 }
 ```
+
+可选的 `validate()` 是 emit 前的只读预检，用于检查目标命名空间碰撞和平台表达能力。所有 Backend
+预检通过后才会并行 emit；任一 Backend 返回 error 时，编译结果失败且不会生成任何不完整产物。
+Backend Diagnostic 与 Frontend Diagnostic 使用相同结构，并同时出现在 `CompilationResult` 与最终
+`Compilation` 中。`compile(config, { emit: false })` 仍执行预检，因此 `tokenc check` 可以验证目标而不
+生成文件。产物碰撞 key 使用绝对解析路径，并统一做 Unicode NFC 规范化和小写转换，因此仅大小写
+不同或 Unicode canonical 等价的路径都会在 CLI 写盘前使整次编译失败，不依赖当前文件系统是否区分大小写。
 
 公共 API 不暴露 transform、filter、action、formatGroup 等复杂 hook 分类。这能避免平台规则泄漏到 Parser 或 Resolver。
 
@@ -245,6 +265,19 @@ interface TokenBackend {
 - `preserve` 将 Reference 映射为 `var()`。
 - `resolve` 内联最终求值结果。
 - Context selector block 与默认环境比较，只输出变化的声明。
+- 自动 selector 对应一个完整 canonical Context，key 中不安全的 UTF-16 code unit 使用 `%XXXX`
+  编码。若稀疏 predicate 省略了其他可变维度、且这些组合未全部声明，则返回
+  `BACKEND_CONTEXT_COVERAGE`，既不物化笛卡尔积，也不依赖 CSS cascade 顺序。自定义 base selector
+  与自动非默认 Context 同时存在时也会失败，因为 Backend 无法证明 selector specificity；非空
+  `selectors` map 则明确指定并校验需要输出的 Context 集合。不同 Context 不能复用同一个 selector；
+  自定义 base 与显式变体并用时，base 必须写入默认 Context 对应的 map entry。
+- number 保留源精度；只有所有 sRGB 分量都能由 8 bit 精确表示时才使用 hex。border、transition、
+  shadow 与 cubic Bézier 输出合法 CSS 值；typography 无损拆分为多个后缀变量，其中控制字符使用 CSS
+  string escape。
+- CSS 禁止的负数字段、CSS 无法无损表示的 font-family code unit，以及 custom dash-array stroke style
+  会产生 `BACKEND_UNSUPPORTED_VALUE`。DTCG gradient 只有 stop、没有 CSS gradient function 或
+  geometry，因此在显式平台 transform 提供该策略前同样会被拒绝。
+- emit 前校验 custom-property 语法，并检测归一化名称及 composite 后缀名称碰撞。
 
 ### TypeScript
 
@@ -259,6 +292,9 @@ Flat mode 生成拓扑排序后的 binding，并支持 symbol reference。Object
 - Tailwind `@theme` binding
 
 Tailwind variable 指向运行时层，因此普通 CSS 和 utility 可以共享同一份值，theme switching 也不需要复制完整语义 Token Store。
+Tailwind 与 CSS 使用相同的编码后完整 Context 输出契约和覆盖检查，而不依赖不同维度 block 的源码
+顺序。它复用 CSS value serializer，包括数值精度与 unsupported-value 策略；Tailwind theme 名会先
+canonicalize 并检查碰撞，顶层 namespace token 使用 `default` 名称，避免生成空后缀。
 
 ## Incremental Compilation
 
@@ -311,12 +347,15 @@ v0.1 不会为了提前支持这个能力而创造非标准 Function Syntax。
 @tokenc/core
   ↑
   ├─ @tokenc/backend-css
-  ├─ @tokenc/backend-tailwind
+  │    ↑
+  │    └─ @tokenc/backend-tailwind
   ├─ @tokenc/backend-typescript
   └─ @tokenc/cli → backends
 ```
 
 Core 不会导入 CLI 或 Backend。Backend 只依赖公开的 Core IR。CLI 负责配置加载、文件写入、终端输出、进程信号和 watcher 生命周期。
+Tailwind Backend 额外复用 CSS Backend 的公开 value serializer，但仍只读取 Core IR，不修改 CSS
+Backend 或 Compilation 状态。
 
 ## 关键原则
 

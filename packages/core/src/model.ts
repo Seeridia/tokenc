@@ -215,6 +215,8 @@ export type CompilationContext = Readonly<Record<string, string>>;
 export interface ContextOverride<T extends TokenType = TokenType> {
   readonly selector: CompilationContext;
   readonly expression: TokenExpression<T>;
+  /** Dependencies used only when this override is selected. */
+  readonly dependencies?: readonly TokenId[];
   readonly source: SourceLocation;
   /** Explicit semantic precedence; higher values win. */
   readonly precedence?: number;
@@ -227,6 +229,8 @@ export interface TokenNode<T extends TokenType = TokenType> {
   readonly id: TokenId;
   readonly type: T;
   readonly value: TokenExpression<T>;
+  /** Dependencies used by the base expression before context overrides are applied. */
+  readonly baseDependencies?: readonly TokenId[];
   readonly description?: string;
   readonly deprecated?: boolean | string;
   readonly extensions?: Readonly<Record<string, JsonValue>>;

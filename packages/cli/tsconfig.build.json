@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@tokenc/backend-css": ["../backend-css/dist/index.d.ts"],
+      "@tokenc/backend-tailwind": ["../backend-tailwind/dist/index.d.ts"],
+      "@tokenc/backend-typescript": ["../backend-typescript/dist/index.d.ts"],
+      "@tokenc/core": ["../core/dist/index.d.ts"]
+    }
+  }
+}

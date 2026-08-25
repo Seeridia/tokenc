@@ -45,6 +45,7 @@ jobs:
 
       - name: Run release checks
         run: |
+          vp run check:versions
           vp check
           vp run -r build
           vp test --run
@@ -53,4 +54,4 @@ jobs:
         run: vp run publish-packages --tag "${{ inputs.npm_tag }}"
 
       - name: Push release tags
-        run: vp exec changeset git-tag && git push --follow-tags
+        run: vp exec changeset git-tag && git push origin --tags

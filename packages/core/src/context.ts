@@ -9,6 +9,7 @@ import type {
 
 export interface SelectedTokenExpression {
   readonly expression: TokenExpression;
+  readonly dependencies: TokenNode["dependencies"];
   readonly source: TokenNode["source"];
   readonly selector?: CompilationContext;
   readonly precedence?: number;
@@ -25,18 +26,41 @@ export function defaultContext(definition: ContextDefinition = {}): CompilationC
 /** Stable context cache key independent of object insertion order. */
 export function contextKey(context: CompilationContext): string {
   return Object.entries(context)
-    .toSorted(([a], [b]) => a.localeCompare(b))
-    .map(([name, value]) => `${name}=${value}`)
+    .toSorted(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([name, value]) => `${encodeContextPart(name)}=${encodeContextPart(value)}`)
     .join("&");
 }
 
 export function parseContextKey(key: string): CompilationContext {
   if (!key.trim()) return {};
-  return Object.fromEntries(
-    key.split("&").map((clause) => {
-      const boundary = clause.indexOf("=");
-      return [clause.slice(0, boundary).trim(), clause.slice(boundary + 1).trim()];
-    }),
+  const context: Record<string, string> = Object.create(null);
+  for (const clause of key.split("&")) {
+    const boundary = clause.indexOf("=");
+    const name = decodeContextPart(clause.slice(0, boundary).trim());
+    const value = decodeContextPart(clause.slice(boundary + 1).trim());
+    if (boundary <= 0 || !name || !value || Object.hasOwn(context, name))
+      throw new TypeError(`Invalid context key: ${key}`);
+    context[name] = value;
+  }
+  return context;
+}
+
+function encodeContextPart(value: string): string {
+  let encoded = "";
+  for (let index = 0; index < value.length; index += 1) {
+    const codeUnit = value.charCodeAt(index);
+    const character = value[index] ?? "";
+    encoded +=
+      codeUnit < 0x80 && /[a-zA-Z0-9._~-]/u.test(character)
+        ? character
+        : `%${codeUnit.toString(16).toUpperCase().padStart(4, "0")}`;
+  }
+  return encoded;
+}
+
+function decodeContextPart(value: string): string {
+  return value.replace(/%([0-9A-F]{4})/gu, (_, hex: string) =>
+    String.fromCharCode(Number.parseInt(hex, 16)),
   );
 }
 
@@ -54,7 +78,8 @@ function compareSelectors(
   for (let index = order.length - 1; index >= 0; index -= 1) {
     const dimension = order[index];
     if (!dimension) continue;
-    const difference = Number(dimension in left) - Number(dimension in right);
+    const difference =
+      Number(Object.hasOwn(left, dimension)) - Number(Object.hasOwn(right, dimension));
     if (difference !== 0) return difference;
   }
   return 0;
@@ -77,6 +102,7 @@ export function selectTokenCandidate(
 ): SelectedTokenExpression {
   let selected: SelectedTokenExpression = {
     expression: token.value,
+    dependencies: token.baseDependencies ?? token.dependencies,
     source: token.source,
   };
   let selectedSelector: CompilationContext = {};
@@ -91,6 +117,7 @@ export function selectTokenCandidate(
     ) {
       selected = {
         expression: override.expression,
+        dependencies: override.dependencies ?? token.dependencies,
         source: override.source,
         selector: override.selector,
         ...(override.precedence === undefined ? {} : { precedence: override.precedence }),
@@ -133,7 +160,7 @@ export function checkContexts(
         });
       } else selectors.set(selectorKey, override);
       for (const [name, value] of Object.entries(override.selector)) {
-        const dimension = definition[name];
+        const dimension = Object.hasOwn(definition, name) ? definition[name] : undefined;
         if (!dimension) {
           diagnostics.push({
             code: "TOKEN_CONTEXT_UNKNOWN_DIMENSION",

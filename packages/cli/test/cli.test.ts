@@ -1,8 +1,14 @@
 import { readFile, rm } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it } from "vite-plus/test";
 
+import {
+  configFileChanged,
+  isConfigFileEvent,
+  shouldReloadConfigForEvent,
+} from "../src/config-file.js";
 import { runCli } from "../src/index.js";
 
 const cwd = fileURLToPath(new URL("fixtures/basic", import.meta.url));
@@ -10,6 +16,10 @@ const output = fileURLToPath(new URL("fixtures/basic/dist", import.meta.url));
 const resolverCwd = fileURLToPath(new URL("fixtures/resolver", import.meta.url));
 const resolverOutput = fileURLToPath(new URL("fixtures/resolver/dist", import.meta.url));
 const referencesCwd = fileURLToPath(new URL("fixtures/references", import.meta.url));
+const backendLifecycleCwd = fileURLToPath(new URL("fixtures/backend-lifecycle", import.meta.url));
+const backendLifecycleOutput = fileURLToPath(
+  new URL("fixtures/backend-lifecycle/dist", import.meta.url),
+);
 
 function invokeAt(workingDirectory: string, args: readonly string[]) {
   let stdout = "";
@@ -29,11 +39,55 @@ const invoke = (args: readonly string[]) => invokeAt(cwd, args);
 
 afterEach(async () => {
   await Promise.all(
-    [output, resolverOutput].map((directory) => rm(directory, { recursive: true, force: true })),
+    [output, resolverOutput, backendLifecycleOutput].map((directory) =>
+      rm(directory, { recursive: true, force: true }),
+    ),
   );
 });
 
 describe("tokenc CLI", () => {
+  it("tracks the actual default and explicit dev config paths", () => {
+    const defaultConfig = resolve(cwd, "tokenc.config.ts");
+    expect(isConfigFileEvent(defaultConfig, defaultConfig, cwd)).toBe(true);
+    expect(isConfigFileEvent("tokenc.config.ts", defaultConfig, cwd)).toBe(true);
+
+    const customConfig = resolve(cwd, "configurations/custom.ts");
+    const customRoot = dirname(customConfig);
+    expect(isConfigFileEvent("custom.ts", customConfig, customRoot)).toBe(true);
+    expect(isConfigFileEvent(defaultConfig, customConfig, customRoot)).toBe(false);
+  });
+
+  it("detects backend-only edits to a custom dev config", () => {
+    const path = resolve(cwd, "custom.ts");
+    const previous = {
+      path,
+      source: 'outputs: [css({ output: "dist/old.css" })]',
+    };
+    const next = {
+      path,
+      source: 'outputs: [css({ output: "dist/new.css" })]',
+    };
+    expect(configFileChanged(previous, next)).toBe(true);
+    expect(configFileChanged(next, next)).toBe(false);
+    expect(configFileChanged(next, { ...next, path: resolve(cwd, "tokenc.config.ts") })).toBe(true);
+  });
+
+  it("reloads modular configs without looping on generated outputs", () => {
+    const configPath = resolve(cwd, "custom.ts");
+    const tokenPath = resolve(cwd, "tokens/base.json");
+    const outputPath = resolve(cwd, "generated/tokens.ts");
+    const files = {
+      configPath,
+      tokenPaths: new Set([tokenPath]),
+      outputPaths: new Set([outputPath]),
+      watchRoot: cwd,
+    };
+
+    expect(shouldReloadConfigForEvent(resolve(cwd, "outputs.ts"), files)).toBe(true);
+    expect(shouldReloadConfigForEvent(tokenPath, files)).toBe(false);
+    expect(shouldReloadConfigForEvent(outputPath, files)).toBe(false);
+  });
+
   it("builds configured artifacts", async () => {
     const result = await invoke(["build"]);
     expect(result).toMatchObject({ code: 0, stderr: "" });
@@ -47,6 +101,42 @@ describe("tokenc CLI", () => {
     const result = await invoke(["check"]);
     expect(result.stdout).toContain("✓ 5 tokens checked");
     await expect(readFile(`${output}/tokens.css`, "utf8")).rejects.toThrow(/ENOENT/u);
+  });
+
+  it("runs backend validation during check without invoking emit", async () => {
+    const valid = await invokeAt(backendLifecycleCwd, [
+      "check",
+      "--config",
+      "check-valid.config.ts",
+    ]);
+    expect(valid).toMatchObject({ code: 0, stderr: "" });
+
+    const invalid = await invokeAt(backendLifecycleCwd, [
+      "check",
+      "--config",
+      "check-invalid.config.ts",
+      "--json",
+    ]);
+    expect(invalid.code).toBe(1);
+    expect(JSON.parse(invalid.stdout)).toMatchObject({
+      errors: [{ code: "BACKEND_FIXTURE_INVALID" }],
+    });
+  });
+
+  it("does not write artifacts when backend output paths collide", async () => {
+    const result = await invokeAt(backendLifecycleCwd, [
+      "build",
+      "--config",
+      "output-collision.config.ts",
+      "--json",
+    ]);
+    expect(result.code).toBe(1);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      errors: [{ code: "BACKEND_OUTPUT_PATH_COLLISION" }],
+    });
+    await expect(readFile(`${backendLifecycleOutput}/shared.txt`, "utf8")).rejects.toThrow(
+      /ENOENT/u,
+    );
   });
 
   it("emits machine-readable diagnostics", async () => {

@@ -3,6 +3,7 @@
     "target": "ES2023",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "resolveJsonModule": true,
     "paths": {
       "@tokenc/backend-css": ["./packages/backend-css/src/index.ts"],
       "@tokenc/backend-tailwind": ["./packages/backend-tailwind/src/index.ts"],
@@ -21,6 +22,7 @@
     "verbatimModuleSyntax": true,
     "declaration": true,
     "declarationMap": true,
+    "noEmit": true,
     "sourceMap": true,
     "skipLibCheck": true,
     "types": ["node"]

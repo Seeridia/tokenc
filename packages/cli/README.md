@@ -24,6 +24,10 @@ pnpm tokenc usages color.blue.600
 pnpm tokenc graph --format mermaid
 ```
 
+`tokenc check` runs frontend checks and every configured backend's read-only preflight, but never
+generates or writes artifacts. `tokenc build` additionally rejects duplicate normalized output
+paths before writing any file.
+
 Resolver modifier inputs use normal flags, for example `pnpm tokenc build --theme dark` or `pnpm tokenc explain color.background --theme dark`.
 
 Local installation is recommended so pnpm can resolve backend imports from the project configuration reliably.
