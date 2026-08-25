@@ -292,19 +292,35 @@ export interface OutputFile {
   readonly content: string;
 }
 
+/** Read-only work counters from one Context-aware cycle-check invocation. */
+export interface ContextCycleMetrics {
+  readonly candidateRegions: number;
+  readonly relevantDimensions: number;
+  readonly estimatedProjections: number;
+  readonly estimateSaturated: boolean;
+  readonly enumeratedProjections: number;
+  readonly earlyExits: number;
+  readonly limitHits: number;
+}
+
+export interface CompilationStageTimings {
+  readonly parse: number;
+  readonly link: number;
+  readonly graph: number;
+  readonly check: number;
+  readonly resolve: number;
+  readonly emit: number;
+  readonly total: number;
+}
+
 export interface CompilationStats {
   readonly tokens: number;
   readonly references: number;
   readonly contexts: number;
   readonly affectedTokens?: number;
   readonly checkedTokens?: number;
-  readonly timings: {
-    readonly parse: number;
-    readonly graph: number;
-    readonly check: number;
-    readonly emit: number;
-    readonly total: number;
-  };
+  readonly contextCycles?: ContextCycleMetrics;
+  readonly timings: CompilationStageTimings;
 }
 
 export interface ImpactAnalysis {

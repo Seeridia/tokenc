@@ -220,7 +220,7 @@ This is a library monorepo: packages are built with `vp pack`, orchestrated by `
 - [M0 acceptance record](docs/M0-ACCEPTANCE.md) · [中文](docs/M0-ACCEPTANCE.zh-CN.md)
 - [M1 execution plan](docs/M1-PLAN.md) · [中文](docs/M1-PLAN.zh-CN.md)
 - [DTCG 2025.10 support](docs/DTCG-SUPPORT.md) · [中文](docs/DTCG-SUPPORT.zh-CN.md)
-- [Compiler benchmarks](benchmarks/README.md)
+- [Compiler benchmarks](benchmarks/README.md) · [中文](benchmarks/README.zh-CN.md)
 - [Contributing](CONTRIBUTING.md)
 - [Releasing](docs/RELEASING.md)
 

@@ -3,8 +3,20 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vite-plus/test";
 
 import { compileDocuments, defineConfig, type TokenBackend } from "../src/compiler.js";
-import type { ColorValue } from "../src/model.js";
+import type { ColorValue, CompilationStageTimings } from "../src/model.js";
 import { parseTokenId } from "../src/token-id.js";
+
+const PIPELINE_STAGES = ["parse", "link", "graph", "check", "resolve", "emit"] as const;
+const TIMING_STAGES = [...PIPELINE_STAGES, "total"] as const;
+
+function expectValidTimings(timings: CompilationStageTimings): void {
+  expect(Object.keys(timings)).toEqual(TIMING_STAGES);
+  for (const stage of TIMING_STAGES) {
+    expect(Number.isFinite(timings[stage])).toBe(true);
+    expect(timings[stage]).toBeGreaterThanOrEqual(0);
+  }
+  for (const stage of PIPELINE_STAGES) expect(timings.total).toBeGreaterThanOrEqual(timings[stage]);
+}
 
 describe("compiler pipeline", () => {
   it("produces backend-facing IR and stats", async () => {
@@ -27,6 +39,7 @@ describe("compiler pipeline", () => {
     expect(result.success).toBe(true);
     expect(result.outputs[0]?.content).toBe("base\nalias");
     expect(result.stats).toMatchObject({ tokens: 2, references: 1, contexts: 1 });
+    expectValidTimings(result.stats.timings);
   });
 
   it("suppresses all artifacts when an error exists", async () => {

@@ -4,7 +4,20 @@ import { describe, expect, it } from "vite-plus/test";
 
 import type { TokenBackend } from "../src/compiler.js";
 import { IncrementalCompiler } from "../src/incremental.js";
+import type { CompilationStageTimings } from "../src/model.js";
 import { parseTokenId } from "../src/token-id.js";
+
+const PIPELINE_STAGES = ["parse", "link", "graph", "check", "resolve", "emit"] as const;
+const TIMING_STAGES = [...PIPELINE_STAGES, "total"] as const;
+
+function expectValidTimings(timings: CompilationStageTimings): void {
+  expect(Object.keys(timings)).toEqual(TIMING_STAGES);
+  for (const stage of TIMING_STAGES) {
+    expect(Number.isFinite(timings[stage])).toBe(true);
+    expect(timings[stage]).toBeGreaterThanOrEqual(0);
+  }
+  for (const stage of PIPELINE_STAGES) expect(timings.total).toBeGreaterThanOrEqual(timings[stage]);
+}
 
 const primitive = (value: number) => ({
   file: "/tokens/primitive.json",
@@ -20,6 +33,18 @@ const unrelated = {
 };
 
 describe("IncrementalCompiler", () => {
+  it("reports complete stage timings for initialization, updates, and removals", async () => {
+    const compiler = new IncrementalCompiler();
+    const initial = await compiler.initialize([primitive(1), semantic]);
+    const update = await compiler.update(primitive(2));
+    const removal = await compiler.remove(semantic.file);
+
+    expectValidTimings(initial.result.stats.timings);
+    expectValidTimings(update.result.stats.timings);
+    expectValidTimings(removal.result.stats.timings);
+    expect(removal.result.stats.timings.parse).toBe(0);
+  });
+
   it("uses a case-insensitive output root key for absolute and relative paths", async () => {
     const outputRoot = resolve(process.cwd(), "fixtures/parent/project/config");
     const first: TokenBackend = {
@@ -183,6 +208,9 @@ describe("IncrementalCompiler", () => {
     expect(update.affected.size).toBe(12);
     expect(update.recomputed).toBe(12);
     expect(update.result.stats.checkedTokens).toBe(12);
+    expect(update.result.stats).toMatchObject({ tokens: 10_012, references: 11 });
+    expect(update.graphDelta).toMatchObject({ touchedNodes: 1, touchedEdges: 0 });
     expect(update.result.graph).toBe(initial.result.graph);
+    expectValidTimings(update.result.stats.timings);
   });
 });

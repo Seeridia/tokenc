@@ -20,6 +20,7 @@ function dependencies(release, overrides = {}) {
     loadRelease: vi.fn().mockResolvedValue(release),
     verifyRelease: vi.fn(),
     assertEnvironment: vi.fn(),
+    listPendingChangesets: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }
@@ -29,6 +30,18 @@ describe("publish-packages", () => {
     await expect(runPublishPackages(["--tag", "latest"])).rejects.toThrow(
       "Publishing requires --manifest",
     );
+  });
+
+  it("blocks a real publication while a changeset is pending", async () => {
+    const release = releaseFixture();
+    const injected = dependencies(release, {
+      listPendingChangesets: vi.fn().mockResolvedValue(["pending-release.md"]),
+    });
+
+    await expect(
+      runPublishPackages(["--manifest", "release-manifest.json"], injected),
+    ).rejects.toThrow(".changeset/pending-release.md");
+    expect(injected.assertEnvironment).not.toHaveBeenCalled();
   });
 
   it("refuses all npm publish side effects when an existing artifact conflicts", async () => {

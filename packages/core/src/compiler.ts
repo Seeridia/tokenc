@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { resolve as resolvePath } from "node:path";
 import { performance } from "node:perf_hooks";
 
-import { checkTokenGraph } from "./checker.js";
+import { checkTokenGraphDetailed } from "./checker.js";
 import { checkContexts, contextKey, defaultContext, selectTokenCandidate } from "./context.js";
 import {
   parseResolverDocument,
@@ -263,6 +263,13 @@ export interface CompilationResult {
   readonly stats: CompilationStats;
 }
 
+interface PriorStageTimings {
+  readonly link?: number;
+  readonly graph?: number;
+  readonly check?: number;
+  readonly resolve?: number;
+}
+
 /** Preserve config inference while keeping configuration data declarative. */
 export function defineConfig(config: CompilerConfig): CompilerConfig {
   return config;
@@ -294,11 +301,13 @@ export async function compileDocuments(
   options: CompileDocumentsOptions = {},
 ): Promise<CompilationResult> {
   const totalStart = performance.now();
-  const parseStart = performance.now();
+  const resolverStart = performance.now();
   const resolution = options.resolver
     ? resolveResolverDocument(options.resolver, sources, options.resolverInput)
     : options.resolution;
+  const resolverLinkTime = performance.now() - resolverStart;
   const effectiveSources = resolution?.sources ?? sources;
+  const parseStart = performance.now();
   const unresolved = effectiveSources.map((source) =>
     parseUnresolvedTokenDocument(
       source.content,
@@ -306,8 +315,10 @@ export async function compileDocuments(
       source.origin ? { origin: source.origin } : {},
     ),
   );
-  const documents = linkTokenDocuments(unresolved);
   const parseTime = performance.now() - parseStart;
+  const linkStart = performance.now();
+  const documents = linkTokenDocuments(unresolved);
+  const linkTime = resolverLinkTime + performance.now() - linkStart;
   return compileParsedDocuments(
     documents,
     {
@@ -322,6 +333,7 @@ export async function compileDocuments(
     },
     parseTime,
     totalStart,
+    { link: linkTime },
   );
 }
 
@@ -331,15 +343,18 @@ export async function compileParsedDocuments(
   options: CompileDocumentsOptions = {},
   parseTime = 0,
   totalStart = performance.now(),
+  priorTimings: PriorStageTimings = {},
 ): Promise<CompilationResult> {
+  const linkStart = performance.now();
   const semanticDocuments = relinkParsedTokenDocuments(documents);
+  const linkTime = (priorTimings.link ?? 0) + performance.now() - linkStart;
   const canReuseIncrementalState = semanticDocuments === documents;
   const graphStart = performance.now();
   const graph =
     canReuseIncrementalState && options.graph !== undefined
       ? options.graph
       : new TokenGraph(semanticDocuments.flatMap((document) => document.tokens));
-  const graphTime = performance.now() - graphStart;
+  const graphTime = (priorTimings.graph ?? 0) + performance.now() - graphStart;
   const checkStart = performance.now();
   const contextTokens = options.checkTokens
     ? [...options.checkTokens].flatMap((id) => {
@@ -347,6 +362,7 @@ export async function compileParsedDocuments(
         return token ? [token] : [];
       })
     : graph.tokens;
+  const graphCheck = checkTokenGraphDetailed(graph, options.checkTokens, options.contexts ?? {});
   const frontendDiagnostics = [
     ...(options.resolverDiagnostics ?? []),
     ...(options.resolution?.diagnostics ?? []),
@@ -355,10 +371,11 @@ export async function compileParsedDocuments(
     ...(options.allowTokenOverrides || options.skipDuplicateCheck
       ? []
       : duplicateDiagnostics(semanticDocuments)),
-    ...checkTokenGraph(graph, options.checkTokens, options.contexts ?? {}),
+    ...graphCheck.diagnostics,
     ...checkContexts(contextTokens, options.contexts ?? {}),
   ];
-  const checkTime = performance.now() - checkStart;
+  const checkTime = (priorTimings.check ?? 0) + performance.now() - checkStart;
+  const resolveStart = performance.now();
   const resolver = new TokenResolver(
     graph,
     options.contexts ?? {},
@@ -371,6 +388,7 @@ export async function compileParsedDocuments(
     resolver,
     ...(options.resolution ? { resolution: options.resolution } : {}),
   });
+  const resolveTime = (priorTimings.resolve ?? 0) + performance.now() - resolveStart;
   const emitStart = performance.now();
   const backendDiagnostics = compilation.success
     ? (
@@ -426,10 +444,13 @@ export async function compileParsedDocuments(
     contexts: compilation.availableContexts.length,
     ...(options.affectedTokens ? { affectedTokens: options.affectedTokens.size } : {}),
     ...(options.checkTokens ? { checkedTokens: options.checkTokens.size } : {}),
+    contextCycles: graphCheck.metrics,
     timings: {
       parse: parseTime,
+      link: linkTime,
       graph: graphTime,
       check: checkTime,
+      resolve: resolveTime,
       emit: emitTime,
       total: performance.now() - totalStart,
     },

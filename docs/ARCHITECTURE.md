@@ -217,6 +217,20 @@ Emits `--token-*` runtime properties, sparse context overrides, and `@theme` bin
 
 Backends may rewrite a complete output file in v0.1, but that does not reparse or reevaluate unrelated tokens. Add, change, and remove share the same invalidation path. Invalid JSON replaces only that cached document, reports diagnostics, and can recover on the next edit.
 
+## Measurement boundary
+
+Every `CompilationResult` includes observational work data in `stats`. `timings` reports
+`parse`, `link`, `graph`, `check`, `resolve`, and `emit` durations plus end-to-end `total` time in
+milliseconds. Incremental updates assign changed-document parsing to `parse`, whole-batch semantic
+relinking to `link`, signature comparison and graph patching to `graph`, and resolver-seed preparation
+to `resolve`.
+
+`contextCycles` reports candidate strongly connected regions, the sum of their relevant dimensions,
+estimated and enumerated projections, static-cycle early exits, projection-limit hits, and estimate
+saturation. These values describe work already performed; neither timings nor counters select a
+compiler behavior or suppress a diagnostic. The versioned benchmark harness in `benchmarks/` records
+the same boundary with isolated timing and peak-memory samples.
+
 ## Impact API
 
 `TokenGraph.analyzeImpact(changedIds)` separates direct from indirect dependents. It is intentionally a core API even though a `diff` CLI is not included yet; CI and pull-request review can use the same semantic graph.

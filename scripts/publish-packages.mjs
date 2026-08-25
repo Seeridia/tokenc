@@ -59,8 +59,13 @@ function assertManifestMatches(release, options, head) {
     throw new Error(`HEAD ${head} does not match release manifest commit ${release.commit}`);
 }
 
-async function checkPendingChangesets({ dryRun, repositoryRoot, writeOutput }) {
-  const pendingChangesets = await readPendingChangesets(repositoryRoot);
+async function checkPendingChangesets({
+  dryRun,
+  repositoryRoot,
+  writeOutput,
+  listPendingChangesets,
+}) {
+  const pendingChangesets = await listPendingChangesets(repositoryRoot);
   if (pendingChangesets.length === 0) return;
   const details = pendingChangesets.map((name) => `.changeset/${name}`).join(", ");
   const message = `Release is blocked while changesets are pending (${details})`;
@@ -96,6 +101,7 @@ export async function runPublishPackages(
     verifyRelease = verifyPackedRelease,
     assertEnvironment = assertReleaseEnvironment,
     publish = publishRelease,
+    listPendingChangesets = readPendingChangesets,
   } = {},
 ) {
   const options = parseArguments(arguments_);
@@ -122,6 +128,7 @@ export async function runPublishPackages(
       dryRun: options.dryRun,
       repositoryRoot,
       writeOutput,
+      listPendingChangesets,
     });
 
     if (options.dryRun) {

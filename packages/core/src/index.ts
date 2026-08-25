@@ -6,7 +6,7 @@ export * from "./model.js";
 export * from "./token-id.js";
 export * from "./parser.js";
 export * from "./graph.js";
-export * from "./checker.js";
+export { checkTokenGraph, CONTEXT_CYCLE_PROJECTION_LIMIT, suggestTokenIds } from "./checker.js";
 export * from "./context.js";
 export * from "./resolver.js";
 export * from "./loader.js";

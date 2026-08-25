@@ -209,7 +209,7 @@ vp test --run
 - [M0 阶段验收记录](docs/M0-ACCEPTANCE.zh-CN.md) · [English](docs/M0-ACCEPTANCE.md)
 - [M1 执行计划](docs/M1-PLAN.zh-CN.md) · [English](docs/M1-PLAN.md)
 - [DTCG 2025.10 支持矩阵](docs/DTCG-SUPPORT.zh-CN.md) · [English](docs/DTCG-SUPPORT.md)
-- [Compiler Benchmark](benchmarks/README.md)
+- [Compiler Benchmark](benchmarks/README.zh-CN.md) · [English](benchmarks/README.md)
 - [参与贡献](CONTRIBUTING.md)
 - [发布流程](docs/RELEASING.md)
 
