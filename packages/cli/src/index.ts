@@ -1,4 +1,4 @@
-import { access, mkdir, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -10,6 +10,7 @@ import {
   parseTokenId,
   type CompilationContext,
   type CompilationResult,
+  type CompileDocumentsOptions,
   type CompilerConfig,
   type Diagnostic,
   type TokenId,
@@ -18,12 +19,34 @@ import {
 import { watch } from "chokidar";
 import { createJiti } from "jiti";
 
+import {
+  configFileChanged,
+  shouldReloadConfigForEvent,
+  type ConfigFileSnapshot,
+} from "./config-file.js";
+
 export const CLI_NAME = "tokenc";
 
 export interface CliIO {
   readonly cwd: string;
   readonly stdout: (message: string) => void;
   readonly stderr: (message: string) => void;
+}
+
+function incrementalOptions(config: CompilerConfig, io: CliIO): CompileDocumentsOptions {
+  return {
+    ...(config.contexts ? { contexts: config.contexts } : {}),
+    ...(config.outputs ? { outputs: config.outputs } : {}),
+    outputRoot: config.cwd ?? io.cwd,
+  };
+}
+
+function outputPaths(
+  config: CompilerConfig,
+  result: CompilationResult,
+  io: CliIO,
+): ReadonlySet<string> {
+  return new Set(result.outputs.map((output) => resolve(config.cwd ?? io.cwd, output.path)));
 }
 
 interface ParsedArguments {
@@ -93,13 +116,23 @@ function isConfig(value: unknown): value is CompilerConfig {
   );
 }
 
-/** Load a TypeScript or ESM tokenc configuration. */
-export async function loadConfig(cwd: string, explicit?: string): Promise<CompilerConfig> {
+interface LoadedConfig extends ConfigFileSnapshot {
+  readonly config: CompilerConfig;
+}
+
+async function loadConfigFile(cwd: string, explicit?: string): Promise<LoadedConfig> {
   const path = await findConfig(cwd, explicit);
+  // Read before importing so an edit racing with the import remains detectable on the next event.
+  const source = await readFile(path, "utf8");
   const jiti = createJiti(pathToFileURL(path).href, { interopDefault: true, moduleCache: false });
   const loaded: unknown = await jiti.import(path, { default: true });
   if (!isConfig(loaded)) throw new Error(`Invalid tokenc config: ${path}`);
-  return { ...loaded, cwd: dirname(path) };
+  return { config: { ...loaded, cwd: dirname(path) }, path, source };
+}
+
+/** Load a TypeScript or ESM tokenc configuration. */
+export async function loadConfig(cwd: string, explicit?: string): Promise<CompilerConfig> {
+  return (await loadConfigFile(cwd, explicit)).config;
 }
 
 function diagnosticJson(diagnostic: Diagnostic): object {
@@ -236,19 +269,20 @@ function printDiagnostics(result: CompilationResult, io: CliIO, json: boolean): 
 async function loadAndCompile(
   parsed: ParsedArguments,
   io: CliIO,
-  emit: boolean,
+  backendMode: "emit" | "validate" | "none",
 ): Promise<{ config: CompilerConfig; result: CompilationResult }> {
   const explicit = parsed.flags.get("config");
   const config = applyResolverFlags(
     await loadConfig(io.cwd, typeof explicit === "string" ? explicit : undefined),
     parsed.flags,
   );
-  const result = await compile(emit ? config : { ...config, outputs: [] });
+  const compilationConfig = backendMode === "none" ? { ...config, outputs: [] } : config;
+  const result = await compile(compilationConfig, { emit: backendMode === "emit" });
   return { config, result };
 }
 
 async function buildCommand(parsed: ParsedArguments, io: CliIO): Promise<number> {
-  const { config, result } = await loadAndCompile(parsed, io, true);
+  const { config, result } = await loadAndCompile(parsed, io, "emit");
   const json = parsed.flags.has("json");
   printDiagnostics(result, io, json);
   if (!result.success) {
@@ -284,7 +318,7 @@ async function writeOutputs(
 }
 
 async function checkCommand(parsed: ParsedArguments, io: CliIO): Promise<number> {
-  const { result } = await loadAndCompile(parsed, io, false);
+  const { result } = await loadAndCompile(parsed, io, "validate");
   const json = parsed.flags.has("json");
   printDiagnostics(result, io, json);
   if (!result.success) {
@@ -307,7 +341,7 @@ async function explainCommand(parsed: ParsedArguments, io: CliIO): Promise<numbe
     io.stderr("tokenc explain requires a token ID\n");
     return 1;
   }
-  const { config, result } = await loadAndCompile(parsed, io, false);
+  const { config, result } = await loadAndCompile(parsed, io, "none");
   if (!result.success) {
     printDiagnostics(result, io, false);
     return 1;
@@ -425,7 +459,7 @@ async function usagesCommand(parsed: ParsedArguments, io: CliIO): Promise<number
     io.stderr("tokenc usages requires a token ID\n");
     return 1;
   }
-  const { result } = await loadAndCompile(parsed, io, false);
+  const { result } = await loadAndCompile(parsed, io, "none");
   if (!result.success) {
     printDiagnostics(result, io, false);
     return 1;
@@ -463,7 +497,7 @@ function dependencyTree(result: CompilationResult, id: TokenId): readonly string
 }
 
 async function graphCommand(parsed: ParsedArguments, io: CliIO): Promise<number> {
-  const { result } = await loadAndCompile(parsed, io, false);
+  const { result } = await loadAndCompile(parsed, io, "none");
   if (!result.success) {
     printDiagnostics(result, io, false);
     return 1;
@@ -554,15 +588,14 @@ async function resolverDevCommand(
 async function devCommand(parsed: ParsedArguments, io: CliIO): Promise<number> {
   const explicit = parsed.flags.get("config");
   const configPath = typeof explicit === "string" ? explicit : undefined;
-  let config = applyResolverFlags(await loadConfig(io.cwd, configPath), parsed.flags);
+  let loadedConfig = await loadConfigFile(io.cwd, configPath);
+  let config = applyResolverFlags(loadedConfig.config, parsed.flags);
   if (config.resolver) return resolverDevCommand(parsed, io, configPath, config);
   let sources = await loadTokenFiles(config.source, config.cwd);
   let contents = new Map(sources.map((source) => [source.file, source.content]));
-  let compiler = new IncrementalCompiler({
-    ...(config.contexts ? { contexts: config.contexts } : {}),
-    ...(config.outputs ? { outputs: config.outputs } : {}),
-  });
+  let compiler = new IncrementalCompiler(incrementalOptions(config, io));
   let initial = await compiler.initialize(sources);
+  let generatedFiles = outputPaths(config, initial.result, io);
   if (initial.result.success) {
     await writeOutputs(config, initial.result, io);
     io.stdout(
@@ -584,9 +617,11 @@ async function devCommand(parsed: ParsedArguments, io: CliIO): Promise<number> {
     busy = (async () => {
       await previous;
       try {
-        const nextConfig = await loadConfig(io.cwd, configPath);
+        const nextLoadedConfig = await loadConfigFile(io.cwd, configPath);
+        const nextConfig = nextLoadedConfig.config;
         const configChanged =
           configDirty ||
+          configFileChanged(loadedConfig, nextLoadedConfig) ||
           JSON.stringify({ source: config.source, contexts: config.contexts }) !==
             JSON.stringify({ source: nextConfig.source, contexts: nextConfig.contexts });
         configDirty = false;
@@ -594,11 +629,10 @@ async function devCommand(parsed: ParsedArguments, io: CliIO): Promise<number> {
           config = nextConfig;
           sources = await loadTokenFiles(config.source, config.cwd);
           contents = new Map(sources.map((source) => [source.file, source.content]));
-          compiler = new IncrementalCompiler({
-            ...(config.contexts ? { contexts: config.contexts } : {}),
-            ...(config.outputs ? { outputs: config.outputs } : {}),
-          });
+          compiler = new IncrementalCompiler(incrementalOptions(config, io));
           initial = await compiler.initialize(sources);
+          loadedConfig = nextLoadedConfig;
+          generatedFiles = outputPaths(config, initial.result, io);
           if (initial.result.success) await writeOutputs(config, initial.result, io);
           else printDiagnostics(initial.result, io, false);
           io.stdout(`✓ config reloaded\n`);
@@ -638,6 +672,7 @@ async function devCommand(parsed: ParsedArguments, io: CliIO): Promise<number> {
           io.stderr("✗ waiting for a valid edit\n");
           return;
         }
+        generatedFiles = outputPaths(config, latest, io);
         await writeOutputs(config, latest, io);
         io.stdout(
           `\n${[...changedIds].join(", ")} changed\n\n✓ ${changedIds.size} token${changedIds.size === 1 ? "" : "s"} changed\n✓ ${Math.max(0, affected.size - changedIds.size)} dependent tokens invalidated\n✓ ${recomputed} tokens recomputed\n${latest.outputs.map((output) => `✓ ${output.path} updated`).join("\n")}\n`,
@@ -650,7 +685,15 @@ async function devCommand(parsed: ParsedArguments, io: CliIO): Promise<number> {
     })();
   };
   watcher.on("all", (_event, path) => {
-    if (/tokenc\.config\.(?:ts|mts|js|mjs)$/u.test(path)) configDirty = true;
+    if (
+      shouldReloadConfigForEvent(path, {
+        configPath: loadedConfig.path,
+        tokenPaths: new Set(contents.keys()),
+        outputPaths: generatedFiles,
+        watchRoot: root,
+      })
+    )
+      configDirty = true;
     if (timer) clearTimeout(timer);
     timer = setTimeout(rebuild, 75);
   });

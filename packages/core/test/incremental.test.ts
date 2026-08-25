@@ -1,5 +1,8 @@
+import { resolve } from "node:path";
+
 import { describe, expect, it } from "vite-plus/test";
 
+import type { TokenBackend } from "../src/compiler.js";
 import { IncrementalCompiler } from "../src/incremental.js";
 import { parseTokenId } from "../src/token-id.js";
 
@@ -17,6 +20,33 @@ const unrelated = {
 };
 
 describe("IncrementalCompiler", () => {
+  it("uses a case-insensitive output root key for absolute and relative paths", async () => {
+    const outputRoot = resolve(process.cwd(), "fixtures/parent/project/config");
+    const first: TokenBackend = {
+      name: "absolute",
+      emit: () => [{ path: resolve(outputRoot, "dist/Shared.TXT"), content: "absolute" }],
+    };
+    const second: TokenBackend = {
+      name: "relative",
+      emit: () => [{ path: "DIST/shared.txt", content: "relative" }],
+    };
+    const compiler = new IncrementalCompiler({ outputRoot, outputs: [first, second] });
+
+    const initial = await compiler.initialize([primitive(1)]);
+    expect(initial.result.success).toBe(false);
+    expect(initial.result.outputs).toEqual([]);
+    expect(initial.result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      "BACKEND_OUTPUT_PATH_COLLISION",
+    );
+
+    const update = await compiler.update(primitive(2));
+    expect(update.result.success).toBe(false);
+    expect(update.result.outputs).toEqual([]);
+    expect(update.result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      "BACKEND_OUTPUT_PATH_COLLISION",
+    );
+  });
+
   it("invalidates reverse dependencies but retains unrelated evaluations", async () => {
     const compiler = new IncrementalCompiler();
     const initial = await compiler.initialize([primitive(1), semantic, unrelated]);

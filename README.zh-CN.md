@@ -205,6 +205,7 @@ vp test --run
 ## 文档
 
 - [架构文档](docs/ARCHITECTURE.zh-CN.md) · [English](docs/ARCHITECTURE.md)
+- [产品战略与发展路线图](docs/ROADMAP.zh-CN.md) · [English](docs/ROADMAP.md)
 - [DTCG 2025.10 支持矩阵](docs/DTCG-SUPPORT.zh-CN.md) · [English](docs/DTCG-SUPPORT.md)
 - [Compiler Benchmark](benchmarks/README.md)
 - [参与贡献](CONTRIBUTING.md)

@@ -116,4 +116,23 @@ describe("DTCG parser", () => {
     );
     expect(result.diagnostics[0]?.code).toBe("TOKEN_INVALID_CONTEXT_EXTENSION");
   });
+
+  it("rejects repeated dimensions inside one context selector", () => {
+    const result = parseTokenDocument(
+      JSON.stringify({
+        value: {
+          $type: "number",
+          $value: 1,
+          $extensions: {
+            "org.token-compiler.contexts": { "theme=dark&theme=light": 2 },
+          },
+        },
+      }),
+      "duplicate-context-dimension.json",
+    );
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "TOKEN_INVALID_CONTEXT_SELECTOR", severity: "error" }),
+    );
+    expect(result.tokens[0]?.overrides).toEqual([]);
+  });
 });

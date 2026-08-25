@@ -8,6 +8,7 @@ DTCG 2025.10 是 tokenc 唯一的编译器源语言。下表如实记录当前�
 | 功能                                                    | 状态                     | 说明                                                                                         |
 | ------------------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------- |
 | Format `$value`、`$type`、`$description`、`$extensions` | 已支持                   | 包含 Group type inheritance 与结构化诊断。                                                   |
+| 文档根级 `$schema`                                      | 已支持                   | 作为 JSON Schema 声明接受；嵌套 Group 中仍不是标准属性。                                     |
 | `$deprecated`                                           | 已支持                   | 保留 boolean 与 string 元数据。                                                              |
 | `$root` Token                                           | 已支持                   | Canonical ID 保留显式 `$root` 段。                                                           |
 | 花括号 Token Alias                                      | 已支持                   | 前向、后向、链式及跨文档引用均可推断类型，不依赖源码声明顺序。                               |
@@ -63,3 +64,13 @@ DTCG Resolver 与 `org.token-compiler.contexts` 解决不同问题：
 
 `org.token-compiler.contexts` 不属于 DTCG Conformance，也不会替代标准 DTCG 能力；其解释器与标准
 Token Parser 隔离。两条路径最终都形成强类型且确定性的编译器语义。
+
+## 生态兼容性回归集
+
+测试套件固定使用 `dtcg-examples@1.1.3`，覆盖 Adobe Spectrum、Apple HIG、Figma SDS、GitHub Primer、
+IBM Carbon、Microsoft Fluent 与 Shopify Polaris。这个 package 由 Terrazzo 社区维护，并不是 DTCG 官方
+Conformance Suite，因此测试结果只表示生态互操作性，不能表示规范符合度。
+
+[生态兼容性测试](../packages/core/test/dtcg/ecosystem.test.ts)记录每个 Design System 的精确 Token 数，
+并把精确 Diagnostic 数量分类为“不支持的输入”“非标准扩展”或“实现缺口”。Diagnostic 的新增、消失、
+降级以及 Token 数变化都必须显式审查并更新 baseline；Shopify Polaris 当前可以 clean compile。

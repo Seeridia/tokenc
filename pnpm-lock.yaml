@@ -24,6 +24,9 @@ importers:
       '@types/node':
         specifier: ^24.0.0
         version: 24.13.3
+      dtcg-examples:
+        specifier: 1.1.3
+        version: 1.1.3
       tsx:
         specifier: ^4.23.12
         version: 4.23.12
@@ -82,6 +85,9 @@ importers:
 
   packages/backend-tailwind:
     dependencies:
+      '@tokenc/backend-css':
+        specifier: workspace:*
+        version: link:../backend-css
       '@tokenc/core':
         specifier: workspace:*
         version: link:../core
@@ -1287,6 +1293,9 @@ packages:
   dom-accessibility-api@0.5.16:
     resolution: {integrity: sha512-X7BJ2yElsnOJ30pZF4uIIDfBEVgF4XEBxL9Bxhy6dnrm5hkzqmsWHGTiHqRiITNhMyFLyAiWndIJP7Z1NTteDg==}
 
+  dtcg-examples@1.1.3:
+    resolution: {integrity: sha512-FiVq10iLlEkHk4Nr2GabjulzPb5ioQQlAfX+EBrXRno7Tqlj4cNECzSDcyBLxrE+JKUddvtKQuOGskSktxoGrQ==}
+
   es-module-lexer@2.3.1:
     resolution: {integrity: sha512-shc1dbU90Yl/xq1QrC7QRtfcwURZuVRfPhZbDoldJ1cn1gzDvBaBWlv0eFolj5+0znnPJz5TXLxsN77X/12KTA==}
 
@@ -2444,6 +2453,8 @@ snapshots:
   detect-libc@2.1.2: {}
 
   dom-accessibility-api@0.5.16: {}
+
+  dtcg-examples@1.1.3: {}
 
   es-module-lexer@2.3.1: {}
 

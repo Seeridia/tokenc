@@ -36,11 +36,22 @@ jobs:
       - name: Install dependencies
         run: vp install --frozen-lockfile
 
+      - name: Verify public package versions
+        run: vp run check:versions
+
       - name: Run static checks
         run: vp check
 
       - name: Build packages and example
         run: vp run -r build
+
+      - name: Verify build leaves the worktree clean
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "Build generated or modified files outside ignored output directories:"
+            git status --short
+            exit 1
+          fi
 
       - name: Run tests
         run: vp test --run

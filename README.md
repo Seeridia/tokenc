@@ -216,6 +216,7 @@ This is a library monorepo: packages are built with `vp pack`, orchestrated by `
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md) · [中文](docs/ARCHITECTURE.zh-CN.md)
+- [Product strategy and roadmap](docs/ROADMAP.md) · [中文](docs/ROADMAP.zh-CN.md)
 - [DTCG 2025.10 support](docs/DTCG-SUPPORT.md) · [中文](docs/DTCG-SUPPORT.zh-CN.md)
 - [Compiler benchmarks](benchmarks/README.md)
 - [Contributing](CONTRIBUTING.md)

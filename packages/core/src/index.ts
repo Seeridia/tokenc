@@ -1,4 +1,6 @@
-export const VERSION = "0.1.1";
+import packageManifest from "../package.json" with { type: "json" };
+
+export const VERSION = packageManifest.version;
 
 export * from "./model.js";
 export * from "./token-id.js";

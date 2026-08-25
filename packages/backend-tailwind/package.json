@@ -41,6 +41,7 @@
     "prepack": "vp run build"
   },
   "dependencies": {
+    "@tokenc/backend-css": "workspace:*",
     "@tokenc/core": "workspace:*"
   },
   "devDependencies": {

@@ -1,16 +1,13 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { readFile } from "node:fs/promises";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const packageDirectories = [
-  "packages/core",
-  "packages/backend-css",
-  "packages/backend-tailwind",
-  "packages/backend-typescript",
-  "packages/cli",
-];
+import {
+  assertAlignedPublicVersions,
+  readPendingChangesets,
+  readPublicPackageDefinitions,
+} from "./public-packages.mjs";
 
 const cliArguments = process.argv.slice(2);
 const tagIndex = cliArguments.indexOf("--tag");
@@ -40,20 +37,27 @@ function archiveName(name, version) {
   return `${name.replace(/^@/u, "").replace("/", "-")}-${version}.tgz`;
 }
 
+const packageDefinitions = await readPublicPackageDefinitions();
+const alignedVersion = assertAlignedPublicVersions(packageDefinitions);
+const pendingChangesets = await readPendingChangesets();
+
+if (pendingChangesets.length > 0) {
+  const details = pendingChangesets.map((name) => `.changeset/${name}`).join(", ");
+  if (!dryRun) {
+    throw new Error(
+      `Refusing to publish ${alignedVersion} while changesets are pending (${details}). Merge the generated Version Packages pull request first.`,
+    );
+  }
+  output(
+    `Dry-run only: publishing ${alignedVersion} would be blocked while changesets are pending (${details})`,
+  );
+}
+
 const destination = await mkdtemp(join(tmpdir(), "tokenc-publish-"));
-const packageDefinitions = await Promise.all(
-  packageDirectories.map(async (directory) => ({
-    directory,
-    manifest: JSON.parse(await readFile(join(directory, "package.json"), "utf8")),
-  })),
-);
 
 try {
   for (const { directory, manifest } of packageDefinitions) {
     const { name, version } = manifest;
-    if (typeof name !== "string" || typeof version !== "string") {
-      throw new TypeError(`Invalid package manifest: ${directory}/package.json`);
-    }
     if (!dryRun && packageIsPublished(name, version)) {
       output(`Skipping ${name}@${version}: already published`);
       continue;

@@ -8,6 +8,7 @@ surface honestly; it is not a claim of full DTCG conformance.
 | Feature                                                 | Status                                | Notes                                                                                                                      |
 | ------------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Format `$value`, `$type`, `$description`, `$extensions` | Supported                             | Includes inherited group types and structured diagnostics.                                                                 |
+| Document-root `$schema`                                 | Supported                             | Accepted as a JSON Schema declaration; it remains invalid inside nested groups.                                            |
 | `$deprecated`                                           | Supported                             | Boolean and string metadata are retained.                                                                                  |
 | `$root` tokens                                          | Supported                             | Canonical IDs retain the explicit `$root` segment.                                                                         |
 | Curly-brace token aliases                               | Supported                             | Forward, backward, chained, and cross-document references infer type without source-order semantics.                       |
@@ -67,3 +68,15 @@ DTCG Resolver and `org.token-compiler.contexts` solve different problems:
 `org.token-compiler.contexts` is not part of DTCG conformance and does not replace a standard DTCG
 capability. Its interpreter is isolated from standard token parsing. Both paths produce typed,
 deterministic compiler semantics.
+
+## Ecosystem compatibility corpus
+
+The test suite pins `dtcg-examples@1.1.3`, covering Adobe Spectrum, Apple HIG, Figma SDS, GitHub
+Primer, IBM Carbon, Microsoft Fluent, and Shopify Polaris. This package is maintained by the
+Terrazzo community and is not an official DTCG conformance suite, so its results measure ecosystem
+interoperability rather than specification conformance.
+
+The [ecosystem compatibility test](../packages/core/test/dtcg/ecosystem.test.ts) records exact parsed
+token counts and exact diagnostic counts classified as unsupported input, non-standard extension,
+or implementation gap. Added, removed, or downgraded diagnostics and token-count changes all require
+an explicit baseline review. Shopify Polaris currently compiles cleanly.

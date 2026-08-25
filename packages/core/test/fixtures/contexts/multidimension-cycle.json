@@ -1,0 +1,20 @@
+{
+  "a": {
+    "$type": "number",
+    "$value": 1,
+    "$extensions": {
+      "org.token-compiler.contexts": {
+        "theme=dark": "{b}"
+      }
+    }
+  },
+  "b": {
+    "$type": "number",
+    "$value": 2,
+    "$extensions": {
+      "org.token-compiler.contexts": {
+        "brand=enterprise": "{a}"
+      }
+    }
+  }
+}

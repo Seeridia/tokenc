@@ -395,7 +395,7 @@ function parseModifier(
     }),
   );
   const defaultValue = optionalString(node, "default");
-  if (defaultValue !== undefined && !(defaultValue in contexts))
+  if (defaultValue !== undefined && !Object.hasOwn(contexts, defaultValue))
     diagnostics.push({
       code: "DTCG_INVALID_RESOLVER_DEFAULT",
       severity: "error",
@@ -546,7 +546,7 @@ function overrideResolutionItem(
         "Resolver modifier override `default` must be a string",
       );
   }
-  if (selectedDefault !== undefined && !(selectedDefault in contexts))
+  if (selectedDefault !== undefined && !Object.hasOwn(contexts, selectedDefault))
     diagnostics.push({
       code: "DTCG_INVALID_RESOLVER_DEFAULT",
       severity: "error",
@@ -787,8 +787,9 @@ export function resolveResolverDocument(
     }
     normalizedInput.set(name.toLocaleLowerCase(), value);
   }
-  const context: Record<string, string> = {};
-  const contexts: Record<string, { default: string; values: readonly string[] }> = {};
+  const context: Record<string, string> = Object.create(null);
+  const contexts: Record<string, { default: string; values: readonly string[] }> =
+    Object.create(null);
   const sourceIndex = new Map(availableSources.map((item) => [resolve(item.file), item]));
   const output: TokenSourceInput[] = [];
   const steps: ResolverResolutionStep[] = [];

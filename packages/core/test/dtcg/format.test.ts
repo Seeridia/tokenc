@@ -4,6 +4,26 @@ import { compileDocuments } from "../../src/compiler.js";
 import { parseTokenDocument } from "../../src/parser.js";
 
 describe("DTCG 2025.10 format", () => {
+  it("accepts the JSON Schema declaration at the document root", () => {
+    const result = parseTokenDocument(
+      '{"$schema":"https://www.designtokens.org/schemas/2025.10/format.json","value":{"$type":"number","$value":1}}',
+      "schema.json",
+    );
+    expect(result.diagnostics).toEqual([]);
+    expect(result.tokens[0]).toMatchObject({ id: "value", type: "number" });
+  });
+
+  it("does not treat `$schema` as a standard nested group property", () => {
+    const result = parseTokenDocument(
+      '{"group":{"$schema":"nested.json","value":{"$type":"number","$value":1}}}',
+      "nested-schema.json",
+    );
+    expect(result.diagnostics[0]).toMatchObject({
+      code: "DTCG_INVALID_GROUP_PROPERTY",
+      message: "Unknown DTCG group property `$schema`",
+    });
+  });
+
   it("uses DTCG semantics in the high-level document compiler", async () => {
     const result = await compileDocuments([
       { file: "tokens.json", content: '{"a":{"$type":"color","$value":"red"}}' },

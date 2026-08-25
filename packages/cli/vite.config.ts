@@ -10,5 +10,6 @@ export default defineConfig({
     format: ["esm"],
     sourcemap: true,
     target: "node22",
+    tsconfig: "tsconfig.build.json",
   },
 });

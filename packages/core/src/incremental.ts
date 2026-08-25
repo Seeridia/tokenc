@@ -46,12 +46,14 @@ function semanticSignature(token: TokenNode): string {
   return JSON.stringify({
     type: token.type,
     value: semanticExpression(token.value),
+    baseDependencies: token.baseDependencies,
     description: token.description,
     deprecated: token.deprecated,
     extensions: token.extensions,
     overrides: token.overrides.map((override) => ({
       selector: override.selector,
       expression: semanticExpression(override.expression),
+      dependencies: override.dependencies,
     })),
     dependencies: token.dependencies,
     propertyReferences: token.propertyReferences?.map((reference) => ({
