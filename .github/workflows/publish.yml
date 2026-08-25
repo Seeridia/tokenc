@@ -54,4 +54,15 @@ jobs:
         run: vp run publish-packages --tag "${{ inputs.npm_tag }}"
 
       - name: Push release tags
-        run: vp exec changeset git-tag && git push origin --tags
+        run: |
+          vp exec changeset git-tag
+          mapfile -t release_tags < <(git tag --points-at HEAD)
+
+          if (( ${#release_tags[@]} == 0 )); then
+            echo "No release tags were created for $(git rev-parse HEAD)" >&2
+            exit 1
+          fi
+
+          for release_tag in "${release_tags[@]}"; do
+            git push origin "refs/tags/${release_tag}:refs/tags/${release_tag}"
+          done
