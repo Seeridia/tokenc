@@ -2,7 +2,7 @@
 
 [简体中文](M1-PLAN.zh-CN.md)
 
-> Status: in progress. M1-00 is complete; M1-01 is next. Updated 2026-08-25.
+> Status: in progress. M1-00 and M1-01 are complete; M1-02 is next. Updated 2026-08-25.
 >
 > Entry baseline: M0 is complete according to the [M0 acceptance record](M0-ACCEPTANCE.md), and npm
 > `latest` is `0.3.0`.
@@ -110,6 +110,8 @@ Dependencies: none. It may run in parallel with M1-01, and local RFC experiments
 and M1-01 must both pass before a new public API implementation merges.
 
 #### M1-01 — Characterization and benchmark baseline (P0)
+
+Status: complete. See the [measurement baseline and limit decision](M1-01-BASELINE.md).
 
 Work:
 
@@ -455,8 +457,8 @@ An M1 release candidate must additionally satisfy:
 
 ## 8. Start here
 
-1. Complete M1-00 so the next release cannot enter an unverifiable state.
-2. Complete M1-01 and use data to determine the real cost of Context projection and full relinking.
+1. M1-00 is complete: release integrity is now enforced in automation and repository settings.
+2. M1-01 is complete: the retained baseline identifies Context projection and full relinking costs.
 3. Submit the M1-02 RFCs using that evidence; begin the public conditional-edge model only after RFC
    approval.
 

@@ -24,6 +24,13 @@ It computes the projection size before enumeration and enforces the exported
 source-backed `TOKEN_CONTEXT_PROJECTION_LIMIT` error that identifies the region and dimensions;
 the checker never silently skips an incomplete cycle analysis.
 
+Every compilation reports read-only measurement data in `result.stats`. The `timings` object splits
+work into `parse`, `link`, `graph`, `check`, `resolve`, and `emit` stages plus end-to-end `total`
+milliseconds. `contextCycles` records candidate regions, relevant dimensions, estimated and
+enumerated projections, static early exits, limit hits, and whether an estimate saturated at
+`Number.MAX_SAFE_INTEGER`. These counters describe work performed; they never change compilation
+semantics or replace diagnostics.
+
 Backends may implement an optional read-only `validate(compilation)` preflight. Its diagnostics are
 merged into the compilation result before any backend emits, so a target-name collision or an
 unsupported platform value cannot leave a partial output set.

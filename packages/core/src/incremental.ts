@@ -14,12 +14,15 @@ import {
 import { TokenGraph, type TokenGraphDelta } from "./graph.js";
 import type { TokenSourceInput } from "./loader.js";
 import type {
+  CompilationStageTimings,
   Diagnostic,
   ParsedTokenDocument,
   SourceLocation,
   TokenId,
   TokenNode,
 } from "./model.js";
+
+type IncrementalPreparationTimings = Pick<CompilationStageTimings, "parse" | "link" | "graph">;
 
 export interface IncrementalUpdate {
   readonly changed: readonly TokenId[];
@@ -134,10 +137,11 @@ export class IncrementalCompiler {
   }
 
   async initialize(sources: readonly TokenSourceInput[]): Promise<IncrementalUpdate> {
-    const start = performance.now();
+    const totalStart = performance.now();
     this.#syntaxDocuments.clear();
     this.#documents.clear();
     this.#owners.clear();
+    const parseStart = performance.now();
     for (const source of sources)
       this.#syntaxDocuments.set(
         source.file,
@@ -147,11 +151,15 @@ export class IncrementalCompiler {
           source.origin ? { origin: source.origin } : {},
         ),
       );
+    const parseTime = performance.now() - parseStart;
+    const linkStart = performance.now();
     const linked = linkTokenDocuments([...this.#syntaxDocuments.values()]);
     for (const [index, file] of [...this.#syntaxDocuments.keys()].entries()) {
       const document = linked[index];
       if (document) this.#documents.set(file, document);
     }
+    const linkTime = performance.now() - linkStart;
+    const graphStart = performance.now();
     for (const [file, document] of this.#documents)
       for (const token of document.tokens) this.#addOwner(file, token);
     const changed = [...this.#documents.values()].flatMap((document) =>
@@ -161,11 +169,13 @@ export class IncrementalCompiler {
     this.#graph = new TokenGraph(
       [...this.#documents.values()].flatMap((document) => document.tokens),
     );
+    const graphTime = performance.now() - graphStart;
     const result = await compileParsedDocuments(
       [...this.#documents.values()],
       { ...this.#options, affectedTokens: affected, graph: this.#graph },
-      performance.now() - start,
-      start,
+      parseTime,
+      totalStart,
+      { link: linkTime, graph: graphTime },
     );
     this.#lastResult = result;
     const graphDelta: TokenGraphDelta = {
@@ -187,15 +197,20 @@ export class IncrementalCompiler {
   }
 
   async update(source: TokenSourceInput): Promise<IncrementalUpdate> {
-    const start = performance.now();
+    const totalStart = performance.now();
     const previousDocuments = new Map(this.#documents);
+    const parseStart = performance.now();
     const nextSyntaxDocument = parseUnresolvedTokenDocument(
       source.content,
       source.file,
       source.origin ? { origin: source.origin } : {},
     );
+    const parseTime = performance.now() - parseStart;
     this.#syntaxDocuments.set(source.file, nextSyntaxDocument);
+    const linkStart = performance.now();
     this.#relink();
+    const linkTime = performance.now() - linkStart;
+    const graphStart = performance.now();
     const changed = this.#changedIds(previousDocuments);
     const changedSet = new Set(changed);
     const refreshed = [
@@ -206,14 +221,23 @@ export class IncrementalCompiler {
     ].filter((id) => !changedSet.has(id));
     this.#rebuildOwners();
     const delta = this.#patchGraph(changed, refreshed);
-    return this.#rebuild(changed, delta, performance.now() - start, start);
+    const graphTime = performance.now() - graphStart;
+    return this.#rebuild(
+      changed,
+      delta,
+      { parse: parseTime, link: linkTime, graph: graphTime },
+      totalStart,
+    );
   }
 
   async remove(file: string): Promise<IncrementalUpdate> {
-    const start = performance.now();
+    const totalStart = performance.now();
     const previousDocuments = new Map(this.#documents);
     this.#syntaxDocuments.delete(file);
+    const linkStart = performance.now();
     this.#relink();
+    const linkTime = performance.now() - linkStart;
+    const graphStart = performance.now();
     const changed = this.#changedIds(previousDocuments);
     const changedSet = new Set(changed);
     const refreshed = this.#provenanceChangedIds(previousDocuments).filter(
@@ -221,7 +245,13 @@ export class IncrementalCompiler {
     );
     this.#rebuildOwners();
     const delta = this.#patchGraph(changed, refreshed);
-    return this.#rebuild(changed, delta, 0, start);
+    const graphTime = performance.now() - graphStart;
+    return this.#rebuild(
+      changed,
+      delta,
+      { parse: 0, link: linkTime, graph: graphTime },
+      totalStart,
+    );
   }
 
   #winningToken(id: TokenId): TokenNode | undefined {
@@ -327,10 +357,11 @@ export class IncrementalCompiler {
   async #rebuild(
     changed: readonly TokenId[],
     delta: TokenGraphDelta,
-    parseTime: number,
+    preparationTimings: IncrementalPreparationTimings,
     totalStart: number,
   ): Promise<IncrementalUpdate> {
     const affected = delta.affected;
+    const resolveStart = performance.now();
     const resolutionOrder = Object.keys(this.#options.contexts ?? {});
     const seed = (this.#lastResult?.compilation.resolver.snapshot() ?? []).flatMap((resolved) => {
       const token = this.#graph.getToken(resolved.id);
@@ -345,6 +376,17 @@ export class IncrementalCompiler {
         },
       ];
     });
+    const resolveTime = performance.now() - resolveStart;
+    const checkStart = performance.now();
+    const incrementalCheckOptions =
+      this.#lastResult?.success === false
+        ? {}
+        : {
+            checkTokens: affected,
+            skipDuplicateCheck: true,
+            additionalDiagnostics: this.#duplicateDiagnostics(changed),
+          };
+    const checkTime = performance.now() - checkStart;
     const result = await compileParsedDocuments(
       [...this.#documents.values()],
       {
@@ -352,16 +394,16 @@ export class IncrementalCompiler {
         affectedTokens: affected,
         resolverSeed: seed,
         graph: this.#graph,
-        ...(this.#lastResult?.success === false
-          ? {}
-          : {
-              checkTokens: affected,
-              skipDuplicateCheck: true,
-              additionalDiagnostics: this.#duplicateDiagnostics(changed),
-            }),
+        ...incrementalCheckOptions,
       },
-      parseTime,
+      preparationTimings.parse,
       totalStart,
+      {
+        link: preparationTimings.link,
+        graph: preparationTimings.graph,
+        check: checkTime,
+        resolve: resolveTime,
+      },
     );
     this.#lastResult = result;
     return {

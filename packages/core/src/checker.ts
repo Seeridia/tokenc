@@ -2,6 +2,7 @@ import { contextKey, defaultContext, selectTokenCandidate } from "./context.js";
 import { TokenGraph } from "./graph.js";
 import type {
   CompilationContext,
+  ContextCycleMetrics,
   ContextDefinition,
   Diagnostic,
   TokenId,
@@ -76,10 +77,32 @@ interface CycleProjectionLimit {
 interface ContextAwareCycleResult {
   readonly cycles: readonly CheckedCycle[];
   readonly limits: readonly CycleProjectionLimit[];
+  readonly metrics: ContextCycleMetrics;
 }
 
 /** Maximum number of Context projections checked for one cyclic candidate region. */
 export const CONTEXT_CYCLE_PROJECTION_LIMIT = 16_384;
+
+interface SaturatedNumber {
+  readonly value: number;
+  readonly saturated: boolean;
+}
+
+function saturatedAdd(left: number, right: number): SaturatedNumber {
+  if (right > Number.MAX_SAFE_INTEGER - left)
+    return { value: Number.MAX_SAFE_INTEGER, saturated: true };
+  return { value: left + right, saturated: false };
+}
+
+function projectionEstimate(dimensions: readonly RelevantDimension[]): SaturatedNumber {
+  let value = 1;
+  for (const dimension of dimensions) {
+    if (dimension.values.length > Math.floor(Number.MAX_SAFE_INTEGER / value))
+      return { value: Number.MAX_SAFE_INTEGER, saturated: true };
+    value *= dimension.values.length;
+  }
+  return { value, saturated: false };
+}
 
 function canonicalCycle(cycle: readonly TokenId[]): string {
   const body = cycle.slice(0, -1).map(String);
@@ -187,16 +210,6 @@ function* projectedContexts(
   yield* visit(0);
 }
 
-function exceedsProjectionLimit(dimensions: readonly RelevantDimension[]): boolean {
-  let count = 1;
-  for (const dimension of dimensions) {
-    // Division avoids overflowing Number before the fixed limit is detected.
-    if (dimension.values.length > Math.floor(CONTEXT_CYCLE_PROJECTION_LIMIT / count)) return true;
-    count *= dimension.values.length;
-  }
-  return false;
-}
-
 function selectedDependencies(
   token: TokenNode,
   context: CompilationContext,
@@ -217,12 +230,21 @@ function contextAwareCycles(
   const limits: CycleProjectionLimit[] = [];
   const signatures = new Set<string>();
   const resolutionOrder = Object.keys(definition);
+  let candidateRegions = 0;
+  let relevantDimensionCount = 0;
+  let estimatedProjections = 0;
+  let estimateSaturated = false;
+  let enumeratedProjections = 0;
+  let earlyExits = 0;
+  let limitHits = 0;
   for (const region of cyclicRegions(graph, scope)) {
+    candidateRegions = saturatedAdd(candidateRegions, 1).value;
     const tokens = region.flatMap((id) => {
       const token = graph.getToken(id);
       return token ? [token] : [];
     });
     if (tokens.every((token) => token.overrides.length === 0)) {
+      earlyExits = saturatedAdd(earlyExits, 1).value;
       for (const path of new TokenGraph(tokens).detectCycles()) {
         const signature = canonicalCycle(path);
         if (signatures.has(signature)) continue;
@@ -232,11 +254,18 @@ function contextAwareCycles(
       continue;
     }
     const dimensions = relevantDimensions(tokens, definition);
-    if (exceedsProjectionLimit(dimensions)) {
+    relevantDimensionCount = saturatedAdd(relevantDimensionCount, dimensions.length).value;
+    const regionEstimate = projectionEstimate(dimensions);
+    const totalEstimate = saturatedAdd(estimatedProjections, regionEstimate.value);
+    estimatedProjections = totalEstimate.value;
+    estimateSaturated ||= regionEstimate.saturated || totalEstimate.saturated;
+    if (regionEstimate.saturated || regionEstimate.value > CONTEXT_CYCLE_PROJECTION_LIMIT) {
+      limitHits = saturatedAdd(limitHits, 1).value;
       limits.push({ region, dimensions });
       continue;
     }
     for (const context of projectedContexts(definition, dimensions)) {
+      enumeratedProjections = saturatedAdd(enumeratedProjections, 1).value;
       const projectedTokens: TokenNode[] = [];
       for (const token of tokens) {
         projectedTokens.push({
@@ -253,15 +282,32 @@ function contextAwareCycles(
       }
     }
   }
-  return { cycles, limits };
+  return {
+    cycles,
+    limits,
+    metrics: {
+      candidateRegions,
+      relevantDimensions: relevantDimensionCount,
+      estimatedProjections,
+      estimateSaturated,
+      enumeratedProjections,
+      earlyExits,
+      limitHits,
+    },
+  };
 }
 
-/** Perform graph integrity and reference type checks. */
-export function checkTokenGraph(
+export interface TokenGraphCheckResult {
+  readonly diagnostics: readonly Diagnostic[];
+  readonly metrics: ContextCycleMetrics;
+}
+
+/** @internal Perform graph integrity and reference type checks while retaining work metrics. */
+export function checkTokenGraphDetailed(
   graph: TokenGraph,
   scope?: ReadonlySet<TokenId>,
   contexts: ContextDefinition = {},
-): readonly Diagnostic[] {
+): TokenGraphCheckResult {
   const diagnostics: Diagnostic[] = [];
   let ids: readonly TokenId[] | undefined;
   for (const { owner, reference } of references(graph, scope)) {
@@ -323,5 +369,14 @@ export function checkTokenGraph(
       ...(token ? { source: token.source } : {}),
     });
   }
-  return diagnostics;
+  return { diagnostics, metrics: cycleCheck.metrics };
+}
+
+/** Perform graph integrity and reference type checks. */
+export function checkTokenGraph(
+  graph: TokenGraph,
+  scope?: ReadonlySet<TokenId>,
+  contexts: ContextDefinition = {},
+): readonly Diagnostic[] {
+  return checkTokenGraphDetailed(graph, scope, contexts).diagnostics;
 }

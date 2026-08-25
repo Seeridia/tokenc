@@ -314,6 +314,17 @@ Backend 在 v0.1 中仍可能重写完整文件，但这不会导致 Core 重新
 
 Add、change 和 remove 使用同一套 invalidation 逻辑。无效 JSON 只替换对应的缓存 Document；修复后下一次 edit 可以恢复编译。
 
+## 测量边界
+
+每个 `CompilationResult` 都通过 `stats` 提供只读工作量数据。`timings` 以毫秒报告 `parse`、
+`link`、`graph`、`check`、`resolve`、`emit` 六个阶段以及端到端 `total`。增量更新把变化文件的
+解析计入 `parse`，全批次语义重链接入 `link`，签名比较与 Graph patch 计入 `graph`，Resolver seed
+准备计入 `resolve`。
+
+`contextCycles` 报告候选强连通区域数、相关维度总数、估算与实际枚举投影数、静态循环提前退出、投影
+上限命中和估算饱和。它们只描述已经执行的工作；timing 与 counter 都不会选择编译行为或抑制
+Diagnostic。`benchmarks/` 中的版本化工具在同一边界上分别采样耗时与峰值内存。
+
 ## Impact API
 
 `TokenGraph.analyzeImpact(changedIds)` 将影响分为：
