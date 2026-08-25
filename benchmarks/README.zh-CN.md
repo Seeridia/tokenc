@@ -16,6 +16,10 @@ vp run bench -- --profile quick --output artifacts/benchmark-quick.json
 vp run bench -- --profile baseline --output artifacts/benchmark-baseline.json
 ```
 
+M1-01 参考报告保存在
+[`baselines/m1-01-apple-m4-pro-node24.json`](baselines/m1-01-apple-m4-pro-node24.json)，分析与范围决策
+见 [M1-01 测量基线](../docs/M1-01-BASELINE.zh-CN.md)。
+
 `quick` 对每个 case 执行 1 次 warm-up、3 次 timing sample 和 1 次独立 memory sample；`baseline`
 分别执行 5、20、3 次。可重复传入 `--case <id>` 选择 case，`--list` 列出所有 ID。用于测试 harness
 的 `--warmups`、`--samples` 和 `--memory-samples` 覆盖值也会写入报告。

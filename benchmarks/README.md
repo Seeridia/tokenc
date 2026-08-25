@@ -17,6 +17,10 @@ Create a reviewable baseline with more samples:
 vp run bench -- --profile baseline --output artifacts/benchmark-baseline.json
 ```
 
+The M1-01 reference run is retained in
+[`baselines/m1-01-apple-m4-pro-node24.json`](baselines/m1-01-apple-m4-pro-node24.json); its analysis
+and scope decision are recorded in the [M1-01 baseline document](../docs/M1-01-BASELINE.md).
+
 `quick` uses one warm-up, three timing samples, and one isolated memory sample per case. `baseline`
 uses five warm-ups, twenty timing samples, and three isolated memory samples. An individual case can
 be selected with a repeatable `--case <id>` option. `--list` prints the available IDs. Explicit
