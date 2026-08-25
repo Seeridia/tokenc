@@ -2,7 +2,7 @@
 
 [简体中文](M1-PLAN.zh-CN.md)
 
-> Status: planned, implementation not started. Updated 2026-08-25.
+> Status: in progress. M1-00 is complete; M1-01 is next. Updated 2026-08-25.
 >
 > Entry baseline: M0 is complete according to the [M0 acceptance record](M0-ACCEPTANCE.md), and npm
 > `latest` is `0.3.0`.

@@ -24,12 +24,12 @@
     "lint": "vp lint .",
     "lint:fix": "vp lint --fix .",
     "publish-packages": "node scripts/publish-packages.mjs",
-    "release": "vp run verify && vp run publish-packages",
     "test": "vp test --run",
     "test:watch": "vp test",
     "typecheck": "vp check --no-fmt --no-lint",
     "tokenc": "tsx packages/cli/src/bin.ts",
     "verify": "vp run check:versions && vp check && vp run -r build && vp test --run",
+    "verify-release": "node scripts/verify-release.mjs",
     "version-packages": "changeset version && vp run check:versions"
   },
   "devDependencies": {

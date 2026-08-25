@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Set up Vite+
         uses: voidzero-dev/setup-vp@313600b80b104eadebb9111787d37a2e83e014ca # v1.17.0
@@ -45,13 +45,23 @@ jobs:
       - name: Build packages and example
         run: vp run -r build
 
-      - name: Verify build leaves the worktree clean
+      - name: Run tests
+        run: vp test --run
+
+      - name: Verify packed release candidate
+        env:
+          RELEASE_OUTPUT: ${{ runner.temp }}/tokenc-release
+        run: |
+          vp run verify-release \
+            --phase packed \
+            --tag latest \
+            --commit "${{ github.sha }}" \
+            --output "$RELEASE_OUTPUT"
+
+      - name: Verify checks leave the worktree clean
         run: |
           if [[ -n "$(git status --porcelain)" ]]; then
-            echo "Build generated or modified files outside ignored output directories:"
+            echo "CI generated or modified files outside ignored output directories:"
             git status --short
             exit 1
           fi
-
-      - name: Run tests
-        run: vp test --run
