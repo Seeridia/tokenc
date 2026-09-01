@@ -8,6 +8,7 @@ import {
   type ParseError,
 } from "jsonc-parser";
 
+import { DiagnosticBag } from "../diagnostic.js";
 import type { TokenSourceInput } from "../loader.js";
 import type {
   CompilationContext,
@@ -201,7 +202,7 @@ function internalResolverTarget(reference: string): InternalResolverTarget | und
 function invalidOverrideProperty(
   property: Node,
   locator: Locator,
-  diagnostics: Diagnostic[],
+  diagnostics: DiagnosticBag,
   detail: string,
 ): void {
   diagnostics.push({
@@ -215,7 +216,7 @@ function invalidOverrideProperty(
 function parseSources(
   node: Node | undefined,
   locator: Locator,
-  diagnostics: Diagnostic[],
+  diagnostics: DiagnosticBag,
   pointer: string,
   owner: "set" | "modifier",
 ): ResolutionSource[] {
@@ -338,7 +339,7 @@ function parseSet(
   name: string,
   node: Node | undefined,
   locator: Locator,
-  diagnostics: Diagnostic[],
+  diagnostics: DiagnosticBag,
   pointer: string,
 ): TokenSet | undefined {
   if (node?.type !== "object") return undefined;
@@ -359,7 +360,7 @@ function parseModifier(
   name: string,
   node: Node | undefined,
   locator: Locator,
-  diagnostics: Diagnostic[],
+  diagnostics: DiagnosticBag,
   pointer: string,
 ): ResolverModifier | undefined {
   if (node?.type !== "object") return undefined;
@@ -401,7 +402,9 @@ function parseModifier(
       severity: "error",
       message: `Modifier \`${name}\` default \`${defaultValue}\` is not a declared context`,
       source: locator.at(node.offset, node.length),
-      suggestions: Object.keys(contexts),
+      related: Object.keys(contexts).map((candidate) => ({
+        message: `Valid context: \`${candidate}\``,
+      })),
     });
   const description = optionalString(node, "description");
   const extensionValues = extensions(node);
@@ -420,7 +423,7 @@ function overrideResolutionItem(
   target: ResolutionOrderItem,
   node: Node,
   locator: Locator,
-  diagnostics: Diagnostic[],
+  diagnostics: DiagnosticBag,
   pointer: string,
   reference: string,
 ): ResolutionOrderItem {
@@ -552,7 +555,9 @@ function overrideResolutionItem(
       severity: "error",
       message: `Modifier \`${common.name}\` default \`${selectedDefault}\` is not a declared context`,
       source,
-      suggestions: Object.keys(contexts),
+      related: Object.keys(contexts).map((candidate) => ({
+        message: `Valid context: \`${candidate}\``,
+      })),
     });
   return {
     ...common,
@@ -570,12 +575,16 @@ export function parseResolverDocument(content: string, source: string): ParsedRe
     allowTrailingComma: false,
     disallowComments: true,
   });
-  const diagnostics: Diagnostic[] = parseErrors.map((error) => ({
-    code: "DTCG_INVALID_RESOLVER_DOCUMENT",
-    severity: "error",
-    message: printParseErrorCode(error.error),
-    source: locator.at(error.offset, error.length),
-  }));
+  const diagnostics = new DiagnosticBag();
+  diagnostics.push(
+    ...parseErrors.map((error) => ({
+      code: "DTCG_INVALID_RESOLVER_DOCUMENT",
+      severity: "error" as const,
+      message: printParseErrorCode(error.error),
+      source: locator.at(error.offset, error.length),
+      anchor: { kind: "offset" as const, errorKind: String(error.error), offset: error.offset },
+    })),
+  );
   if (!root || root.type !== "object" || parseErrors.length > 0) return { diagnostics };
 
   const allowedRootProperties = new Set([
@@ -764,7 +773,7 @@ export function resolveResolverDocument(
   availableSources: readonly TokenSourceInput[],
   input: unknown = {},
 ): ResolverResolution {
-  const diagnostics: Diagnostic[] = [];
+  const diagnostics = new DiagnosticBag();
   const normalizedInput = new Map<string, string>();
   const invalidInputNames = new Set<string>();
   const validInputShape = input !== null && typeof input === "object" && !Array.isArray(input);
@@ -835,7 +844,7 @@ export function resolveResolverDocument(
             ? `Modifier \`${modifier.name}\` requires an input`
             : `Invalid context \`${requested}\` for modifier \`${modifier.name}\``,
         source: modifier.source,
-        suggestions: values,
+        related: values.map((candidate) => ({ message: `Valid context: \`${candidate}\`` })),
       });
       continue;
     }

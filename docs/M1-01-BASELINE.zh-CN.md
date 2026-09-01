@@ -81,8 +81,8 @@ ownership 与 invalidation，再考虑 Checker 的微优化。
 ## 5. 复现与比较
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm verify
+vp install --frozen-lockfile
+vp run verify
 vp run bench -- --profile baseline --output artifacts/benchmark-baseline.json
 ```
 

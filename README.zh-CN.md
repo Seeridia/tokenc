@@ -94,19 +94,51 @@ npx tokenc build
 
 [基础示例](examples/basic)包含 CSS、Tailwind CSS、TypeScript、别名和组件 Token 的完整配置。
 [Resolver 示例](examples/dtcg-resolver)展示结构化 DTCG Color、Set、Modifier 与显式 Resolution Order。
+[Terrazzo Adapter 示例](examples/terrazzo-adapter)展示如何只读接收已经 bundle 的标准 DTCG 文档，而不导入
+或模拟 Terrazzo。
 
 ## CLI
 
-| 命令                            | 用途                         |
-| ------------------------------- | ---------------------------- |
-| `tokenc build`                  | 校验、编译并写入配置的产物。 |
-| `tokenc check`                  | 只校验，不写文件。           |
-| `tokenc check --json`           | 输出机器可读的结构化诊断。   |
-| `tokenc dev`                    | 监听文件并进行增量编译。     |
-| `tokenc explain <token>`        | 追踪 Token 到最终字面值。    |
-| `tokenc usages <token>`         | 查询直接和间接依赖方。       |
-| `tokenc graph [token]`          | 输出依赖图。                 |
-| `tokenc graph --format mermaid` | 输出 Mermaid 图语法。        |
+| 命令                            | 用途                                |
+| ------------------------------- | ----------------------------------- |
+| `tokenc build`                  | 校验、编译并写入配置的产物。        |
+| `tokenc check`                  | 只校验，不写文件。                  |
+| `tokenc check --format <类型>`  | 输出文本、Report v1 JSON 或 SARIF。 |
+| `tokenc dev`                    | 监听文件并进行增量编译。            |
+| `tokenc explain <token>`        | 追踪 Token 到最终字面值。           |
+| `tokenc usages <token>`         | 查询直接和间接依赖方。              |
+| `tokenc graph [token]`          | 输出依赖图。                        |
+| `tokenc graph --format mermaid` | 输出 Mermaid 图语法。               |
+| `tokenc impact <source...>`     | 将变化源文件映射到受影响 Token。    |
+| `tokenc diff --base <ref>`      | 比较 Git revision 与当前 worktree。 |
+| `tokenc diff --policy <path>`   | 执行 Breaking-change Policy v1。    |
+
+在本仓库中可以这样执行：
+
+```bash
+vp -C examples/basic run tokenc impact tokens/primitive.json
+vp -C examples/basic run tokenc impact tokens/primitive.json --format json
+vp -C examples/basic run tokenc diff --base HEAD~1 --format json
+vp -C examples/basic run tokenc diff --base HEAD~1 --policy tokenc.policy.json
+vp -C examples/basic run tokenc check --format sarif
+```
+
+可重复传入 `--context name=value` 来限定 Context 区域；不传 Context 时，报告会保留精确的 Predicate
+区域。退出码 `2` 表示结果不完整，例如 source 未知、Snapshot 非法或 Context 不受支持。
+
+`diff` 只读取 Git object 与 worktree，不 checkout、不 stash、不写 index，也不移动 branch。它只执行当前
+受信任配置；如果默认配置在 revision 之间不同，结果为 incomplete。显式传入 `--config path` 表示选择
+当前配置作为两侧共同的受信任 analysis config。
+
+传入 `--policy` 后，退出码 `0` 表示通过，`1` 表示存在未豁免的 error 级变化，`2` 表示判断不完整或
+policy 非法。规则可配置 severity 与 Context scope；allow entry 引用 diff 输出的稳定 `changeId`。
+
+`check` 与 `diff` 的 text、JSON、SARIF 输出共享同一个不可变 report model。源码路径相对仓库根目录，
+Diagnostic 的 code、severity、location 与 fingerprint 在各格式中保持一致。JSON envelope Schema 通过
+`@tokenc/cli/report-v1.schema.json` 发布。
+
+baseline 选择、shallow clone 要求、退出码处理、artifact 保留、fork 权限及固定 commit 的 GitHub
+Actions workflow 参见 [CI 集成指南](docs/CI.zh-CN.md)。
 
 编译失败时不会写入不完整产物。
 
@@ -149,19 +181,20 @@ Context-dependent value；它与标准 DTCG Parser 隔离、与 Resolver 的源�
 非 DTCG 格式不属于编译器输入语言。旧 Token 文件应先转换为 DTCG；Importer/Migrator 的输出必须是
 DTCG，而不能绕过 DTCG Parser 直接构造语义节点。
 
-完整数据模型、Context 语义、增量失效与 Backend 契约参见[架构文档](docs/ARCHITECTURE.zh-CN.md)。
+完整数据模型、Context 语义、增量失效与 Backend 契约参见[架构文档](docs/ARCHITECTURE.zh-CN.md)；
+[M1 API 稳定边界](docs/M1-API-STABILITY.zh-CN.md)记录受支持的入口与直接破坏性替换。
 
 ## 编程接口
 
 ```ts
 import { compile, parseTokenId } from "@tokenc/core";
 
-const result = await compile({
+const snapshot = await compile({
   source: ["tokens/**/*.json"],
 });
 
-if (result.success) {
-  const impact = result.graph.analyzeImpact([parseTokenId("color.blue.600")]);
+if (snapshot.status === "valid") {
+  const impact = snapshot.query.impact([parseTokenId("color.blue.600")]);
   console.log(impact.directlyAffected, impact.indirectlyAffected);
 }
 ```
@@ -203,6 +236,8 @@ vp test --run
 这是一个 Library Monorepo：各 Package 使用 `vp pack` 构建，由 `vp run -r build` 统一编排。
 
 ## 文档
+
+- [M2 release candidate 验收](docs/M2-ACCEPTANCE.zh-CN.md) · [English](docs/M2-ACCEPTANCE.md)
 
 - [架构文档](docs/ARCHITECTURE.zh-CN.md) · [English](docs/ARCHITECTURE.md)
 - [产品战略与发展路线图](docs/ROADMAP.zh-CN.md) · [English](docs/ROADMAP.md)

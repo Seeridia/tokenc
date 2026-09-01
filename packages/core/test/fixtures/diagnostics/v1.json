@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1",
+  "code": "TOKEN_UNKNOWN_REFERENCE",
+  "severity": "error",
+  "message": "Unknown token missing",
+  "parameters": {
+    "target": "missing"
+  },
+  "fingerprint": "YP_GXCQHOvM2yjLjndk2_nVPsmYRZ4Fei6G7Hn8t0jY",
+  "documentationUrl": "https://github.com/Seeridia/tokenc/blob/main/docs/DIAGNOSTICS-V1.md#token-unknown-reference",
+  "source": {
+    "document": "tokens.json",
+    "range": {
+      "line": 2,
+      "column": 10,
+      "offset": 20,
+      "length": 9
+    },
+    "anchor": {
+      "kind": "field",
+      "token": "alias",
+      "path": []
+    }
+  },
+  "related": [],
+  "fixes": []
+}

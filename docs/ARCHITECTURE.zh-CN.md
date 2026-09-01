@@ -16,8 +16,10 @@ DTCG 2025.10 Token 文档
   → TokenGraph
   → Context validation + reference type checking
   → lazy TokenResolver
-  → Compilation IR
-  → TokenBackend.emit(compilation)
+  → immutable CompilationIR
+  → TokenBackend.prepare(ir) → BackendPlan
+  → 全局 capability、symbol 与 artifact preflight
+  → TokenBackend.emit(plan)
   → OutputFile[]
 ```
 
@@ -75,10 +77,9 @@ TokenNode
   id: TokenId
   type: TokenType
   value: TokenLiteralExpression | TokenReference | JsonPointerReferenceExpression
-  baseDependencies: TokenId[]
+  baseCandidate: DependencyCandidateId
   overrides: ContextOverride[]
-  dependencies: TokenId[]
-  propertyReferences: JsonPointerDependency[]
+  dependencyOccurrences: DependencyOccurrence[]
   inheritance?: TokenInheritance
   source: SourceLocation
 ```
@@ -89,8 +90,8 @@ TokenNode
 整个流水线。
 
 RFC 6901 引擎是独立于 IO 的 DTCG 模块。指向完整 Token 或完整 `$value` 的 Pointer 会归一化为
-Token Reference；指向嵌套分量的 Pointer 保留表达式和解析值，同时在 `TokenNode.dependencies` 中记录
-拥有该分量的 Token ID。Backend 不解析原始 Pointer；平台无法保留分量引用时使用解析后的值。
+Token Reference；指向嵌套分量的 Pointer 保留表达式和解析值，同时产生带 field path 与 source range 的
+`DependencyOccurrence`。Backend 不解析原始 Pointer；平台无法保留分量引用时使用解析后的值。
 
 ## Token ID
 
@@ -108,26 +109,29 @@ Graph 内部始终使用 canonical ID 作为 `Map` key，而不是反复使用 `
 
 ## Dependency Graph
 
-`TokenGraph` 维护三个索引：
+`TokenGraph` 维护三类事实与索引：
 
 ```text
 Map<TokenId, TokenNode>       tokens
-Map<TokenId, Set<TokenId>>    forward dependencies
-Map<TokenId, Set<TokenId>>    reverse dependents
+DependencyEdge[]              conditional edges
+Map<TokenId, DependencyEdge[]> forward / reverse indexes
 ```
 
-Graph 中的正反向索引保存 base 与全部 override dependency 的保守并集，用于 usages、impact 与增量失效；
-`TokenNode.baseDependencies` 和每个 `ContextOverride.dependencies` 则保留候选表达式各自的依赖。Checker
-先在并集 Graph 中定位强连通候选区域，再只对该区域实际涉及的 Context 维度进行惰性投影，并使用与
-Resolver 相同的选择规则判断环是否可满足。因此不同 Context 下互斥的边不会被误报为循环，而仅在多维
-Context 组合中成立的真实循环仍会被诊断。Checker 会在枚举前计算投影规模，并对每个候选区域执行公开
-常量 `CONTEXT_CYCLE_PROJECTION_LIMIT` 所定义的 16,384 个 Context 上限。超限时返回带源码位置的
-`TOKEN_CONTEXT_PROJECTION_LIMIT` error，其中包含区域根、Token 数、相关维度和上限；不完整的循环
-分析绝不会被静默接受。
+Frontend 在去重前保留每一次 Alias、JSON Pointer、Composite Field 与 Inheritance occurrence。每条
+`DependencyEdge` 携带 owner、target、kind、field path、source range，以及由 candidate 胜出区域计算的
+精确 `ContextPredicate`。raw selector 会先减去所有更高优先级 candidate 的区域，因此不会被误当作
+effective condition；重复引用仍是独立 edge。
 
-Token 和邻接关系查询为 O(1)。使用 lexical heap 的稳定 Kahn 排序为 O((V + E) log V)；迭代式环检测、affected traversal 与 impact analysis 为 O(V + E)。
+Predicate 是有限 Context domain 上规范化且互不重叠的 DNF，对交、并、补、差集与可满足性判断闭合。
+循环成立当且仅当闭合路径全部 edge condition 的交集可满足。Checker 先在无条件结构上定位强连通区域，
+再做符号 Predicate 相交，不再枚举 Context 笛卡尔积。循环诊断返回具体 edge path、witness Context，并将
+每个 related location 指向引用 occurrence。
 
-`TokenGraph.patch()` 原位更新 Token、正向边和反向边索引，返回 Graph Delta，并合并 patch 前后的反向影响集合，确保边被删除或改向时仍然正确。
+Token 和正反向 edge 查询由索引支持。使用稳定 lexical ordering 的 Kahn 排序消费指定 Context 下的有效
+edge；affected 与 dependency closure 在传播过程中相交 Predicate，只保留真正受影响的 Context 区域。
+
+每次编译都会构造一张新的私有 Graph；发布时再克隆并冻结独立的 Graph-backed Snapshot。因此 Session
+推进后也无法改变已保留的 snapshot。
 
 `explain` 和 `usages` 都直接查询同一张 Graph，不会搜索源文件字符串。
 
@@ -135,6 +139,24 @@ Token 和邻接关系查询为 O(1)。使用 lexical heap 的稳定 Kahn 排序�
 
 继承 Token 会指向 Base Token，分量 Pointer 会指向拥有该分量的 Token。因此 Cycle Detection、
 `explain`、`usages`、Impact Analysis 与 Incremental Invalidation 对所有引用形式使用同一套 Graph 语义。
+
+## Query API 与 Explain Trace v1
+
+`snapshot.query` 是 Token 查询、定义跳转、补全、解析、依赖、用法、影响、Graph 投影与解释的只读
+消费边界。Dependency 与 reverse usage 查询可以接收具体 Context 或 `ContextPredicate`；两者都不提供
+时会保留并返回原始条件区域。结果包含 occurrence 源码位置，使用稳定字典序，并且不暴露内部 Map 或
+Set。
+
+`query.context(overrides)` 会合并配置默认值、当前 DTCG Resolver 选择和调用方 override，并返回冻结的
+有效 Context。消费者不需要读取 IR 或 Resolver 状态来构造 Context。
+
+Impact 结果区分 changed、directly affected 与 indirectly affected Token，并保留每项的精确 Predicate。
+传播过程持续对 Graph Edge 的 Predicate 求交，因此只存在于互斥 Context 的两条边不会产生虚假的传递
+影响。
+
+`ExplainTraceV1` 包含 schema version、规范化 Context、每一步选中的 candidate 与 base/override 原因，
+以及存在时的 precedence/origin、带源码位置的 dependency step、Resolver step 和最终值。CLI 的
+`explain`、`usages` 与 `graph` 命令只消费此 facade，并提供确定性的 `--json` 输出。
 
 ### 为什么将 Token 建模为 Graph？
 
@@ -197,9 +219,16 @@ Checker 验证：
 - Canonical Token ID 是否重复
 - Graph 是否包含循环依赖
 
-Diagnostic 包含稳定 error code、severity、message、primary source、related source 和可选 suggestion。
+所有阶段统一输出 `DiagnosticV1`：每个值都包含 `schemaVersion: "1"`、注册表管理的 code、结构化
+parameters、主位置与相关位置、文档 URL、可选的校验后文本编辑，以及 SHA-256 base64url
+fingerprint。Fingerprint 只使用规范化文档标识、语义锚点和注册表声明的 identity parameters；message、
+severity、显示 range、fix 与 timing 不参与问题身份。没有语义锚点的 parse error 使用解析器错误种类与
+原始 offset。
 
-Core 不负责终端颜色和打印；CLI 可以把同一结构渲染成 code frame 或 machine-readable JSON。
+Core 不负责终端颜色和打印；CLI 为人类渲染 code frame，并用固定 envelope
+`{ "schemaVersion": "1", "diagnostics": [...] }` 输出 machine-readable JSON。旧的 suggestion string
+已经删除：不可机械执行的建议进入文档或 related information，可机械执行的建议使用按位置排序、互不
+重叠且带源码内容 digest 的 edit。
 
 Graph Cycle 会在递归求值前独立校验，因此用户看到的是完整依赖路径，而不是运行时堆栈错误。
 
@@ -237,22 +266,29 @@ Resolver 始终能够提供最终值，但 IR 同时保留被选中的表达式�
 
 ## 为什么平台输出叫 Backend？
 
-CSS 和 TypeScript 是编译目标，不是格式化 callback。Backend 接收完整的语义 Compilation，并通过一个方法返回 `OutputFile[]`：
+CSS、Tailwind 和 TypeScript 是编译目标，不是格式化 callback。Backend 声明只读
+`BackendCapabilities`，并且只能接收不可变的 `CompilationIR`；Graph 与 Resolver internal 不会暴露。
 
 ```ts
 interface TokenBackend {
-  name: string;
-  validate?(compilation: Compilation): Promise<Diagnostic[]> | Diagnostic[];
-  emit(compilation: Compilation): Promise<readonly OutputFile[]> | readonly OutputFile[];
+  id: string;
+  capabilities: BackendCapabilities;
+  prepare(ir: CompilationIR): Promise<BackendPlan> | BackendPlan;
+  emit(plan: BackendPlan): Promise<readonly OutputFile[]> | readonly OutputFile[];
 }
 ```
 
-可选的 `validate()` 是 emit 前的只读预检，用于检查目标命名空间碰撞和平台表达能力。所有 Backend
-预检通过后才会并行 emit；任一 Backend 返回 error 时，编译结果失败且不会生成任何不完整产物。
-Backend Diagnostic 与 Frontend Diagnostic 使用相同结构，并同时出现在 `CompilationResult` 与最终
-`Compilation` 中。`compile(config, { emit: false })` 仍执行预检，因此 `tokenc check` 可以验证目标而不
-生成文件。产物碰撞 key 使用绝对解析路径，并统一做 Unicode NFC 规范化和小写转换，因此仅大小写
-不同或 Unicode canonical 等价的路径都会在 CLI 写盘前使整次编译失败，不依赖当前文件系统是否区分大小写。
+`prepare(ir)` 返回包含全部 Diagnostic、已分配 symbol 和有序 artifact identity/path 的
+`BackendPlan`。Core 收集全部 plan 后执行一次全局预检；任何 capability、symbol、value 或 path error
+都会阻止所有 Backend emit。`snapshot.prepare(backends)` 会完整执行 prepare/preflight，因此
+`tokenc check` 可以验证目标而不生成文件。
+
+`emit(plan)` 不再接触 Compilation，并且必须精确返回 plan 声明的 artifact identity 与 path。缺少、
+新增、改名或重排 artifact 会抛出 `BackendContractError`，整组内存输出被丢弃。Artifact path 必须是
+规范化的相对路径；全局碰撞 key 使用 Unicode NFC 与 case folding，确保产物可跨文件系统安全移动。
+
+所有平台 symbol 都由共享 `SymbolAllocator` 分配。每个 namespace 声明 Unicode normalization、大小写
+策略、保留字和合法 pattern；冲突带源码位置，且只能通过显式 rename map 解决，不会自动追加不稳定数字。
 
 公共 API 不暴露 transform、filter、action、formatGroup 等复杂 hook 分类。这能避免平台规则泄漏到 Parser 或 Resolver。
 
@@ -296,30 +332,45 @@ Tailwind 与 CSS 使用相同的编码后完整 Context 输出契约和覆盖检
 顺序。它复用 CSS value serializer，包括数值精度与 unsupported-value 策略；Tailwind theme 名会先
 canonicalize 并检查碰撞，顶层 namespace token 使用 `default` 名称，避免生成空后缀。
 
-## Incremental Compilation
+## Compilation Snapshot
 
-`IncrementalCompiler` 以 source 为 key 缓存 Unresolved Syntax Document。文件变化时：
+`compile()` 与 `compileDocuments()` 发布判别联合 `CompilationSnapshot`。每个 snapshot 都固定保存
+Document 内容、稳定语义 Diagnostic、统计、source/configuration digest 和单调递增的 builder revision。
+只有 valid snapshot 暴露不可变 `CompilationIR`、`prepare()` 与 `emit()`；invalid snapshot 保留安全的
+Graph 查询，而 `resolve()` 与 `explain()` 返回显式 unavailable 结果。Backend 操作 Diagnostic 不会混入
+snapshot 的语义 Diagnostic。
 
-1. 只解析发生变化的 Document。
-2. 重新链接缓存的 Syntax Document，让跨文档类型推断、Pointer 与 Inheritance 观察新的语义状态，
-   无需重解析未变化文件。
-3. 比较语义节点签名，得到 changed Token IDs。
-4. 仅 patch 新增、修改、删除的 Graph Node 与邻接边。
-5. 合并 patch 前后的 reverse affected set。
-6. 在 affected region 内检查 Reference 与 Cycle；无效构建后的下一次编辑回退为全量检查。
-7. 将 affected set 以外的求值缓存迁移到新 Resolver。
-8. 在 IR 或 Backend 请求值时，惰性重算受影响节点。
+每次发布都拥有克隆、冻结的 Graph 视图。Query 结果、解析值、trace、IR collection 与输出记录都不能被
+调用方用来改变后续观察结果。Backend planning 只针对一份固定 IR，并在任何 Backend emit 前完成全局
+路径预检。
 
-Backend 在 v0.1 中仍可能重写完整文件，但这不会导致 Core 重新解析或重新求值无关 Token。
+## Compiler Session 与 differential correctness
 
-Add、change 和 remove 使用同一套 invalidation 逻辑。无效 JSON 只替换对应的缓存 Document；修复后下一次 edit 可以恢复编译。
+`CompilerSession` 是长生命周期编译边界。每次 `apply()` 都进入同一条 FIFO 队列，并以原子 transaction
+新增、更新、删除 Document 或替换配置。请求通过可注入 `DocumentLoader` 解析；同一 transaction 中的
+重复请求只加载一次。语义失败会提交请求状态、发布 invalid `currentSnapshot`，同时保留上一份
+`lastSuccessfulSnapshot`；Loader 失败与 `AbortSignal` 取消则不提交、不发布。`close()` 幂等，并拒绝后续
+transaction。
+
+M1-08a 先以每个 transaction 执行无缓存全量重建的方式，为阶段 cache 建立正确性基线，而不是继承已删除
+的可变 `IncrementalCompiler` 与 Graph patch 模型。可复用 differential oracle 对 Session 执行确定性的
+transaction corpus，并把每次发布与一次全新编译比较。规范化范围包括语义 Diagnostic、条件 Graph、
+有限 Context 全枚举下的 resolved value 与 explain trace，以及 Backend 输出字节；revision、timing 与未来
+cache counter 不参与比较。
+
+M1-08b 在该边界上加入 cache。Parse entry 以 Document identity、content、origin 和 parser version 为
+key；Linker 把 Document 划分为保守的跨文档引用连通分量，并复用 ordered parse key 未变化的分量；出现
+group inheritance 时回退为一个安全的全局分量。只有 linked component key 与 `ContextDefinition` 都相同
+时才复用 conditional Graph。Resolver entry 以 Token ID 与 canonical Context 为 key；只有 candidate
+变化和反向条件边在该 Context 中不可达时才保留。Cache state 与 transaction snapshot 一起提交。当前
+Backend contract 无法为任意 callback 提供完整稳定 key，因此 Backend plan 保持不缓存。
 
 ## 测量边界
 
-每个 `CompilationResult` 都通过 `stats` 提供只读工作量数据。`timings` 以毫秒报告 `parse`、
-`link`、`graph`、`check`、`resolve`、`emit` 六个阶段以及端到端 `total`。增量更新把变化文件的
-解析计入 `parse`，全批次语义重链接入 `link`，签名比较与 Graph patch 计入 `graph`，Resolver seed
-准备计入 `resolve`。
+每个 `CompilationSnapshot` 都通过 `stats` 提供只读工作量数据。`timings` 以毫秒报告 `parse`、
+`link`、`graph`、`check`、`resolve`、`emit` 六个阶段以及端到端 `total`。`session.metrics` 报告最近一次
+已提交 transaction 各阶段的 hit、miss、reuse、recomputation 与 invalidation 数据。这些指标不得选择
+编译语义，且每项 cache 都必须通过 differential oracle。
 
 `contextCycles` 报告候选强连通区域数、相关维度总数、估算与实际枚举投影数、静态循环提前退出、投影
 上限命中和估算饱和。它们只描述已经执行的工作；timing 与 counter 都不会选择编译行为或抑制
@@ -367,6 +418,11 @@ v0.1 不会为了提前支持这个能力而创造非标准 Function Syntax。
 Core 不会导入 CLI 或 Backend。Backend 只依赖公开的 Core IR。CLI 负责配置加载、文件写入、终端输出、进程信号和 watcher 生命周期。
 Tailwind Backend 额外复用 CSS Backend 的公开 value serializer，但仍只读取 Core IR，不修改 CSS
 Backend 或 Compilation 状态。
+
+所有 CLI 编译命令都会创建 `CompilerSession` 并消费其 Snapshot。dev 在 Token、配置与 Resolver reload
+之间保持同一个 Session；rebuild coordinator 会取消已被新事件取代的任务、阻止陈旧输出，并在无效输入
+或无效配置之后继续等待恢复。Architecture test 会拒绝 CLI 与内置 Backend 对 Core internal module 的
+deep import 或相对路径 import。
 
 ## 关键原则
 

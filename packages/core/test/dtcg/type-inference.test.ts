@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { compileDocuments, compileParsedDocuments } from "../../src/compiler.js";
+import {
+  compileDocumentsInternal as compileDocuments,
+  compileParsedDocuments,
+} from "../../src/compiler.js";
 import { TokenGraph } from "../../src/graph.js";
 import { parseTokenDocument } from "../../src/parser.js";
 
@@ -128,7 +131,7 @@ describe("DTCG reference-driven type inference", () => {
     );
     expect(parsed.diagnostics[0]).toMatchObject({
       code: "TOKEN_CANNOT_INFER_TYPE",
-      source: { file: "/tokens/missing.json" },
+      source: { document: "/tokens/missing.json" },
       related: [{ message: "The referenced token does not exist" }],
     });
   });

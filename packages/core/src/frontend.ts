@@ -6,6 +6,7 @@ import {
   type ParseError,
 } from "jsonc-parser";
 
+import { createDiagnostic, DiagnosticBag, type DiagnosticInput } from "./diagnostic.js";
 import { isTokenType, isValidTokenSegment } from "./dtcg/format.js";
 import { parseJsonPointer, resolveJsonPointer } from "./dtcg/json-pointer.js";
 import { parseTokenLiteral } from "./dtcg/value.js";
@@ -17,8 +18,10 @@ import {
 import type {
   CompilationContext,
   ContextOverride,
+  DependencyCandidateId,
+  DependencyKind,
+  DependencyOccurrence,
   Diagnostic,
-  JsonPointerDependency,
   JsonValue,
   ParsedTokenDocument,
   SourceLocation,
@@ -40,12 +43,42 @@ interface RawExpression {
   readonly value?: JsonValue;
   readonly reference?: string;
   readonly source: SourceLocation;
+  readonly locations?: ReadonlyMap<string, SourceLocation>;
 }
 
 interface RawOverride {
   readonly selector: CompilationContext;
   readonly expression: RawExpression;
   readonly source: SourceLocation;
+}
+
+interface RawDependency {
+  readonly target: TokenId;
+  readonly kind: Exclude<DependencyKind, "inheritance">;
+  readonly fieldPath: readonly (string | number)[];
+  readonly source: SourceLocation;
+}
+
+function dependencyCandidateId(value: string): DependencyCandidateId {
+  return value;
+}
+
+function createDependencyOccurrences(
+  owner: TokenId,
+  candidate: DependencyCandidateId,
+  dependencies: readonly RawDependency[],
+  startOrder: number,
+): readonly DependencyOccurrence[] {
+  return dependencies.map((dependency, index) => ({
+    id: `${owner}\0${candidate}\0${dependency.source.file}\0${dependency.source.offset}\0${JSON.stringify(dependency.fieldPath)}\0${startOrder + index}`,
+    owner,
+    candidate,
+    target: dependency.target,
+    kind: dependency.kind,
+    fieldPath: dependency.fieldPath,
+    source: dependency.source,
+    sourceOrder: startOrder + index,
+  }));
 }
 
 interface UnresolvedToken {
@@ -168,11 +201,35 @@ function jsonValue(node: Node | undefined): JsonValue | undefined {
   return isJsonValue(value) ? value : undefined;
 }
 
+function valueLocations(
+  node: Node,
+  locator: Locator,
+  path: readonly (string | number)[] = [],
+  result = new Map<string, SourceLocation>(),
+): ReadonlyMap<string, SourceLocation> {
+  result.set(JSON.stringify(path), locator.at(node.offset, node.length));
+  if (node.type === "array") {
+    for (const [index, child] of (node.children ?? []).entries())
+      valueLocations(child, locator, [...path, index], result);
+  } else if (node.type === "object") {
+    for (const property of properties(node)) {
+      const child = propertyValue(property);
+      if (child) valueLocations(child, locator, [...path, propertyName(property)], result);
+    }
+  }
+  return result;
+}
+
 function expressionFromValue(node: Node, locator: Locator): RawExpression | undefined {
   const value = jsonValue(node);
   return value === undefined
     ? undefined
-    : { kind: "value", value, source: locator.at(node.offset, node.length) };
+    : {
+        kind: "value",
+        value,
+        source: locator.at(node.offset, node.length),
+        locations: valueLocations(node, locator),
+      };
 }
 
 function expressionFromPointer(node: Node, locator: Locator): RawExpression | undefined {
@@ -189,7 +246,7 @@ function readOverrides(
   tokenNode: Node,
   extensions: Readonly<Record<string, JsonValue>> | undefined,
   locator: Locator,
-  diagnostics: Diagnostic[],
+  diagnostics: DiagnosticBag,
 ): RawOverride[] {
   const extensionsNode = propertyValue(findProperty(tokenNode, "$extensions"));
   const contextsNode = propertyValue(findProperty(extensionsNode, CONTEXT_EXTENSION));
@@ -223,7 +280,12 @@ function readOverrides(
       : locator.at(tokenNode.offset, tokenNode.length);
     result.push({
       selector: entry.selector,
-      expression: { kind: "value", value: entry.value, source },
+      expression: {
+        kind: "value",
+        value: entry.value,
+        source,
+        ...(rawValueNode ? { locations: valueLocations(rawValueNode, locator) } : {}),
+      },
       source,
     });
   }
@@ -233,7 +295,7 @@ function readOverrides(
 function metadata(
   node: Node,
   locator: Locator,
-  diagnostics: Diagnostic[],
+  diagnostics: DiagnosticBag,
 ): {
   readonly description?: string;
   readonly deprecated?: boolean | string;
@@ -281,7 +343,7 @@ function metadata(
 function explicitType(
   node: Node,
   locator: Locator,
-  diagnostics: Diagnostic[],
+  diagnostics: DiagnosticBag,
 ): TokenType | undefined {
   const typeProperty = findProperty(node, "$type");
   if (!typeProperty) return undefined;
@@ -308,12 +370,16 @@ export function parseUnresolvedTokenDocument(
     allowTrailingComma: false,
     disallowComments: true,
   });
-  const diagnostics: Diagnostic[] = parseErrors.map((error) => ({
-    code: "TOKEN_INVALID_JSON",
-    severity: "error",
-    message: printParseErrorCode(error.error),
-    source: locator.at(error.offset, error.length),
-  }));
+  const diagnostics = new DiagnosticBag();
+  diagnostics.push(
+    ...parseErrors.map((error) => ({
+      code: "TOKEN_INVALID_JSON",
+      severity: "error" as const,
+      message: printParseErrorCode(error.error),
+      source: locator.at(error.offset, error.length),
+      anchor: { kind: "offset" as const, errorKind: String(error.error), offset: error.offset },
+    })),
+  );
   const emptyLocation = locator.at(0, Math.max(1, content.length));
   if (!rootNode || rootNode.type !== "object" || parseErrors.length > 0) {
     const empty: UnresolvedTokenDocument = {
@@ -609,12 +675,13 @@ function pointerDiagnostic(
       : error.code === "property-not-found"
         ? "DTCG_JSON_POINTER_NOT_FOUND"
         : "DTCG_INVALID_JSON_POINTER";
-  return {
+  return createDiagnostic({
     code,
     severity: "error",
     message: `${error.message}: \`${reference}\``,
     source,
-  };
+    anchor: { kind: "json-pointer", pointer: reference },
+  });
 }
 
 /** Link all already-loaded documents without performing filesystem IO. */
@@ -625,8 +692,11 @@ export function linkTokenDocuments(
   const diagnosticsByDocument = new Map(
     documents.map((document) => [document, [...document.diagnostics]]),
   );
-  const addDiagnostic = (document: UnresolvedTokenDocument, diagnostic: Diagnostic): void => {
-    diagnosticsByDocument.get(document)?.push(diagnostic);
+  const addDiagnostic = (
+    document: UnresolvedTokenDocument,
+    diagnostic: Diagnostic | DiagnosticInput,
+  ): void => {
+    diagnosticsByDocument.get(document)?.push(createDiagnostic(diagnostic));
   };
   const groupWinners = new Map<string, UnresolvedGroup>();
   for (const document of documents)
@@ -983,6 +1053,11 @@ export function linkTokenDocuments(
         severity: "error",
         message: `Circular token reference detected: ${[...cycle.map((member) => member.id), token.id].join(" → ")}`,
         source: token.source,
+        anchor: { kind: "token", token: token.id },
+        parameters: {
+          cycle: [...cycle.map((member) => String(member.id)), String(token.id)],
+          context: {},
+        },
       });
       continue;
     }
@@ -1016,8 +1091,7 @@ export function linkTokenDocuments(
 
   interface ResolvedRawValue {
     readonly value: unknown;
-    readonly references: readonly JsonPointerDependency[];
-    readonly dependencies: readonly TokenId[];
+    readonly dependencies: readonly RawDependency[];
   }
   const literalCache = new Map<UnresolvedToken, TokenLiteral | undefined>();
   const literalActive = new Set<UnresolvedToken>();
@@ -1042,6 +1116,8 @@ export function linkTokenDocuments(
           severity: "error",
           message: `Circular nested token reference detected: ${cycle.map((member) => member.id).join(" → ")}`,
           source: token.expression.source,
+          anchor: { kind: "token", token: token.id },
+          parameters: { cycle: cycle.map((member) => String(member.id)), context: {} },
           related: cycle.slice(1, -1).map((member) => ({
             message: `\`${member.id}\` participates in this nested reference cycle`,
             source: member.expression.source,
@@ -1058,23 +1134,43 @@ export function linkTokenDocuments(
     if (curly) {
       const target = tokenWinners.get(curly);
       const value = target ? resolveLiteral(target) : undefined;
-      if (value !== undefined) raw = { value, references: [], dependencies: [curly] };
+      if (value !== undefined)
+        raw = {
+          value,
+          dependencies: [
+            { target: curly, kind: "alias", fieldPath: [], source: token.expression.source },
+          ],
+        };
     } else if (pointer) {
       const analyzed = analyzePointer(pointer, token, token.expression.source);
       if (analyzed?.kind === "whole") {
         const value = resolveLiteral(analyzed.target);
         if (value !== undefined)
-          raw = { value, references: [], dependencies: [analyzed.target.id] };
+          raw = {
+            value,
+            dependencies: [
+              {
+                target: analyzed.target.id,
+                kind: "json-pointer",
+                fieldPath: [],
+                source: token.expression.source,
+              },
+            ],
+          };
       } else if (analyzed?.kind === "property") {
         const nested = resolvePointerProperty(analyzed, token, token.expression.source);
         if (nested)
           raw = {
             ...nested,
-            references: [
-              { pointer, target: analyzed.target.id, source: token.expression.source },
-              ...nested.references,
+            dependencies: [
+              {
+                target: analyzed.target.id,
+                kind: "json-pointer",
+                fieldPath: [],
+                source: token.expression.source,
+              },
+              ...nested.dependencies,
             ],
-            dependencies: [analyzed.target.id, ...nested.dependencies],
           };
       }
     } else if (token.expression.value !== undefined)
@@ -1104,7 +1200,10 @@ export function linkTokenDocuments(
     value: JsonValue,
     owner: UnresolvedToken,
     source: SourceLocation,
+    fieldPath: readonly (string | number)[] = [],
+    locations?: ReadonlyMap<string, SourceLocation>,
   ): ResolvedRawValue | undefined {
+    const currentSource = locations?.get(JSON.stringify(fieldPath)) ?? source;
     if (typeof value === "string") {
       const match = /^\{([^{}]+)\}$/u.exec(value);
       if (match?.[1]) {
@@ -1116,7 +1215,7 @@ export function linkTokenDocuments(
             code: "TOKEN_INVALID_REFERENCE",
             severity: "error",
             message: `Invalid token reference \`${value}\``,
-            source,
+            source: currentSource,
           });
           return undefined;
         }
@@ -1126,30 +1225,38 @@ export function linkTokenDocuments(
             code: "TOKEN_UNKNOWN_REFERENCE",
             severity: "error",
             message: `Unknown token \`${targetId}\` in nested value`,
-            source,
+            source: currentSource,
+            anchor: { kind: "field", token: owner.id, path: fieldPath },
+            parameters: { target: targetId },
           });
           return undefined;
         }
         const resolved = resolveLiteral(target);
         if (resolved === undefined) return undefined;
-        return { value: resolved, references: [], dependencies: [targetId] };
+        return {
+          value: resolved,
+          dependencies: [
+            { target: targetId, kind: "composite-field", fieldPath, source: currentSource },
+          ],
+        };
       }
-      return { value, references: [], dependencies: [] };
+      return { value, dependencies: [] };
     }
     if (value === null || typeof value === "number" || typeof value === "boolean")
-      return { value, references: [], dependencies: [] };
+      return { value, dependencies: [] };
     if (Array.isArray(value)) {
-      const items = value.map((item) => resolveNested(item, owner, source));
+      const items = value.map((item, index) =>
+        resolveNested(item, owner, source, [...fieldPath, index], locations),
+      );
       if (items.some((item) => item === undefined)) return undefined;
       const resolved = items.filter((item): item is ResolvedRawValue => item !== undefined);
       return {
         value: resolved.map((item) => item.value),
-        references: resolved.flatMap((item) => item.references),
         dependencies: resolved.flatMap((item) => item.dependencies),
       };
     }
     if (Object.keys(value).length === 1 && typeof value.$ref === "string") {
-      const analyzed = analyzePointer(value.$ref, owner, source);
+      const analyzed = analyzePointer(value.$ref, owner, currentSource);
       if (!analyzed) return undefined;
       if (analyzed.kind === "whole") {
         const resolved = resolveLiteral(analyzed.target);
@@ -1157,36 +1264,45 @@ export function linkTokenDocuments(
           ? undefined
           : {
               value: resolved,
-              references: [{ pointer: value.$ref, target: analyzed.target.id, source }],
-              dependencies: [analyzed.target.id],
+              dependencies: [
+                {
+                  target: analyzed.target.id,
+                  kind: "json-pointer",
+                  fieldPath,
+                  source: currentSource,
+                },
+              ],
             };
       }
-      const nested = resolvePointerProperty(analyzed, owner, source);
+      const nested = resolvePointerProperty(analyzed, owner, currentSource);
       return nested
         ? {
             value: nested.value,
-            references: [
-              { pointer: value.$ref, target: analyzed.target.id, source },
-              ...nested.references,
+            dependencies: [
+              {
+                target: analyzed.target.id,
+                kind: "json-pointer",
+                fieldPath,
+                source: currentSource,
+              },
+              ...nested.dependencies,
             ],
-            dependencies: [analyzed.target.id, ...nested.dependencies],
           }
         : undefined;
     }
     const entries = Object.entries(value).map(
-      ([key, item]) => [key, resolveNested(item, owner, source)] as const,
+      ([key, item]) =>
+        [key, resolveNested(item, owner, source, [...fieldPath, key], locations)] as const,
     );
     if (entries.some(([, item]) => item === undefined)) return undefined;
     const object: Record<string, unknown> = {};
-    const references: JsonPointerDependency[] = [];
-    const dependencies: TokenId[] = [];
+    const dependencies: RawDependency[] = [];
     for (const [key, item] of entries) {
       if (!item) continue;
       object[key] = item.value;
-      references.push(...item.references);
       dependencies.push(...item.dependencies);
     }
-    return { value: object, references, dependencies };
+    return { value: object, dependencies };
   }
 
   function resolvePointerProperty(
@@ -1226,16 +1342,14 @@ export function linkTokenDocuments(
   ):
     | {
         readonly expression: TokenExpression;
-        readonly references: readonly JsonPointerDependency[];
-        readonly dependencies: readonly TokenId[];
+        readonly dependencies: readonly RawDependency[];
       }
     | undefined => {
     const curly = curlyTarget(raw);
     if (curly)
       return {
         expression: { kind: "reference", target: curly, source: raw.source },
-        references: [],
-        dependencies: [curly],
+        dependencies: [{ target: curly, kind: "alias", fieldPath: [], source: raw.source }],
       };
     const pointer = rawPointer(raw);
     if (pointer) {
@@ -1249,8 +1363,14 @@ export function linkTokenDocuments(
             pointer,
             source: raw.source,
           },
-          references: [{ pointer, target: analyzed.target.id, source: raw.source }],
-          dependencies: [analyzed.target.id],
+          dependencies: [
+            {
+              target: analyzed.target.id,
+              kind: "json-pointer",
+              fieldPath: [],
+              source: raw.source,
+            },
+          ],
         };
       const nested = resolvePointerProperty(analyzed, owner, raw.source);
       if (!nested) return undefined;
@@ -1272,15 +1392,19 @@ export function linkTokenDocuments(
           value: parsed.value,
           source: raw.source,
         },
-        references: [
-          { pointer, target: analyzed.target.id, source: raw.source },
-          ...nested.references,
+        dependencies: [
+          {
+            target: analyzed.target.id,
+            kind: "json-pointer",
+            fieldPath: [],
+            source: raw.source,
+          },
+          ...nested.dependencies,
         ],
-        dependencies: [analyzed.target.id, ...nested.dependencies],
       };
     }
     if (raw.value === undefined) return undefined;
-    const nested = resolveNested(raw.value, owner, raw.source);
+    const nested = resolveNested(raw.value, owner, raw.source, [], raw.locations);
     if (!nested) return undefined;
     const parsed = parseTokenLiteral(type, nested.value);
     if (!parsed.ok) {
@@ -1294,7 +1418,6 @@ export function linkTokenDocuments(
     }
     return {
       expression: { kind: "literal", value: parsed.value },
-      references: nested.references,
       dependencies: nested.dependencies,
     };
   };
@@ -1306,36 +1429,63 @@ export function linkTokenDocuments(
     if (!type) continue;
     const base = buildExpression(token.expression, token, type);
     if (!base) continue;
+    const baseCandidate = dependencyCandidateId(`${token.id}#base`);
+    let sourceOrder = 0;
+    const baseOccurrences = createDependencyOccurrences(
+      token.id,
+      baseCandidate,
+      base.dependencies,
+      sourceOrder,
+    );
+    sourceOrder += baseOccurrences.length;
     const overrides: ContextOverride[] = [];
-    const references: JsonPointerDependency[] = [...base.references];
-    const dependencies: TokenId[] = [...base.dependencies];
-    for (const override of token.overrides) {
+    const dependencyOccurrences: DependencyOccurrence[] = [...baseOccurrences];
+    for (const [index, override] of token.overrides.entries()) {
       const built = buildExpression(override.expression, token, type);
       if (!built) continue;
+      const candidate = dependencyCandidateId(`${token.id}#override:${index}`);
+      const overrideOccurrences = createDependencyOccurrences(
+        token.id,
+        candidate,
+        built.dependencies,
+        sourceOrder,
+      );
+      sourceOrder += overrideOccurrences.length;
       overrides.push({
+        candidate,
         selector: override.selector,
         expression: built.expression,
-        dependencies: [...new Set(built.dependencies)],
+        dependencyOccurrences: overrideOccurrences,
         source: override.source,
         origin: "extension-context",
       });
-      references.push(...built.references);
-      dependencies.push(...built.dependencies);
+      dependencyOccurrences.push(...overrideOccurrences);
     }
-    if (token.inheritance) dependencies.push(token.inheritance.token);
+    if (token.inheritance) {
+      const candidate = dependencyCandidateId(`${token.id}#inheritance`);
+      dependencyOccurrences.push({
+        id: `${token.id}\0${candidate}\0${token.inheritance.extendsSource.file}\0${token.inheritance.extendsSource.offset}\0inheritance`,
+        owner: token.id,
+        candidate,
+        target: token.inheritance.token,
+        kind: "inheritance",
+        fieldPath: ["$extends"],
+        source: token.inheritance.extendsSource,
+        sourceOrder,
+      });
+    }
     const node: TokenNode = {
       kind: "token",
       id: token.id,
       type,
+      baseCandidate,
       value: base.expression,
-      baseDependencies: [...new Set(base.dependencies)],
       overrides,
       source: token.source,
-      dependencies: [...new Set(dependencies)],
+      dependencyOccurrences,
       ...(token.description ? { description: token.description } : {}),
       ...(token.deprecated !== undefined ? { deprecated: token.deprecated } : {}),
       ...(token.extensions ? { extensions: token.extensions } : {}),
-      ...(references.length > 0 ? { propertyReferences: references } : {}),
       ...(token.inheritance ? { inheritance: token.inheritance } : {}),
     };
     parsedByDocument.get(token.outputDocument)?.push(node);
@@ -1372,4 +1522,86 @@ export function relinkParsedTokenDocuments(
   )
     return documents;
   return linkTokenDocuments(linkedStates.map((state) => state.syntax));
+}
+
+interface LinkDependencies {
+  readonly references: ReadonlySet<TokenId>;
+  readonly hasGroupExtension: boolean;
+}
+
+function linkDependencies(value: JsonValue): LinkDependencies {
+  const references = new Set<TokenId>();
+  let hasGroupExtension = false;
+  const visit = (entry: JsonValue): void => {
+    if (typeof entry === "string") {
+      const target = /^\{([^{}]+)\}$/u.exec(entry)?.[1];
+      if (target)
+        try {
+          references.add(parseTokenId(target));
+        } catch {
+          // Invalid references remain local diagnostics and cannot connect documents.
+        }
+      return;
+    }
+    if (entry === null || typeof entry !== "object") return;
+    if (Array.isArray(entry)) {
+      for (const item of entry) visit(item);
+      return;
+    }
+    for (const [key, item] of Object.entries(entry)) {
+      if (key === "$extends") hasGroupExtension = true;
+      visit(item);
+    }
+  };
+  visit(value);
+  return { references, hasGroupExtension };
+}
+
+/** @internal Partition documents into independently linkable cross-document components. */
+export function partitionTokenDocumentLinkComponents(
+  documents: readonly UnresolvedTokenDocument[],
+): readonly (readonly UnresolvedTokenDocument[])[] {
+  if (documents.length === 0) return [];
+  const parents = documents.map((_, index) => index);
+  const find = (index: number): number => {
+    let root = index;
+    while (parents[root] !== root) root = parents[root]!;
+    while (parents[index] !== index) {
+      const next = parents[index]!;
+      parents[index] = root;
+      index = next;
+    }
+    return root;
+  };
+  const union = (left: number, right: number): void => {
+    const leftRoot = find(left);
+    const rightRoot = find(right);
+    if (leftRoot !== rightRoot) parents[rightRoot] = leftRoot;
+  };
+  const owners = new Map<TokenId, number[]>();
+  const dependencies = documents.map((document, index) => {
+    for (const token of document.tokens) {
+      const tokenOwners = owners.get(token.id) ?? [];
+      tokenOwners.push(index);
+      owners.set(token.id, tokenOwners);
+    }
+    return linkDependencies(document.rootValue);
+  });
+  for (const tokenOwners of owners.values())
+    for (const owner of tokenOwners.slice(1)) union(tokenOwners[0]!, owner);
+  if (dependencies.some((dependency) => dependency.hasGroupExtension)) {
+    for (let index = 1; index < documents.length; index += 1) union(0, index);
+  } else {
+    for (const [index, dependency] of dependencies.entries())
+      for (const target of dependency.references)
+        for (const owner of owners.get(target) ?? []) union(index, owner);
+  }
+  const components = new Map<number, UnresolvedTokenDocument[]>();
+  for (const [index, document] of documents.entries()) {
+    const root = find(index);
+    const component = components.get(root) ?? [];
+    component.push(document);
+    components.set(root, component);
+  }
+  return [...components.values()];
 }

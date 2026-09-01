@@ -28,9 +28,9 @@ describe("DTCG 2025.10 colors", () => {
     expect(result.diagnostics[0]).toMatchObject({
       code: "DTCG_INVALID_COLOR",
       message: expect.stringContaining("structured DTCG color value"),
-      source: { file: "shorthand.json", line: 4 },
+      source: { document: "shorthand.json", range: { line: 4 } },
     });
-    expect(result.diagnostics[0]?.suggestions).toBeUndefined();
+    expect(result.diagnostics[0]?.fixes).toEqual([]);
     expect(result.tokens).toEqual([]);
   });
 

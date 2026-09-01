@@ -1,13 +1,18 @@
 import {
-  backendNameCollisionDiagnostics,
+  ALL_TOKEN_TYPES,
+  BackendContractError,
   contextKey,
   defaultContext,
+  DiagnosticBag,
   parseContextKey,
   selectTokenCandidate,
-  type BackendOutputName,
-  type Compilation,
+  SymbolAllocator,
+  type AllocatedSymbol,
+  type BackendPlan,
+  type CompilationIR,
   type CompilationContext,
   type Diagnostic,
+  type SymbolRequest,
   type TokenBackend,
   type TokenExpression,
   type TokenId,
@@ -25,6 +30,8 @@ export interface CssBackendOptions {
   readonly selectors?: Readonly<Record<string, string>>;
   readonly references?: "preserve" | "resolve";
   readonly name?: (token: TokenNode) => string;
+  /** Explicit symbol replacements keyed by Token ID (or `tokenId.suffix` for composite fields). */
+  readonly rename?: Readonly<Record<string, string>>;
 }
 
 interface ConfiguredContext {
@@ -42,12 +49,12 @@ function parseConfiguredContext(key: string): CompilationContext | undefined {
 }
 
 function configuredContexts(
-  compilation: Compilation,
+  compilation: CompilationIR,
   selectors: Readonly<Record<string, string>> = {},
 ): { readonly entries: readonly ConfiguredContext[]; readonly diagnostics: readonly Diagnostic[] } {
   const defaults = defaultContext(compilation.contexts);
   const entries: ConfiguredContext[] = [];
-  const diagnostics: Diagnostic[] = [];
+  const diagnostics = new DiagnosticBag();
   const seen = new Set<string>();
   const selectorOwners = new Map<string, string>();
   for (const [key, selector] of Object.entries(selectors)) {
@@ -85,7 +92,9 @@ function configuredContexts(
           code: "BACKEND_INVALID_CONTEXT_SELECTOR",
           severity: "error",
           message: `Backend \`css\` context key \`${key}\` uses unknown value \`${value}\` for \`${name}\``,
-          suggestions: dimension.values,
+          related: dimension.values.map((candidate) => ({
+            message: `Valid value: \`${candidate}\``,
+          })),
         });
         valid = false;
       }
@@ -123,7 +132,7 @@ function hasExplicitContexts(selectors: CssBackendOptions["selectors"]): boolean
 }
 
 function validationContexts(
-  compilation: Compilation,
+  compilation: CompilationIR,
   configured: readonly ConfiguredContext[],
   explicit: boolean,
 ): readonly CompilationContext[] {
@@ -166,7 +175,7 @@ function matches(selector: CompilationContext, context: CompilationContext): boo
   return Object.entries(selector).every(([name, value]) => context[name] === value);
 }
 
-function contextCoverageDiagnostics(compilation: Compilation): readonly Diagnostic[] {
+function contextCoverageDiagnostics(compilation: CompilationIR): readonly Diagnostic[] {
   const predicates = new Map<
     string,
     {
@@ -175,14 +184,14 @@ function contextCoverageDiagnostics(compilation: Compilation): readonly Diagnost
       readonly source: TokenNode["source"];
     }
   >();
-  for (const token of compilation.graph.tokens) {
+  for (const token of compilation.sourceTokens) {
     for (const override of token.overrides) {
       const key = contextKey(override.selector);
       if (!predicates.has(key))
         predicates.set(key, { selector: override.selector, token, source: override.source });
     }
   }
-  const diagnostics: Diagnostic[] = [];
+  const diagnostics = new DiagnosticBag();
   const varyingDimensions = Object.entries(compilation.contexts).flatMap(([name, dimension]) => {
     const values = [...new Set([dimension.default, ...dimension.values])];
     return values.length > 1 ? [{ name, values }] : [];
@@ -215,8 +224,11 @@ function contextCoverageDiagnostics(compilation: Compilation): readonly Diagnost
       severity: "error",
       message: `Backend \`css\` cannot safely emit automatic selectors for context predicate \`${predicateKey}\`: it omits varying dimension${missing.length === 1 ? "" : "s"} ${missing.map((dimension) => `\`${dimension.name}\``).join(", ")} and covers ${covered} of ${expected} combinations`,
       source: predicate.source,
-      suggestions: [
-        "Configure `css({ selectors: { ... } })` with every complete context that should be emitted.",
+      related: [
+        {
+          message:
+            "Configure `css({ selectors: { ... } })` with every complete context that should be emitted.",
+        },
       ],
     });
   }
@@ -227,7 +239,7 @@ function contextCoverageDiagnostics(compilation: Compilation): readonly Diagnost
   if (compilation.availableContexts.length < totalContexts) {
     const defaults = defaultContext(compilation.contexts);
     const resolutionOrder = Object.keys(compilation.contexts);
-    for (const token of compilation.graph.tokens) {
+    for (const token of compilation.sourceTokens) {
       const selected = selectTokenCandidate(token, defaults, resolutionOrder);
       if (
         !selected.selector ||
@@ -244,8 +256,11 @@ function contextCoverageDiagnostics(compilation: Compilation): readonly Diagnost
         severity: "error",
         message: `Backend \`css\` cannot safely use default-context override \`${predicateKey}\` as a global base while only ${compilation.availableContexts.length} of ${totalContexts} contexts are declared`,
         source: selected.source,
-        suggestions: [
-          "Configure `css({ selectors: { ... } })` with every complete context that should be emitted.",
+        related: [
+          {
+            message:
+              "Configure `css({ selectors: { ... } })` with every complete context that should be emitted.",
+          },
         ],
       });
     }
@@ -254,11 +269,11 @@ function contextCoverageDiagnostics(compilation: Compilation): readonly Diagnost
 }
 
 function renderExpression(
-  compilation: Compilation,
+  compilation: CompilationIR,
   id: TokenId,
   context: CompilationContext,
   strategy: "preserve" | "resolve",
-  naming: (token: TokenNode) => string,
+  symbolName: (token: TokenId, suffix: string) => string | undefined,
 ): Readonly<Record<string, string>> | undefined {
   const resolved = compilation.resolveToken(id, context);
   if (!resolved) return undefined;
@@ -266,14 +281,13 @@ function renderExpression(
   if (!serialized.ok) return undefined;
   const expression: TokenExpression = resolved.expression;
   if (strategy === "preserve" && expression.kind === "reference") {
-    const target = compilation.getToken(expression.target);
-    if (!target) return undefined;
-    return Object.fromEntries(
-      Object.keys(serialized.serialization.values).map((suffix) => [
-        suffix,
-        `var(${qualifiedName(naming(target), suffix)})`,
-      ]),
-    );
+    const values: Record<string, string> = {};
+    for (const suffix of Object.keys(serialized.serialization.values)) {
+      const targetName = symbolName(expression.target, suffix);
+      if (!targetName) return undefined;
+      values[suffix] = `var(${targetName})`;
+    }
+    return values;
   }
   return serialized.serialization.values;
 }
@@ -282,16 +296,30 @@ function qualifiedName(name: string, suffix: string): string {
   return suffix === "." ? name : `${name}-${suffix}`;
 }
 
-function isCssCustomPropertyName(name: string): boolean {
-  return /^--[-_a-zA-Z0-9\u0080-\u{10ffff}]+$/u.test(name);
+const CSS_NAMESPACE = {
+  name: "css-custom-property",
+  caseSensitive: true,
+  normalize: "NFC",
+  reserved: new Set<string>(),
+  pattern: /^--[-_a-zA-Z0-9\u0080-\u{10ffff}]+$/u,
+} as const;
+
+function symbolId(id: TokenId, suffix: string): string {
+  return suffix === "." ? id : `${id}.${suffix}`;
+}
+
+interface CssValidation {
+  readonly diagnostics: readonly Diagnostic[];
+  readonly symbols: readonly AllocatedSymbol[];
 }
 
 function validateCss(
-  compilation: Compilation,
+  compilation: CompilationIR,
   naming: (token: TokenNode) => string,
   selectors: Readonly<Record<string, string>> | undefined,
   selector: string | undefined,
-): readonly Diagnostic[] {
+  rename: Readonly<Record<string, string>> | undefined,
+): CssValidation {
   const explicit = hasExplicitContexts(selectors);
   const configured = configuredContexts(compilation, selectors);
   const defaults = defaultContext(compilation.contexts);
@@ -312,7 +340,8 @@ function validateCss(
         (entry) =>
           !sameContext(entry.context, defaults) && entry.selector.trim() === effectiveBaseSelector,
       );
-  const diagnostics: Diagnostic[] = [
+  const diagnostics = new DiagnosticBag();
+  diagnostics.push(
     ...configured.diagnostics,
     ...(explicit ? [] : contextCoverageDiagnostics(compilation)),
     ...(selector !== undefined && !selector.trim()
@@ -336,8 +365,11 @@ function validateCss(
             severity: "error" as const,
             message:
               "Backend `css` cannot prove automatic context selectors override a custom base selector",
-            suggestions: [
-              "Configure an explicit `selectors` entry for every context, including the default context.",
+            related: [
+              {
+                message:
+                  "Configure an explicit `selectors` entry for every context, including the default context.",
+              },
             ],
           },
         ]
@@ -353,8 +385,11 @@ function validateCss(
             severity: "error" as const,
             message:
               "Backend `css` requires an explicit default-context selector when a custom base selector is combined with non-default contexts",
-            suggestions: [
-              "Move the custom base selector into the `selectors` entry for the complete default context.",
+            related: [
+              {
+                message:
+                  "Move the custom base selector into the `selectors` entry for the complete default context.",
+              },
             ],
           },
         ]
@@ -368,11 +403,10 @@ function validateCss(
           },
         ]
       : []),
-  ];
-  const names: BackendOutputName[] = [];
+  );
+  const requests: SymbolRequest[] = [];
   const seenUnsupported = new Set<TokenId>();
   const seenNames = new Set<string>();
-  const seenInvalidNames = new Set<string>();
   for (const context of validationContexts(compilation, configured.entries, explicit)) {
     for (const token of compilation.tokens) {
       const source = compilation.getToken(token.id);
@@ -388,36 +422,34 @@ function validateCss(
           severity: "error",
           message: `Backend \`css\` cannot losslessly serialize \`${token.id}\`: ${serialized.unsupported.reason}`,
           source: selected.source,
-          suggestions: [
-            "Use a supported value shape or a backend with an explicit transform policy.",
-          ],
+          related: [{ message: "Use a supported value shape or an explicit transform policy." }],
         });
         continue;
       }
       for (const suffix of Object.keys(serialized.serialization.values)) {
-        const name = qualifiedName(naming(source), suffix);
-        if (!isCssCustomPropertyName(name)) {
-          if (seenInvalidNames.has(name)) continue;
-          seenInvalidNames.add(name);
-          diagnostics.push({
-            code: "BACKEND_INVALID_OUTPUT_NAME",
-            severity: "error",
-            message: `Backend \`css\` generated invalid custom-property name \`${name}\` for \`${token.id}\``,
-            source: source.source,
-            suggestions: [
-              "Return an unescaped custom-property name beginning with `--` and containing only identifier characters.",
-            ],
-          });
-          continue;
-        }
-        const key = `${token.id}\u0000${name}`;
+        const key = `${token.id}\u0000${suffix}`;
         if (seenNames.has(key)) continue;
         seenNames.add(key);
-        names.push({ name, token: source, namespace: "css-custom-property" });
+        const id = symbolId(token.id, suffix);
+        requests.push({
+          id,
+          token: source,
+          namespace: CSS_NAMESPACE,
+          name: (current) => qualifiedName(naming(current), suffix),
+          renameKey: id,
+        });
       }
     }
   }
-  return [...diagnostics, ...backendNameCollisionDiagnostics("css", names)];
+  const allocation = new SymbolAllocator().allocate({
+    backendId: "css",
+    requests,
+    ...(rename ? { renameMap: rename } : {}),
+  });
+  return {
+    diagnostics: [...diagnostics, ...allocation.diagnostics],
+    symbols: allocation.symbols,
+  };
 }
 
 function block(selector: string, declarations: readonly [string, string][]): string {
@@ -431,10 +463,25 @@ export function css(options: CssBackendOptions = {}): TokenBackend {
   const naming = options.name ?? defaultCssName;
   const strategy = options.references ?? "preserve";
   return {
-    name: "css",
-    validate: (compilation) =>
-      validateCss(compilation, naming, options.selectors, options.selector),
-    emit(compilation) {
+    id: "css",
+    capabilities: {
+      tokenTypes: ALL_TOKEN_TYPES,
+      referenceStrategies: new Set(["preserve", "resolve"]),
+      contextMode: "finite-selectors",
+      colorSpaces: "preserve",
+      composite: "serialized-subset",
+    },
+    prepare(compilation) {
+      const validation = validateCss(
+        compilation,
+        naming,
+        options.selectors,
+        options.selector,
+        options.rename,
+      );
+      const names = new Map(validation.symbols.map((symbol) => [symbol.id, symbol.name]));
+      const symbolName = (id: TokenId, suffix: string): string | undefined =>
+        names.get(symbolId(id, suffix));
       const defaults = defaultContext(compilation.contexts);
       const explicit = hasExplicitContexts(options.selectors);
       const configured = configuredContexts(compilation, options.selectors).entries;
@@ -443,11 +490,11 @@ export function css(options: CssBackendOptions = {}): TokenBackend {
       const baseValues = new Map<string, string>();
       const baseDeclarations: [string, string][] = [];
       for (const token of compilation.tokens) {
-        const rendered = renderExpression(compilation, token.id, defaults, strategy, naming);
-        const source = compilation.getToken(token.id);
-        if (rendered !== undefined && source) {
+        const rendered = renderExpression(compilation, token.id, defaults, strategy, symbolName);
+        if (rendered !== undefined) {
           for (const [suffix, value] of Object.entries(rendered)) {
-            const name = qualifiedName(naming(source), suffix);
+            const name = symbolName(token.id, suffix);
+            if (!name) continue;
             baseValues.set(name, value);
             baseDeclarations.push([name, value]);
           }
@@ -462,11 +509,17 @@ export function css(options: CssBackendOptions = {}): TokenBackend {
       for (const entry of contexts) {
         const declarations: [string, string][] = [];
         for (const token of compilation.tokens) {
-          const rendered = renderExpression(compilation, token.id, entry.context, strategy, naming);
-          const source = compilation.getToken(token.id);
-          if (rendered !== undefined && source) {
+          const rendered = renderExpression(
+            compilation,
+            token.id,
+            entry.context,
+            strategy,
+            symbolName,
+          );
+          if (rendered !== undefined) {
             for (const [suffix, value] of Object.entries(rendered)) {
-              const name = qualifiedName(naming(source), suffix);
+              const name = symbolName(token.id, suffix);
+              if (!name) continue;
               if (value !== baseValues.get(name)) declarations.push([name, value]);
             }
           }
@@ -474,7 +527,32 @@ export function css(options: CssBackendOptions = {}): TokenBackend {
         const renderedBlock = block(entry.selector, declarations);
         if (renderedBlock) blocks.push(renderedBlock);
       }
-      return [{ path: output, content: `${blocks.filter(Boolean).join("\n\n")}\n` }];
+      const content = `${blocks.filter(Boolean).join("\n\n")}\n`;
+      return {
+        backendId: "css",
+        diagnostics: validation.diagnostics,
+        symbols: validation.symbols,
+        artifacts: [
+          {
+            id: "css",
+            path: output,
+            mediaType: "text/css",
+            tokenIds: compilation.tokens.map((token) => token.id),
+            payload: content,
+          },
+        ],
+        data: null,
+      };
+    },
+    emit(plan: BackendPlan) {
+      return plan.artifacts.map((artifact) => {
+        if (typeof artifact.payload !== "string")
+          throw new BackendContractError(
+            plan.backendId,
+            `artifact \`${artifact.id}\` has no CSS payload`,
+          );
+        return { id: artifact.id, path: artifact.path, content: artifact.payload };
+      });
     },
   };
 }

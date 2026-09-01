@@ -1,6 +1,6 @@
 {
   "name": "@tokenc/core",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Typed, graph-based compiler core for DTCG Design Tokens",
   "keywords": [
     "compiler",
@@ -20,6 +20,7 @@
   },
   "files": [
     "dist",
+    "schema",
     "README.md",
     "LICENSE"
   ],
@@ -31,7 +32,12 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./breaking-policy-v1.schema.json": "./schema/breaking-policy-v1.schema.json",
+    "./diagnostic-v1.schema.json": "./schema/diagnostic-v1.schema.json",
+    "./explain-trace-v1.schema.json": "./schema/explain-trace-v1.schema.json",
+    "./impact-report-v1.schema.json": "./schema/impact-report-v1.schema.json",
+    "./snapshot-diff-v1.schema.json": "./schema/snapshot-diff-v1.schema.json"
   },
   "publishConfig": {
     "access": "public"

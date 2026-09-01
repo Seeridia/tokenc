@@ -1,0 +1,380 @@
+{
+  "schemaVersion": "1",
+  "description": "Reviewable M2-00 before/after cases. Expected facts are authored, never regenerated from implementation output.",
+  "categoryFieldMap": {
+    "added": "changes[].kind=added",
+    "removed": "changes[].kind=removed",
+    "rename-unambiguous": "renameCandidates[].ambiguity=unambiguous",
+    "rename-ambiguous": "renameCandidates[].ambiguity=ambiguous",
+    "direct-value": "changes[].kind=direct-value",
+    "propagated-value": "changes[].kind=propagated-value",
+    "type": "changes[].kind=type",
+    "metadata": "changes[].kind=metadata",
+    "dependency": "changes[].kind=dependency",
+    "context-coverage": "changes[].kind=context-coverage",
+    "mutually-exclusive-context": "impact.directlyAffected[].condition",
+    "invalid-base": "status=incomplete + coverage.omitted[].reason=invalid-base",
+    "invalid-head": "status=incomplete + coverage.omitted[].reason=invalid-head",
+    "backend-symbol": "backends[].kind=symbol",
+    "backend-artifact-path": "backends[].kind=artifact-path",
+    "configuration": "base.configurationIdentity/head.configurationIdentity"
+  },
+  "cases": [
+    {
+      "id": "token-add-remove",
+      "categories": ["added", "removed"],
+      "base": {
+        "documents": {
+          "tokens.json": {
+            "old": { "$type": "number", "$value": 1 },
+            "stable": { "$type": "number", "$value": 2 }
+          }
+        }
+      },
+      "head": {
+        "documents": {
+          "tokens.json": {
+            "new": { "$type": "number", "$value": 3 },
+            "stable": { "$type": "number", "$value": 2 }
+          }
+        }
+      },
+      "expected": {
+        "status": "complete",
+        "changes": [
+          { "kind": "added", "token": "new" },
+          { "kind": "removed", "token": "old" }
+        ],
+        "renameCandidates": [],
+        "impact": {
+          "changed": ["new", "old"],
+          "directlyAffected": [],
+          "indirectlyAffected": []
+        }
+      }
+    },
+    {
+      "id": "rename-unambiguous",
+      "categories": ["rename-unambiguous", "added", "removed", "dependency"],
+      "base": {
+        "documents": {
+          "tokens.json": {
+            "brand": { "old": { "$type": "number", "$value": 8 } },
+            "consumer": { "$type": "number", "$value": "{brand.old}" }
+          }
+        }
+      },
+      "head": {
+        "documents": {
+          "tokens.json": {
+            "brand": { "new": { "$type": "number", "$value": 8 } },
+            "consumer": { "$type": "number", "$value": "{brand.new}" }
+          }
+        }
+      },
+      "expected": {
+        "status": "complete",
+        "changes": [
+          { "kind": "removed", "token": "brand.old" },
+          { "kind": "added", "token": "brand.new" },
+          { "kind": "dependency", "token": "consumer" }
+        ],
+        "renameCandidates": [
+          {
+            "removed": "brand.old",
+            "added": "brand.new",
+            "ambiguity": "unambiguous",
+            "evidence": ["equal-type", "equal-value", "equal-metadata"]
+          }
+        ]
+      }
+    },
+    {
+      "id": "rename-ambiguous",
+      "categories": ["rename-ambiguous", "added", "removed"],
+      "base": {
+        "documents": {
+          "tokens.json": { "old": { "$type": "number", "$value": 8 } }
+        }
+      },
+      "head": {
+        "documents": {
+          "tokens.json": {
+            "newA": { "$type": "number", "$value": 8 },
+            "newB": { "$type": "number", "$value": 8 }
+          }
+        }
+      },
+      "expected": {
+        "status": "complete",
+        "changes": [
+          { "kind": "removed", "token": "old" },
+          { "kind": "added", "token": "newA" },
+          { "kind": "added", "token": "newB" }
+        ],
+        "renameCandidates": [
+          { "removed": "old", "added": "newA", "ambiguity": "ambiguous" },
+          { "removed": "old", "added": "newB", "ambiguity": "ambiguous" }
+        ]
+      }
+    },
+    {
+      "id": "direct-and-propagated-value",
+      "categories": ["direct-value", "propagated-value"],
+      "base": {
+        "documents": {
+          "tokens.json": {
+            "primitive": { "$type": "number", "$value": 1 },
+            "semantic": { "$type": "number", "$value": "{primitive}" }
+          }
+        }
+      },
+      "head": {
+        "documents": {
+          "tokens.json": {
+            "primitive": { "$type": "number", "$value": 2 },
+            "semantic": { "$type": "number", "$value": "{primitive}" }
+          }
+        }
+      },
+      "expected": {
+        "status": "complete",
+        "changes": [
+          { "kind": "direct-value", "token": "primitive" },
+          { "kind": "propagated-value", "token": "semantic" }
+        ],
+        "impact": {
+          "changed": ["primitive"],
+          "directlyAffected": ["semantic"],
+          "indirectlyAffected": []
+        }
+      }
+    },
+    {
+      "id": "type-change",
+      "categories": ["type"],
+      "base": {
+        "documents": { "tokens.json": { "size": { "$type": "number", "$value": 8 } } }
+      },
+      "head": {
+        "documents": {
+          "tokens.json": {
+            "size": { "$type": "dimension", "$value": { "value": 8, "unit": "px" } }
+          }
+        }
+      },
+      "expected": {
+        "status": "complete",
+        "changes": [{ "kind": "type", "token": "size" }]
+      }
+    },
+    {
+      "id": "metadata-change",
+      "categories": ["metadata"],
+      "base": {
+        "documents": {
+          "tokens.json": {
+            "size": { "$type": "number", "$value": 8, "$description": "Compact" }
+          }
+        }
+      },
+      "head": {
+        "documents": {
+          "tokens.json": {
+            "size": { "$type": "number", "$value": 8, "$description": "Default" }
+          }
+        }
+      },
+      "expected": {
+        "status": "complete",
+        "changes": [{ "kind": "metadata", "token": "size" }]
+      }
+    },
+    {
+      "id": "dependency-change-with-equal-value",
+      "categories": ["dependency"],
+      "base": {
+        "documents": {
+          "tokens.json": {
+            "a": { "$type": "number", "$value": 1 },
+            "b": { "$type": "number", "$value": 1 },
+            "alias": { "$type": "number", "$value": "{a}" }
+          }
+        }
+      },
+      "head": {
+        "documents": {
+          "tokens.json": {
+            "a": { "$type": "number", "$value": 1 },
+            "b": { "$type": "number", "$value": 1 },
+            "alias": { "$type": "number", "$value": "{b}" }
+          }
+        }
+      },
+      "expected": {
+        "status": "complete",
+        "changes": [{ "kind": "dependency", "token": "alias" }]
+      }
+    },
+    {
+      "id": "context-coverage-change",
+      "categories": ["context-coverage"],
+      "contexts": { "theme": { "default": "light", "values": ["light", "dark"] } },
+      "base": {
+        "documents": {
+          "tokens.json": { "tone": { "$type": "number", "$value": 1 } }
+        }
+      },
+      "head": {
+        "documents": {
+          "tokens.json": {
+            "tone": {
+              "$type": "number",
+              "$value": 1,
+              "$extensions": { "org.token-compiler.contexts": { "theme=dark": 2 } }
+            }
+          }
+        }
+      },
+      "expected": {
+        "status": "complete",
+        "changes": [{ "kind": "context-coverage", "token": "tone" }]
+      }
+    },
+    {
+      "id": "mutually-exclusive-context-impact",
+      "categories": ["mutually-exclusive-context", "direct-value", "propagated-value"],
+      "contexts": { "theme": { "default": "light", "values": ["light", "dark"] } },
+      "base": {
+        "documents": {
+          "tokens.json": {
+            "light": { "$type": "number", "$value": 1 },
+            "dark": { "$type": "number", "$value": 9 },
+            "alias": {
+              "$type": "number",
+              "$value": "{light}",
+              "$extensions": { "org.token-compiler.contexts": { "theme=dark": "{dark}" } }
+            }
+          }
+        }
+      },
+      "head": {
+        "documents": {
+          "tokens.json": {
+            "light": { "$type": "number", "$value": 2 },
+            "dark": { "$type": "number", "$value": 9 },
+            "alias": {
+              "$type": "number",
+              "$value": "{light}",
+              "$extensions": { "org.token-compiler.contexts": { "theme=dark": "{dark}" } }
+            }
+          }
+        }
+      },
+      "expected": {
+        "status": "complete",
+        "changes": [
+          { "kind": "direct-value", "token": "light", "condition": {} },
+          { "kind": "propagated-value", "token": "alias", "condition": { "theme": ["light"] } }
+        ],
+        "impact": {
+          "changed": ["light"],
+          "directlyAffected": [{ "token": "alias", "condition": { "theme": ["light"] } }],
+          "indirectlyAffected": []
+        }
+      }
+    },
+    {
+      "id": "invalid-base",
+      "categories": ["invalid-base"],
+      "base": { "documents": { "tokens.json": "{\"broken\":" } },
+      "head": {
+        "documents": { "tokens.json": { "valid": { "$type": "number", "$value": 1 } } }
+      },
+      "expected": {
+        "status": "incomplete",
+        "omittedReasons": ["invalid-base"],
+        "policyVerdict": "unavailable"
+      }
+    },
+    {
+      "id": "invalid-head",
+      "categories": ["invalid-head"],
+      "base": {
+        "documents": { "tokens.json": { "valid": { "$type": "number", "$value": 1 } } }
+      },
+      "head": { "documents": { "tokens.json": "{\"broken\":" } },
+      "expected": {
+        "status": "incomplete",
+        "omittedReasons": ["invalid-head"],
+        "policyVerdict": "unavailable"
+      }
+    },
+    {
+      "id": "backend-symbol-change",
+      "categories": ["backend-symbol"],
+      "base": {
+        "configurationIdentity": "css:naming-v1",
+        "documents": { "tokens.json": { "brandBlue": { "$type": "number", "$value": 1 } } }
+      },
+      "head": {
+        "configurationIdentity": "css:naming-v2",
+        "documents": { "tokens.json": { "brandBlue": { "$type": "number", "$value": 1 } } }
+      },
+      "expected": {
+        "status": "complete",
+        "backends": [
+          {
+            "backendId": "css",
+            "kind": "symbol",
+            "identity": "brandBlue",
+            "before": "--brand-blue",
+            "after": "--color-brand-blue"
+          }
+        ]
+      }
+    },
+    {
+      "id": "backend-artifact-path-change",
+      "categories": ["backend-artifact-path"],
+      "base": {
+        "configurationIdentity": "css:path-v1",
+        "documents": { "tokens.json": { "brand": { "$type": "number", "$value": 1 } } }
+      },
+      "head": {
+        "configurationIdentity": "css:path-v2",
+        "documents": { "tokens.json": { "brand": { "$type": "number", "$value": 1 } } }
+      },
+      "expected": {
+        "status": "complete",
+        "backends": [
+          {
+            "backendId": "css",
+            "kind": "artifact-path",
+            "identity": "css:tokens",
+            "before": "dist/tokens.css",
+            "after": "dist/theme.css"
+          }
+        ]
+      }
+    },
+    {
+      "id": "trusted-configuration-change",
+      "categories": ["configuration"],
+      "base": {
+        "configurationIdentity": "sha256:old-config",
+        "documents": { "tokens.json": { "brand": { "$type": "number", "$value": 1 } } }
+      },
+      "head": {
+        "configurationIdentity": "sha256:new-config",
+        "documents": { "tokens.json": { "brand": { "$type": "number", "$value": 1 } } }
+      },
+      "expected": {
+        "status": "incomplete",
+        "omittedReasons": ["configuration-unavailable"],
+        "historicalExecutableConfigRuns": 0,
+        "policyVerdict": "unavailable"
+      }
+    }
+  ]
+}

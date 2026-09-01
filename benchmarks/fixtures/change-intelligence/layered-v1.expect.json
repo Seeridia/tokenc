@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1",
+  "fixture": "layered-v1",
+  "description": "Deterministically generated realistic hierarchy used by the M2-00 pre-diff baseline.",
+  "parameters": {
+    "primitiveTokens": 400,
+    "semanticTokens": 400,
+    "componentTokens": 400,
+    "totalTokens": 1200,
+    "references": 800,
+    "dimensions": 2,
+    "changedDocument": "change-intelligence/primitive.tokens.json",
+    "changedToken": "primitive.scale0"
+  },
+  "contexts": {
+    "theme": { "default": "light", "values": ["light", "dark"] },
+    "density": { "default": "comfortable", "values": ["comfortable", "compact"] }
+  },
+  "expectedImpact": {
+    "changed": [{ "token": "primitive.scale0", "condition": {} }],
+    "directlyAffected": [{ "token": "semantic.alias0", "condition": { "theme": ["light"] } }],
+    "indirectlyAffected": [
+      {
+        "token": "component.value0",
+        "condition": { "theme": ["light"], "density": ["comfortable"] }
+      }
+    ]
+  }
+}

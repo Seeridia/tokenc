@@ -1,12 +1,16 @@
 import {
-  backendNameCollisionDiagnostics,
+  ALL_TOKEN_TYPES,
+  BackendContractError,
+  DiagnosticBag,
   isColorValue,
   isUnitValue,
+  SymbolAllocator,
   tokenIdSegments,
-  type BackendOutputName,
+  type AllocatedSymbol,
+  type BackendPlan,
   type ColorComponent,
   type ColorValue,
-  type Compilation,
+  type CompilationIR,
   type Diagnostic,
   type TokenBackend,
   type TokenId,
@@ -68,6 +72,7 @@ export interface TypeScriptBackendOptions {
   readonly output?: string;
   readonly mode?: "flat" | "object";
   readonly references?: "symbol" | "resolve";
+  readonly rename?: Readonly<Record<string, string>>;
 }
 
 function upperFirst(value: string): string {
@@ -132,15 +137,15 @@ function jsLiteral(value: TokenLiteral): string {
 }
 
 function tokenExpression(
-  compilation: Compilation,
+  compilation: CompilationIR,
   id: TokenId,
   strategy: "symbol" | "resolve",
-  internalPrefix = "",
+  symbols: ReadonlyMap<TokenId, string>,
 ): string {
   const resolved = compilation.resolveToken(id);
   if (!resolved) return "undefined";
   if (strategy === "symbol" && resolved.expression.kind === "reference")
-    return `${internalPrefix}${tokenIdentifier(resolved.expression.target)}`;
+    return symbols.get(resolved.expression.target) ?? "undefined";
   return jsLiteral(resolved.value);
 }
 
@@ -150,8 +155,8 @@ interface TreeNode {
 }
 
 interface ValidationTreeNode {
-  token?: NonNullable<ReturnType<Compilation["getToken"]>>;
-  firstDescendant?: NonNullable<ReturnType<Compilation["getToken"]>>;
+  token?: NonNullable<ReturnType<CompilationIR["getToken"]>>;
+  firstDescendant?: NonNullable<ReturnType<CompilationIR["getToken"]>>;
   readonly children: Map<string, ValidationTreeNode>;
 }
 
@@ -165,22 +170,29 @@ function objectLiteral(root: TreeNode, depth = 0): string {
   return `{\n${entries.join(",\n")}\n${indent}}`;
 }
 
-function objectPathDiagnostics(compilation: Compilation): readonly Diagnostic[] {
+function objectPathDiagnostics(compilation: CompilationIR): readonly Diagnostic[] {
   const root: ValidationTreeNode = { children: new Map() };
-  const diagnostics: Diagnostic[] = [];
+  const diagnostics = new DiagnosticBag();
   const report = (
-    valueToken: NonNullable<ReturnType<Compilation["getToken"]>>,
-    descendant: NonNullable<ReturnType<Compilation["getToken"]>>,
+    valueToken: NonNullable<ReturnType<CompilationIR["getToken"]>>,
+    descendant: NonNullable<ReturnType<CompilationIR["getToken"]>>,
   ): void => {
     diagnostics.push({
-      code: "BACKEND_NAME_COLLISION",
+      code: "BACKEND_SYMBOL_COLLISION",
       severity: "error",
       message: `Backend \`typescript\` object mode cannot represent both \`${valueToken.id}\` and \`${descendant.id}\`: \`${valueToken.id}\` would be both a value and an object namespace`,
       source: descendant.source,
+      anchor: { kind: "token", token: descendant.id },
+      parameters: {
+        backend: "typescript",
+        namespace: "typescript-object-path",
+        name: String(valueToken.id),
+        firstToken: valueToken.id,
+        secondToken: descendant.id,
+      },
       related: [
         { message: `Value token \`${valueToken.id}\` is defined here`, source: valueToken.source },
       ],
-      suggestions: ["Rename one token so no complete token ID is a prefix of another."],
     });
   };
 
@@ -201,26 +213,48 @@ function objectPathDiagnostics(compilation: Compilation): readonly Diagnostic[] 
   return diagnostics;
 }
 
+const TYPESCRIPT_NAMESPACE = {
+  name: "typescript-binding",
+  caseSensitive: true,
+  normalize: "NFKC",
+  reserved: RESERVED_BINDINGS,
+  pattern: /^[A-Za-z_$][A-Za-z0-9_$]*$/u,
+} as const;
+
+interface TypeScriptValidation {
+  readonly diagnostics: readonly Diagnostic[];
+  readonly symbols: readonly AllocatedSymbol[];
+}
+
 function validateTypeScript(
-  compilation: Compilation,
+  compilation: CompilationIR,
   mode: "flat" | "object",
   strategy: "symbol" | "resolve",
-): readonly Diagnostic[] {
+  rename: Readonly<Record<string, string>> | undefined,
+): TypeScriptValidation {
   const pathDiagnostics = mode === "object" ? objectPathDiagnostics(compilation) : [];
-  if (mode === "object" && strategy === "resolve") return pathDiagnostics;
-  const names: BackendOutputName[] = compilation.tokens.flatMap((token) => {
+  const requests = compilation.tokens.flatMap((token) => {
     const source = compilation.getToken(token.id);
-    if (!source) return [];
+    if (!source || (mode === "object" && strategy === "resolve")) return [];
     const identifier = tokenIdentifier(token.id);
     return [
       {
-        name: mode === "object" ? `_${identifier}` : identifier,
         token: source,
-        namespace: "typescript-binding",
+        id: token.id,
+        name: mode === "object" ? `_${identifier}` : identifier,
+        namespace: TYPESCRIPT_NAMESPACE,
       },
     ];
   });
-  return [...pathDiagnostics, ...backendNameCollisionDiagnostics("typescript", names)];
+  const allocation = new SymbolAllocator().allocate({
+    backendId: "typescript",
+    requests,
+    ...(rename ? { renameMap: rename } : {}),
+  });
+  return {
+    diagnostics: [...pathDiagnostics, ...allocation.diagnostics],
+    symbols: allocation.symbols,
+  };
 }
 
 /** Configure a TypeScript constants backend. */
@@ -229,42 +263,78 @@ export function typescript(options: TypeScriptBackendOptions = {}): TokenBackend
   const mode = options.mode ?? "object";
   const strategy = options.references ?? (mode === "flat" ? "symbol" : "resolve");
   return {
-    name: "typescript",
-    validate: (compilation) => validateTypeScript(compilation, mode, strategy),
-    emit(compilation) {
+    id: "typescript",
+    capabilities: {
+      tokenTypes: ALL_TOKEN_TYPES,
+      referenceStrategies: new Set(["symbol", "resolve"]),
+      contextMode: "none",
+      colorSpaces: "preserve",
+      composite: "native",
+    },
+    prepare(compilation) {
+      const validation = validateTypeScript(compilation, mode, strategy, options.rename);
+      const symbols = new Map(validation.symbols.map((symbol) => [symbol.token, symbol.name]));
+      let content: string;
       if (mode === "flat") {
         const declarations = compilation.tokens.map(
           (token) =>
-            `export const ${tokenIdentifier(token.id)} = ${tokenExpression(compilation, token.id, strategy)};`,
+            `export const ${symbols.get(token.id) ?? tokenIdentifier(token.id)} = ${tokenExpression(compilation, token.id, strategy, symbols)};`,
         );
-        return [{ path: output, content: `${declarations.join("\n")}\n` }];
-      }
-      const internals =
-        strategy === "symbol"
-          ? compilation.tokens
-              .map(
-                (token) =>
-                  `const _${tokenIdentifier(token.id)} = ${tokenExpression(compilation, token.id, strategy, "_")};`,
-              )
-              .join("\n")
-          : "";
-      const root: TreeNode = { children: new Map() };
-      for (const token of compilation.tokens) {
-        let current = root;
-        const segments = tokenIdSegments(token.id);
-        for (const [index, segment] of segments.entries()) {
-          const child = current.children.get(segment) ?? { children: new Map<string, TreeNode>() };
-          current.children.set(segment, child);
-          current = child;
-          if (index === segments.length - 1)
-            current.value =
-              strategy === "symbol"
-                ? `_${tokenIdentifier(token.id)}`
-                : tokenExpression(compilation, token.id, "resolve");
+        content = `${declarations.join("\n")}\n`;
+      } else {
+        const internals =
+          strategy === "symbol"
+            ? compilation.tokens
+                .map(
+                  (token) =>
+                    `const ${symbols.get(token.id) ?? `_${tokenIdentifier(token.id)}`} = ${tokenExpression(compilation, token.id, strategy, symbols)};`,
+                )
+                .join("\n")
+            : "";
+        const root: TreeNode = { children: new Map() };
+        for (const token of compilation.tokens) {
+          let current = root;
+          const segments = tokenIdSegments(token.id);
+          for (const [index, segment] of segments.entries()) {
+            const child = current.children.get(segment) ?? {
+              children: new Map<string, TreeNode>(),
+            };
+            current.children.set(segment, child);
+            current = child;
+            if (index === segments.length - 1)
+              current.value =
+                strategy === "symbol"
+                  ? (symbols.get(token.id) ?? `_${tokenIdentifier(token.id)}`)
+                  : tokenExpression(compilation, token.id, "resolve", symbols);
+          }
         }
+        content = `${internals ? `${internals}\n\n` : ""}export const tokens = ${objectLiteral(root)} as const;\n`;
       }
-      const content = `${internals ? `${internals}\n\n` : ""}export const tokens = ${objectLiteral(root)} as const;\n`;
-      return [{ path: output, content }];
+      return {
+        backendId: "typescript",
+        diagnostics: validation.diagnostics,
+        symbols: validation.symbols,
+        artifacts: [
+          {
+            id: "typescript",
+            path: output,
+            mediaType: "text/typescript",
+            tokenIds: compilation.tokens.map((token) => token.id),
+            payload: content,
+          },
+        ],
+        data: null,
+      };
+    },
+    emit(plan: BackendPlan) {
+      return plan.artifacts.map((artifact) => {
+        if (typeof artifact.payload !== "string")
+          throw new BackendContractError(
+            plan.backendId,
+            `artifact \`${artifact.id}\` has no TypeScript payload`,
+          );
+        return { id: artifact.id, path: artifact.path, content: artifact.payload };
+      });
     },
   };
 }

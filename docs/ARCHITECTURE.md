@@ -16,8 +16,10 @@ DTCG 2025.10 token document
   → TokenGraph
   → context validation + reference type checking
   → lazy TokenResolver
-  → Compilation IR
-  → TokenBackend.emit(compilation)
+  → immutable CompilationIR
+  → TokenBackend.prepare(ir) → BackendPlan
+  → global capability, symbol, and artifact preflight
+  → TokenBackend.emit(plan)
   → OutputFile[]
 ```
 
@@ -67,10 +69,9 @@ TokenNode
   id: TokenId
   type: TokenType
   value: TokenLiteralExpression | TokenReference | JsonPointerReferenceExpression
-  baseDependencies: TokenId[]
+  baseCandidate: DependencyCandidateId
   overrides: ContextOverride[]
-  dependencies: TokenId[]
-  propertyReferences: JsonPointerDependency[]
+  dependencyOccurrences: DependencyOccurrence[]
   inheritance?: TokenInheritance
   source: SourceLocation
 ```
@@ -82,8 +83,9 @@ their required fields, closed shapes, and applicable ranges. `TokenExpression<T>
 
 The RFC 6901 engine is an IO-independent DTCG module. A pointer to a token or its complete `$value`
 normalizes to a token reference. A pointer to a nested component retains its pointer expression and
-resolved component value, while `TokenNode.dependencies` records the owning token ID. Backends never
-parse raw pointers and resolve component references when a platform cannot preserve them.
+resolved component value while producing a `DependencyOccurrence` with its field path and source
+range. Backends never parse raw pointers and resolve component references when a platform cannot
+preserve them.
 
 ## Token ID
 
@@ -91,35 +93,61 @@ parse raw pointers and resolve component references when a platform cannot prese
 
 ## Dependency graph
 
-`TokenGraph` owns three indexes:
+`TokenGraph` owns three categories of facts and indexes:
 
 ```text
 Map<TokenId, TokenNode>       tokens
-Map<TokenId, Set<TokenId>>    forward dependencies
-Map<TokenId, Set<TokenId>>    reverse dependents
+DependencyEdge[]              conditional edges
+Map<TokenId, DependencyEdge[]> forward / reverse indexes
 ```
 
-The forward and reverse indexes hold a conservative union of base and override dependencies for
-usages, impact, and incremental invalidation. `TokenNode.baseDependencies` and each
-`ContextOverride.dependencies` retain the dependencies of individual candidate expressions. The
-checker first locates strongly connected candidate regions in the union graph, then lazily projects
-only the context dimensions used by that region and applies the same selection rules as the
-resolver. Mutually exclusive context edges therefore do not produce false cycles, while a real
-cycle requiring a multi-dimensional context is still diagnosed. Projection cardinality is checked
-before enumeration and is capped at the exported `CONTEXT_CYCLE_PROJECTION_LIMIT` of 16,384
-contexts per candidate region. Exceeding that bound produces a source-backed
-`TOKEN_CONTEXT_PROJECTION_LIMIT` error containing the region root, token count, relevant dimensions,
-and limit; an incomplete cycle analysis is never accepted silently.
+Before deduplication, the Frontend preserves every Alias, JSON Pointer, composite-field, and
+inheritance occurrence. Each `DependencyEdge` carries owner, target, kind, field path, source range,
+and the exact `ContextPredicate` where its candidate wins. A raw selector first subtracts every
+higher-ranked candidate region, so it is never confused with its effective condition. Repeated
+references remain separate edges.
 
-Lookup is O(1). A stable Kahn sort uses a lexical heap and costs O((V + E) log V); iterative cycle detection, affected traversal, and impact analysis cost O(V + E). Both `explain` and `usages` query this graph; they never scan source strings.
+Predicates are canonical, pairwise-disjoint DNF over a finite Context domain and are closed under
+intersection, union, complement, subtraction, and satisfiability. A cycle exists exactly when all
+edge conditions on a closed path have a satisfiable intersection. The checker first locates
+structural strongly connected regions and then intersects Predicates symbolically; it no longer
+enumerates the Context Cartesian product. Cycle diagnostics include the exact edge path, a witness
+Context, and one related source location per occurrence.
 
-`TokenGraph.patch()` updates token, forward-edge, and reverse-edge indexes in place. It reports a graph delta and unions affected nodes from the pre-patch and post-patch reverse graph, preserving correctness when edges disappear or change target.
+Token and forward/reverse edge lookups are indexed. Stable Kahn ordering consumes only edges active
+in the requested Context. Affected and dependency-closure traversal intersects Predicates while it
+propagates, retaining the exact Context region where each Token is reachable.
+
+Every compilation constructs a fresh private Graph. Publication clones and freezes a separate
+Graph-backed Snapshot, so advancing a Session cannot mutate a retained snapshot.
 
 Cycles are reported as closed paths with the active context and related source locations. Unknown references are still retained as graph edges, which lets the checker provide nearby canonical-ID suggestions.
 
 Inherited tokens add an edge to their base token, and component pointers add an edge to the token
 that owns the component. Consequently cycle detection, `explain`, `usages`, impact analysis, and
 incremental invalidation use the same graph semantics for every reference form.
+
+## Query API and Explain Trace v1
+
+`snapshot.query` is the read-only consumer boundary for Token lookup, definitions, completion,
+resolution, dependencies, usages, impact, graph projection, and explanation. Dependency and reverse
+usage queries accept either a concrete Context or a `ContextPredicate`; without either they return
+the original conditional regions. Results contain occurrence source locations and use stable lexical
+ordering without exposing internal Maps or Sets.
+
+`query.context(overrides)` returns the frozen effective Context after combining configured defaults,
+the active DTCG Resolver selection, and caller overrides. Consumers do not inspect IR or Resolver
+state to construct a Context.
+
+Impact results separate changed, directly affected, and indirectly affected Tokens while preserving
+the exact predicate attached to each result. Predicate intersections are propagated through the
+graph, so two edges that only exist in mutually exclusive Contexts cannot create a false transitive
+impact.
+
+`ExplainTraceV1` includes its schema version, canonical Context, selected candidate and
+base/override reason for every step, precedence and origin when present, source-located dependency
+steps, Resolver steps, and final value. The CLI `explain`, `usages`, and `graph` commands consume only
+this facade and support deterministic `--json` output.
 
 ### Why model tokens as a graph?
 
@@ -155,7 +183,18 @@ Deep merge destroys provenance, makes precedence an object-order side effect, du
 
 ## Type checker and diagnostics
 
-The checker validates that reference targets exist and that source and target types agree. Diagnostics contain a stable code, severity, message, primary source, related sources, and optional suggestions. Core code does not add terminal color or print; the CLI renders code frames or JSON.
+The checker validates that reference targets exist and that source and target types agree. Every
+stage emits `DiagnosticV1`: a complete `schemaVersion: "1"` value with a registry-owned code,
+structured parameters, primary and related locations, a documentation URL, optional validated text
+edits, and a SHA-256 base64url fingerprint. Fingerprints use canonical document identity, semantic
+anchors, and the code registry's identity parameters; messages, severity, display ranges, fixes, and
+timings never affect issue identity. Parse failures without a semantic anchor use their parser error
+kind and original offset.
+
+Core does not render or print diagnostics. The CLI renders code frames for humans and serializes the
+fixed machine-readable envelope `{ "schemaVersion": "1", "diagnostics": [...] }`. Suggestion strings
+are not part of the contract: non-mechanical guidance is documentation or related information, while
+mechanical guidance uses ordered, non-overlapping edits guarded by a source-content digest.
 
 Duplicate canonical IDs are detected across documents before output. Graph cycles are validated separately from recursive resolution, so a user receives a useful path instead of a stack error.
 
@@ -181,7 +220,22 @@ The resolver can always provide a value, but the chosen expression remains in IR
 
 ## Why platform outputs are backends
 
-CSS and TypeScript are compilation targets, not formatting callbacks. A backend receives a complete semantic compilation and returns `OutputFile[]`. An optional `validate(compilation)` preflight reports target namespace collisions and platform capability errors before any backend emits. If one backend returns an error, the compilation fails and no partial artifacts are generated. `compile(config, { emit: false })` still runs this preflight, which is how `tokenc check` validates targets without generating files. Artifact collision keys use resolved absolute paths normalized to Unicode NFC and lowercase, so case-only and canonically equivalent paths fail the compilation before the CLI writes anything, regardless of the current filesystem's case behavior. Backend diagnostics use the same structure and appear in both `CompilationResult` and the final `Compilation`.
+CSS, Tailwind, and TypeScript are compilation targets, not formatting callbacks. A backend declares
+`BackendCapabilities` and receives only the immutable `CompilationIR`; Graph and Resolver internals
+are not exposed. `prepare(ir)` returns a `BackendPlan` containing every diagnostic, allocated symbol,
+and ordered artifact identity/path. Core then performs one global preflight. If any plan has an error,
+an unsupported capability, an invalid path, or a cross-backend collision, no backend is emitted.
+`snapshot.prepare(backends)` performs this validation without generating files, which is how
+`tokenc check` validates targets.
+
+`emit(plan)` receives no compilation state and must return exactly the planned artifact identities and
+paths. A missing, extra, renamed, or reordered artifact throws `BackendContractError` and discards the
+complete in-memory output set. Artifact paths are normalized relative paths; unsafe paths are rejected,
+and collision keys use Unicode NFC plus case folding so outputs are portable across filesystems.
+
+All platform symbols go through `SymbolAllocator`. Each namespace defines its Unicode normalization,
+case policy, reserved names, and validity pattern. The allocator reports source-backed collisions and
+accepts only explicit rename maps; it never invents unstable numeric suffixes.
 
 There are no public transform/filter/action hook taxonomies. This prevents platform rules from leaking into parsing or evaluation.
 
@@ -201,29 +255,52 @@ Flat mode emits topologically ordered bindings and supports symbol references. O
 
 Emits `--token-*` runtime properties, sparse context overrides, and `@theme` bindings. Tailwind variables point at the runtime layer so ordinary CSS and utilities share values and theme switching does not duplicate the semantic token store. It uses the same encoded, exact-context output contract and coverage checks as CSS instead of depending on source-order cascade between dimensions. The backend reuses the CSS value serializer, including its precision and unsupported-value policy. Tailwind theme names are canonicalized and collision checked; top-level namespace tokens use `default` instead of producing an empty suffix.
 
-## Incremental compilation
+## Compilation snapshots
 
-`IncrementalCompiler` caches parsed documents by source. On update:
+`compile()` and `compileDocuments()` publish a discriminated `CompilationSnapshot`. Every snapshot
+has fixed document content, stable semantic diagnostics, statistics, source/configuration digests,
+and monotonic builder revisions. Only a valid snapshot exposes immutable `CompilationIR` plus
+`prepare()` and `emit()`; an invalid snapshot retains safe Graph queries while `resolve()` and
+`explain()` return an explicit unavailable result. Backend operation diagnostics remain separate
+from semantic diagnostics.
 
-1. Parse only the changed document into the unresolved source cache.
-2. Relink cached syntax documents so cross-document inference, pointers, and inheritance observe the
-   new semantic state without reparsing unchanged files.
-3. Compare semantic node signatures to identify changed IDs.
-4. Patch only added, changed, and removed graph nodes and adjacency edges.
-5. Union reverse traversal from before and after the patch.
-6. Check references and cycles in the affected region (falling back to a full check after an invalid build).
-7. Seed the next resolver with cached evaluations whose IDs are outside the affected set.
-8. Recompute affected evaluations lazily as IR/backends request them.
+Each publication owns a cloned, frozen Graph view. Query results, resolved values, trace structures,
+IR collections, and emitted output records cannot be used to mutate later observations. Backend
+planning runs against exactly one IR and global path preflight completes before any backend emits.
 
-Backends may rewrite a complete output file in v0.1, but that does not reparse or reevaluate unrelated tokens. Add, change, and remove share the same invalidation path. Invalid JSON replaces only that cached document, reports diagnostics, and can recover on the next edit.
+## Compiler sessions and differential correctness
+
+`CompilerSession` is the long-lived compilation boundary. Calls to `apply()` enter one FIFO queue
+and atomically add, update, remove, or reconfigure documents. Requests are resolved through an
+injectable `DocumentLoader`; duplicate requests in one transaction are loaded once. A semantic
+failure commits the requested state and publishes an invalid `currentSnapshot` while retaining the
+previous `lastSuccessfulSnapshot`. Loader failures and `AbortSignal` cancellation commit and publish
+nothing. `close()` is idempotent and rejects later transactions.
+
+M1-08a established an uncached full rebuild for every transaction. This gave stage-cache work one
+correctness baseline instead of inheriting the removed mutable `IncrementalCompiler` and
+Graph-patching model. The reusable differential oracle applies a deterministic transaction corpus
+to a Session and compares each publication with a fresh compilation. It normalizes semantic
+diagnostics, the conditional Graph, every resolved value and explain trace over bounded finite
+Contexts, and Backend output bytes. Revisions, timings, and cache counters are excluded.
+
+M1-08b layers caches onto that boundary. Parse entries use document identity, content, origin, and
+parser version. The Linker partitions documents into conservative cross-document reference
+components and reuses components whose ordered parse keys are unchanged; group inheritance falls
+back to one safe global component. The conditional Graph is reused only when linked component keys
+and `ContextDefinition` are identical. Resolver entries are keyed by Token ID plus canonical Context
+and retained only when candidate changes and reverse conditional edges do not reach that exact
+Context. Cache state is committed only with the transaction's snapshot. Backend plans stay uncached
+because the current Backend contract has no stable key covering arbitrary callbacks.
 
 ## Measurement boundary
 
-Every `CompilationResult` includes observational work data in `stats`. `timings` reports
+Every `CompilationSnapshot` includes observational work data in `stats`. `timings` reports
 `parse`, `link`, `graph`, `check`, `resolve`, and `emit` durations plus end-to-end `total` time in
-milliseconds. Incremental updates assign changed-document parsing to `parse`, whole-batch semantic
-relinking to `link`, signature comparison and graph patching to `graph`, and resolver-seed preparation
-to `resolve`.
+milliseconds. A Session transaction reports only the stage work it actually performs.
+`session.metrics` reports per-stage hit, miss, reuse, recomputation, and invalidation data for the
+latest committed transaction. These measurements cannot select compiler semantics, and every cache
+remains gated by the differential oracle.
 
 `contextCycles` reports candidate strongly connected regions, the sum of their relevant dimensions,
 estimated and enumerated projections, static-cycle early exits, projection-limit hits, and estimate
@@ -258,3 +335,9 @@ non-standard function syntax.
 Core never imports the CLI or a backend. Backends depend only on public core IR. The CLI owns configuration loading, filesystem writes, terminal output, signals, and watch lifecycle.
 The Tailwind backend additionally reuses the CSS backend's public value serializer, while still
 reading Core IR without mutating either the CSS backend or Compilation state.
+
+All CLI compilation commands create a `CompilerSession` and consume its snapshot. Dev mode keeps one
+Session alive across token, configuration, and Resolver reloads. Its rebuild coordinator aborts
+superseded work, suppresses stale output, and remains live after invalid input or configuration.
+Architecture tests reject deep or relative imports from Core internals in the CLI and bundled
+backends.

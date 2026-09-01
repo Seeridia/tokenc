@@ -9,7 +9,7 @@ import {
   CONTEXT_CYCLE_PROJECTION_LIMIT,
   suggestTokenIds,
 } from "../src/checker.js";
-import { compileDocuments } from "../src/compiler.js";
+import { compileDocumentsInternal as compileDocuments } from "../src/compiler.js";
 import { TokenGraph } from "../src/graph.js";
 import type { ContextDefinition } from "../src/model.js";
 import { parseTokenDocument } from "../src/parser.js";
@@ -17,11 +17,12 @@ import { parseTokenId } from "../src/token-id.js";
 
 const fixture = (name: string): string =>
   readFileSync(fileURLToPath(new URL(`fixtures/${name}`, import.meta.url)), "utf8");
-const graph = (name: string) => new TokenGraph(parseTokenDocument(fixture(name), name).tokens);
+const graph = (name: string, contexts: ContextDefinition = {}) =>
+  new TokenGraph(parseTokenDocument(fixture(name), name).tokens, contexts);
 const diagnostics = (name: string, contexts: ContextDefinition = {}) =>
-  checkTokenGraph(graph(name), undefined, contexts);
+  checkTokenGraph(graph(name, contexts), undefined, contexts);
 const detailedCheck = (name: string, contexts: ContextDefinition = {}) =>
-  checkTokenGraphDetailed(graph(name), undefined, contexts);
+  checkTokenGraphDetailed(graph(name, contexts), undefined, contexts);
 
 const themeContexts: ContextDefinition = {
   theme: { default: "light", values: ["light", "dark"] },
@@ -45,7 +46,7 @@ describe("type checker", () => {
     const result = diagnostics("types/invalid.json");
     expect(result[0]).toMatchObject({
       code: "TOKEN_REFERENCE_TYPE_MISMATCH",
-      related: [{ source: { file: "types/invalid.json" } }],
+      related: [{ source: { document: "types/invalid.json" } }],
     });
   });
 
@@ -53,7 +54,10 @@ describe("type checker", () => {
     const result = diagnostics("invalid/unknown.json");
     expect(result[0]).toMatchObject({
       code: "TOKEN_UNKNOWN_REFERENCE",
-      suggestions: ["color.blue.600", "color.blue.700"],
+      related: [
+        { message: "Did you mean `color.blue.600`?" },
+        { message: "Did you mean `color.blue.700`?" },
+      ],
     });
   });
 
@@ -61,14 +65,14 @@ describe("type checker", () => {
     const result = diagnostics("cycles/tokens.json");
     expect(result[0]?.code).toBe("TOKEN_CIRCULAR_REFERENCE");
     expect(result[0]?.message).toContain("a\n    └── b\n        └── c\n            └── a");
-    expect(result[0]?.source?.line).toBe(2);
+    expect(result[0]?.source?.range.line).toBe(2);
     expect(detailedCheck("cycles/tokens.json").metrics).toEqual({
       candidateRegions: 1,
       relevantDimensions: 0,
       estimatedProjections: 0,
       estimateSaturated: false,
       enumeratedProjections: 0,
-      earlyExits: 1,
+      earlyExits: 0,
       limitHits: 0,
     });
   });
@@ -91,11 +95,11 @@ describe("type checker", () => {
     const checked = detailedCheck("contexts/mutually-exclusive-cycle.json", themeContexts);
     expect(checked.diagnostics).toEqual([]);
     expect(checked.metrics).toEqual({
-      candidateRegions: 1,
-      relevantDimensions: 1,
-      estimatedProjections: 2,
+      candidateRegions: 0,
+      relevantDimensions: 0,
+      estimatedProjections: 0,
       estimateSaturated: false,
-      enumeratedProjections: 2,
+      enumeratedProjections: 0,
       earlyExits: 0,
       limitHits: 0,
     });
@@ -127,15 +131,15 @@ describe("type checker", () => {
     expect(detailedCheck("contexts/multidimension-cycle.json", contexts).metrics).toEqual({
       candidateRegions: 1,
       relevantDimensions: 2,
-      estimatedProjections: 4,
+      estimatedProjections: 0,
       estimateSaturated: false,
-      enumeratedProjections: 4,
+      enumeratedProjections: 0,
       earlyExits: 0,
       limitHits: 0,
     });
   });
 
-  it("fails deterministically before an excessive Context projection is enumerated", () => {
+  it("checks a large Context domain symbolically without projection enumeration", () => {
     const dimensionNames = Array.from({ length: 15 }, (_, index) => `dimension-${index}`);
     const contexts = Object.fromEntries(
       dimensionNames.map((name) => [name, { default: "off", values: ["off", "on"] }]),
@@ -151,33 +155,31 @@ describe("type checker", () => {
     });
     const projectionGraph = new TokenGraph(
       parseTokenDocument(document, "projection-limit.json").tokens,
+      contexts,
     );
 
     const result = checkTokenGraphDetailed(projectionGraph, undefined, contexts);
 
-    expect(CONTEXT_CYCLE_PROJECTION_LIMIT).toBe(16_384);
     expect(result.diagnostics).toHaveLength(1);
     expect(result.diagnostics[0]).toMatchObject({
-      code: "TOKEN_CONTEXT_PROJECTION_LIMIT",
+      code: "TOKEN_CIRCULAR_REFERENCE",
       severity: "error",
-      source: { file: "projection-limit.json", line: 1 },
+      source: { document: "projection-limit.json", range: { line: 1 } },
     });
-    expect(result.diagnostics[0]?.message).toBe(
-      `Context-aware cycle analysis exceeded its limit of 16384 projections for the region rooted at \`a\` (2 tokens; 15 relevant dimensions: ${dimensionNames.map((name) => `${name}=2`).join(", ")}). Reduce the region's Context combinations before checking.`,
-    );
+    expect(CONTEXT_CYCLE_PROJECTION_LIMIT).toBe(16_384);
     expect(result.metrics).toEqual({
       candidateRegions: 1,
       relevantDimensions: 15,
-      estimatedProjections: 32_768,
+      estimatedProjections: 0,
       estimateSaturated: false,
       enumeratedProjections: 0,
       earlyExits: 0,
-      limitHits: 1,
+      limitHits: 0,
     });
     expect(checkTokenGraph(projectionGraph, undefined, contexts)).toEqual(result.diagnostics);
   });
 
-  it("saturates an unrepresentable Context projection estimate", () => {
+  it("keeps symbolic analysis finite when the Cartesian product is unrepresentable", () => {
     const dimensionNames = Array.from({ length: 54 }, (_, index) => `dimension-${index}`);
     const contexts = Object.fromEntries(
       dimensionNames.map((name) => [name, { default: "off", values: ["off", "on"] }]),
@@ -193,16 +195,17 @@ describe("type checker", () => {
     });
     const projectionGraph = new TokenGraph(
       parseTokenDocument(document, "projection-saturation.json").tokens,
+      contexts,
     );
 
     expect(checkTokenGraphDetailed(projectionGraph, undefined, contexts).metrics).toEqual({
       candidateRegions: 1,
       relevantDimensions: 54,
-      estimatedProjections: Number.MAX_SAFE_INTEGER,
-      estimateSaturated: true,
+      estimatedProjections: 0,
+      estimateSaturated: false,
       enumeratedProjections: 0,
       earlyExits: 0,
-      limitHits: 1,
+      limitHits: 0,
     });
   });
 

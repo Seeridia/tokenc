@@ -64,6 +64,7 @@ describe("TokenResolver", () => {
       brand: "enterprise",
     });
     expect(trace).toMatchObject({
+      schemaVersion: "1",
       token: "color.page",
       context: { theme: "dark", brand: "enterprise" },
       steps: [
@@ -78,7 +79,7 @@ describe("TokenResolver", () => {
           selector: { theme: "dark", brand: "enterprise" },
         },
       ],
-      value: { colorSpace: "srgb", hex: "#003cab" },
+      finalValue: { colorSpace: "srgb", hex: "#003cab" },
     });
   });
 

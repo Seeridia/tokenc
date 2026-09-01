@@ -8,14 +8,20 @@
 - Tailwind v4 Theme Variables
 - TypeScript Constants
 
-安装依赖并完成 workspace build 后，在当前目录执行：
+安装 workspace 依赖后，在仓库根目录执行：
 
 ```bash
-pnpm tokenc build
-pnpm tokenc check
-pnpm tokenc explain button.primary.background
-pnpm tokenc usages color.blue.600
+vp -C examples/basic run tokenc build
+vp -C examples/basic run tokenc check
+vp -C examples/basic run tokenc explain button.primary.background
+vp -C examples/basic run tokenc usages color.blue.600
+vp -C examples/basic run tokenc impact tokens/primitive.json
+vp -C examples/basic run tokenc diff --base HEAD~1 --format json
+vp -C examples/basic run tokenc diff --base HEAD~1 --policy tokenc.policy.json
 ```
+
+仓库内的 `tokenc.policy.json` 会把 direct value change 提升为 error。Policy 退出码 `0` 表示通过，
+`1` 表示存在未 allow 的 error finding，`2` 表示判断不完整。
 
 生成的文件位于 `dist/`：
 

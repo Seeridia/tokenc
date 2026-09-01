@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tokenc.dev/schemas/breaking-policy-v1.schema.json",
+  "title": "tokenc Breaking-change Policy v1",
+  "description": "Versioned configuration for evaluating Snapshot Diff v1 facts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion"],
+  "properties": {
+    "schemaVersion": { "const": "1" },
+    "rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "token-removal": { "$ref": "#/$defs/rule" },
+        "token-type-change": { "$ref": "#/$defs/rule" },
+        "context-coverage-loss": { "$ref": "#/$defs/rule" },
+        "backend-symbol-removal": { "$ref": "#/$defs/rule" },
+        "backend-artifact-path-removal": { "$ref": "#/$defs/rule" },
+        "direct-value-change": { "$ref": "#/$defs/rule" },
+        "propagated-value-change": { "$ref": "#/$defs/rule" }
+      }
+    },
+    "allow": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/allow" }
+    }
+  },
+  "$defs": {
+    "context": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["severity"],
+      "properties": {
+        "severity": { "enum": ["error", "warning", "info", "off"] },
+        "context": { "$ref": "#/$defs/context" }
+      }
+    },
+    "allow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["changeId", "reason"],
+      "properties": {
+        "changeId": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 },
+        "context": { "$ref": "#/$defs/context" }
+      }
+    }
+  }
+}

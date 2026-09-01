@@ -2,7 +2,7 @@
 
 [English](ROADMAP.md) | [简体中文](ROADMAP.zh-CN.md)
 
-> Status: directional plan, not a release commitment. Updated: 2026-08-25.
+> Status: directional plan, not a release commitment. Updated: 2026-08-31.
 
 This document defines tokenc's intended market position, architecture evolution, delivery order,
 and exit criteria. It complements [Architecture](ARCHITECTURE.md), which describes how the system
@@ -292,9 +292,10 @@ Exit criteria:
 
 **Goal:** expose the differentiated compiler behavior as reliable public APIs.
 
-**Status (2026-08-25): planned.** Ordered work packages, dependencies, and automated acceptance
-evidence are defined in the [M1 execution plan](M1-PLAN.md). Public API implementation merges only
-after its release-integrity and measurement gates.
+**Status (2026-08-31): implementation complete; 0.4.0 release candidate.** Ordered work packages,
+dependencies, and automated acceptance evidence are recorded in the [M1 execution plan](M1-PLAN.md).
+The [M1 acceptance record](M1-ACCEPTANCE.md) accepts the local candidate. Publication and
+post-publish registry verification remain before milestone closure.
 
 Deliverables:
 
@@ -304,7 +305,7 @@ Deliverables:
 - Immutable `CompilationSnapshot` and in-process `CompilerSession`.
 - Cache metrics for parse, link, graph, and resolve stages.
 - Diagnostic schema v1 with fingerprints, related ranges, and optional fixes.
-- API stability and deprecation policy.
+- API stability and direct breaking-replacement policy.
 
 Exit criteria:
 
@@ -317,6 +318,18 @@ Exit criteria:
 ### M2 — CI and change intelligence
 
 **Goal:** make tokenc valuable as a safety layer for existing token pipelines.
+
+**Status (2026-09-01): implementation complete; M2-00 through M2-09 are accepted as the `0.5.0`
+release candidate.** The
+change-intelligence contract, evidence baseline, public Snapshot Diff v1 and Impact Report v1 APIs,
+JSON Schemas, `tokenc impact`, the read-only Git-backed `tokenc diff`, and Breaking-change Policy v1
+are complete. Shared Report v1 text/JSON/SARIF rendering and lazy Resolver permutation planning,
+Session compilation, Snapshot Diff comparison, and batch Backend preflight are also complete. The
+commit-pinned CI reference workflow, fork-safe artifact path, and executable four-outcome fixture
+are complete. The bounded, public-API-only Terrazzo handoff and explicit unsupported-extension
+classification, independent differential proof, semantic-work gates, public contract lock, and
+packed release evidence are complete. Publication and post-publish verification remain external
+operations; see the [M2 acceptance record](M2-ACCEPTANCE.md).
 
 Deliverables:
 

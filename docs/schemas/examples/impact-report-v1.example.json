@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1",
+  "status": "complete",
+  "snapshot": {
+    "sourceRevision": "sha256:head-example",
+    "configurationIdentity": "sha256:config-example",
+    "status": "valid"
+  },
+  "request": {
+    "documents": ["tokens/primitive.json"],
+    "sources": [
+      {
+        "document": "tokens/primitive.json",
+        "status": "matched",
+        "tokens": ["primitive.blue"]
+      }
+    ],
+    "tokens": ["primitive.blue"],
+    "context": {},
+    "predicate": {
+      "domain": {
+        "dimensions": [{ "name": "theme", "default": "light", "values": ["light", "dark"] }],
+        "key": "[[\"theme\",\"light\",[\"light\",\"dark\"]]]"
+      },
+      "clauses": [{}],
+      "key": "[{}]"
+    }
+  },
+  "coverage": {
+    "requested": [
+      {
+        "domain": {
+          "dimensions": [{ "name": "theme", "default": "light", "values": ["light", "dark"] }],
+          "key": "[[\"theme\",\"light\",[\"light\",\"dark\"]]]"
+        },
+        "clauses": [{}],
+        "key": "[{}]"
+      }
+    ],
+    "compared": [
+      {
+        "domain": {
+          "dimensions": [{ "name": "theme", "default": "light", "values": ["light", "dark"] }],
+          "key": "[[\"theme\",\"light\",[\"light\",\"dark\"]]]"
+        },
+        "clauses": [{}],
+        "key": "[{}]"
+      }
+    ],
+    "omitted": []
+  },
+  "impact": {
+    "schemaVersion": "1",
+    "changed": [
+      {
+        "token": "primitive.blue",
+        "condition": {
+          "domain": {
+            "dimensions": [{ "name": "theme", "default": "light", "values": ["light", "dark"] }],
+            "key": "[[\"theme\",\"light\",[\"light\",\"dark\"]]]"
+          },
+          "clauses": [{}],
+          "key": "[{}]"
+        },
+        "sides": ["head"]
+      }
+    ],
+    "directlyAffected": [
+      {
+        "token": "semantic.action.primary",
+        "condition": {
+          "domain": {
+            "dimensions": [{ "name": "theme", "default": "light", "values": ["light", "dark"] }],
+            "key": "[[\"theme\",\"light\",[\"light\",\"dark\"]]]"
+          },
+          "clauses": [{}],
+          "key": "[{}]"
+        },
+        "sides": ["head"]
+      }
+    ],
+    "indirectlyAffected": []
+  },
+  "diagnostics": []
+}

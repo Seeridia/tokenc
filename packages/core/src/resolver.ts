@@ -4,12 +4,26 @@ import type {
   CompilationContext,
   ContextDefinition,
   ResolvedToken,
-  ResolutionTrace,
-  ResolutionTraceStep,
+  ExplainTraceStepV1,
+  ExplainTraceV1,
   TokenId,
   TokenLiteral,
 } from "./model.js";
 import { parseTokenId } from "./token-id.js";
+
+function deepFreeze<T>(value: T): T {
+  if (value === null || typeof value !== "object" || Object.isFrozen(value)) return value;
+  for (const entry of Object.values(value)) deepFreeze(entry);
+  return Object.freeze(value);
+}
+
+function freezeResolvedToken(token: ResolvedToken): ResolvedToken {
+  return deepFreeze({
+    ...token,
+    context: { ...token.context },
+    dependencies: [...token.dependencies],
+  });
+}
 
 /** Lazy, context-aware graph evaluator with selective cache invalidation. */
 export class TokenResolver {
@@ -27,7 +41,8 @@ export class TokenResolver {
     this.#graph = graph;
     this.#contextDefinition = contextDefinition;
     this.#resolutionOrder = Object.keys(contextDefinition);
-    for (const token of seed) this.#cache.set(`${token.id}\0${contextKey(token.context)}`, token);
+    for (const token of seed)
+      this.#cache.set(`${token.id}\0${contextKey(token.context)}`, freezeResolvedToken(token));
   }
 
   get computations(): number {
@@ -74,15 +89,23 @@ export class TokenResolver {
     for (let index = path.length - 1; index >= 0; index -= 1) {
       const entry = path[index];
       if (!entry) continue;
-      const result: ResolvedToken = {
+      const result = freezeResolvedToken({
         id: entry.token.id,
         type: entry.token.type,
         expression: entry.expression,
         value,
         context,
-        dependencies: entry.token.dependencies,
+        dependencies: [
+          ...new Set(
+            selectTokenCandidate(
+              entry.token,
+              context,
+              this.#resolutionOrder,
+            ).dependencyOccurrences.map((occurrence) => occurrence.target),
+          ),
+        ],
         source: entry.token.source,
-      };
+      });
       this.#cache.set(`${entry.token.id}${suffix}`, result);
       this.#computations += 1;
     }
@@ -102,10 +125,14 @@ export class TokenResolver {
   }
 
   /** Explain context selection and alias traversal without exposing resolver internals. */
-  trace(id: TokenId, partialContext: CompilationContext = {}): ResolutionTrace | undefined {
-    const context = { ...this.defaults, ...partialContext };
+  trace(id: TokenId, partialContext: CompilationContext = {}): ExplainTraceV1 | undefined {
+    const context = Object.fromEntries(
+      Object.entries({ ...this.defaults, ...partialContext }).toSorted(([left], [right]) =>
+        left.localeCompare(right),
+      ),
+    );
     if (!this.#graph.hasToken(id)) return undefined;
-    const steps: ResolutionTraceStep[] = [];
+    const steps: ExplainTraceStepV1[] = [];
     const active = new Set<TokenId>();
     let current: TokenId | undefined = id;
     while (current && !active.has(current)) {
@@ -115,9 +142,17 @@ export class TokenResolver {
       const selected = selectTokenCandidate(token, context, this.#resolutionOrder);
       steps.push({
         token: current,
+        candidate: selected.candidate,
         selection: selected.selector ? "override" : "base",
         expression: selected.expression,
         source: selected.source,
+        dependencies: selected.dependencyOccurrences.map((occurrence) => ({
+          target: occurrence.target,
+          candidate: occurrence.candidate,
+          kind: occurrence.kind,
+          fieldPath: occurrence.fieldPath,
+          source: occurrence.source,
+        })),
         ...(selected.selector ? { selector: selected.selector } : {}),
         ...(selected.precedence === undefined ? {} : { precedence: selected.precedence }),
         ...(selected.origin === undefined ? {} : { origin: selected.origin }),
@@ -125,13 +160,13 @@ export class TokenResolver {
       current = selected.expression.kind === "reference" ? selected.expression.target : undefined;
     }
     const resolved = this.resolve(id, context);
-    return {
+    return deepFreeze({
+      schemaVersion: "1",
       token: id,
       context,
-      ...(steps[0] ? { selectedSource: steps[0].source } : {}),
       steps,
       resolverSteps: [],
-      ...(resolved ? { value: resolved.value } : {}),
-    };
+      ...(resolved ? { finalValue: resolved.value } : {}),
+    });
   }
 }

@@ -73,6 +73,16 @@ importers:
         specifier: ^4.23.12
         version: 4.23.12
 
+  examples/terrazzo-adapter:
+    dependencies:
+      '@tokenc/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+    devDependencies:
+      tsx:
+        specifier: ^4.23.12
+        version: 4.23.12
+
   packages/backend-css:
     dependencies:
       '@tokenc/core':
@@ -126,7 +136,13 @@ importers:
       jiti:
         specifier: ^2.5.0
         version: 2.7.0
+      micromatch:
+        specifier: ^4.0.8
+        version: 4.0.8
     devDependencies:
+      '@types/micromatch':
+        specifier: ^4.0.10
+        version: 4.0.10
       '@types/node':
         specifier: ^24.0.0
         version: 24.13.3
@@ -734,6 +750,9 @@ packages:
   '@types/aria-query@5.0.4':
     resolution: {integrity: sha512-rfT93uj5s0PRL7EzccGMs3brplhcrghnDoV26NqKhCAS1hVo+WdNsPvE/yb6ilfr5hi2MEk6d5EWJTKdxg8jVw==}
 
+  '@types/braces@3.0.5':
+    resolution: {integrity: sha512-SQFof9H+LXeWNz8wDe7oN5zu7ket0qwMu5vZubW4GCJ8Kkeh6nBWUz87+KTz/G3Kqsrp0j/W253XJb3KMEeg3w==}
+
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
 
@@ -742,6 +761,9 @@ packages:
 
   '@types/estree@1.0.9':
     resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
+
+  '@types/micromatch@4.0.10':
+    resolution: {integrity: sha512-5jOhFDElqr4DKTrTEbnW8DZ4Hz5LRUEmyrGpCMrD/NphYv3nUnaF08xmSLx1rGGnyEs/kFnhiw6dCgcDqMr5PQ==}
 
   '@types/node@24.13.3':
     resolution: {integrity: sha512-Dh8vAsV36ig5wa9OX4pXvMc9D3Veibfw2wix0CUwYODLD8nkj9UsLjASr49nPg+2eKzxhBV+v7L8pXvT4e639Q==}
@@ -2115,6 +2137,8 @@ snapshots:
 
   '@types/aria-query@5.0.4': {}
 
+  '@types/braces@3.0.5': {}
+
   '@types/chai@5.2.3':
     dependencies:
       '@types/deep-eql': 4.0.2
@@ -2123,6 +2147,10 @@ snapshots:
   '@types/deep-eql@4.0.2': {}
 
   '@types/estree@1.0.9': {}
+
+  '@types/micromatch@4.0.10':
+    dependencies:
+      '@types/braces': 3.0.5
 
   '@types/node@24.13.3':
     dependencies:

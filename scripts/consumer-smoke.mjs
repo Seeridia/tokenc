@@ -14,15 +14,18 @@ const PUBLIC_PACKAGE_NAMES = Object.freeze([
 
 const EXPECTED_OUTPUTS = Object.freeze([
   Object.freeze({
+    id: "css",
     path: "dist/tokens.css",
     content: ":root {\n  --spacing-4: 16px;\n}\n",
   }),
   Object.freeze({
+    id: "tailwind",
     path: "dist/tailwind.css",
     content:
       ":root {\n  --token-spacing-4: 16px;\n}\n\n@theme {\n  --spacing-4: var(--token-spacing-4);\n}\n",
   }),
   Object.freeze({
+    id: "typescript",
     path: "dist/tokens.ts",
     content: 'export const spacing4 = "16px";\n',
   }),
@@ -204,16 +207,13 @@ import { typescript } from "@tokenc/backend-typescript";
 
 const content = ${JSON.stringify(JSON.stringify(TOKEN_DOCUMENT))};
 const expected = ${JSON.stringify(EXPECTED_OUTPUTS)};
-const result = await compileDocuments(
-  [{ file: "tokens.json", content }],
-  {
-    outputs: [
-      css({ output: "dist/tokens.css" }),
-      tailwind({ output: "dist/tailwind.css" }),
-      typescript({ output: "dist/tokens.ts", mode: "flat", references: "symbol" }),
-    ],
-  },
-);
+const snapshot = await compileDocuments([{ file: "tokens.json", content }]);
+assert.equal(snapshot.status, "valid", JSON.stringify(snapshot.diagnostics));
+const result = await snapshot.emit([
+  css({ output: "dist/tokens.css" }),
+  tailwind({ output: "dist/tailwind.css" }),
+  typescript({ output: "dist/tokens.ts", mode: "flat", references: "symbol" }),
+]);
 assert.equal(result.success, true, JSON.stringify(result.diagnostics));
 assert.deepEqual(result.outputs, expected);
 `;

@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tokenc.dev/schemas/impact-report-v1.schema.json",
+  "title": "tokenc Impact Report v1",
+  "description": "Stable machine contract for mapping changed source documents to affected Tokens.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "snapshot",
+    "request",
+    "coverage",
+    "impact",
+    "diagnostics"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1" },
+    "status": { "enum": ["complete", "incomplete"] },
+    "snapshot": { "$ref": "#/$defs/snapshotIdentity" },
+    "base": { "$ref": "#/$defs/snapshotIdentity" },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["documents", "sources", "tokens", "context"],
+      "properties": {
+        "documents": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "sources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/source" }
+        },
+        "tokens": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "context": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "predicate": { "$ref": "#/$defs/predicate" }
+      }
+    },
+    "coverage": { "$ref": "#/$defs/coverage" },
+    "impact": { "$ref": "#/$defs/impact" },
+    "diagnostics": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/sidedDiagnostic" }
+    }
+  },
+  "$defs": {
+    "snapshotIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceRevision", "configurationIdentity", "status"],
+      "properties": {
+        "sourceRevision": { "type": "string", "minLength": 1 },
+        "configurationIdentity": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["valid", "invalid"] }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["document", "status", "tokens"],
+      "properties": {
+        "document": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["matched", "empty", "unknown"] },
+        "tokens": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "default", "values"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "default": { "type": "string" },
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "predicate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["domain", "clauses", "key"],
+      "properties": {
+        "domain": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["dimensions", "key"],
+          "properties": {
+            "dimensions": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/dimension" }
+            },
+            "key": { "type": "string" }
+          }
+        },
+        "clauses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "key": { "type": "string" }
+      }
+    },
+    "omission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["predicate", "reason"],
+      "properties": {
+        "predicate": { "$ref": "#/$defs/predicate" },
+        "reason": {
+          "enum": [
+            "limit-exceeded",
+            "invalid-base",
+            "invalid-head",
+            "configuration-unavailable",
+            "backend-prepare-failed",
+            "unsupported"
+          ]
+        },
+        "detail": { "type": "string" }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requested", "compared", "omitted"],
+      "properties": {
+        "requested": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/predicate" }
+        },
+        "compared": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/predicate" }
+        },
+        "omitted": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/omission" }
+        }
+      }
+    },
+    "impactEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["token", "condition", "sides"],
+      "properties": {
+        "token": { "type": "string", "minLength": 1 },
+        "condition": { "$ref": "#/$defs/predicate" },
+        "sides": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["base", "head"] }
+        }
+      }
+    },
+    "impact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "changed", "directlyAffected", "indirectlyAffected"],
+      "properties": {
+        "schemaVersion": { "const": "1" },
+        "changed": { "type": "array", "items": { "$ref": "#/$defs/impactEntry" } },
+        "directlyAffected": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/impactEntry" }
+        },
+        "indirectlyAffected": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/impactEntry" }
+        }
+      }
+    },
+    "sidedDiagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["side", "diagnostic"],
+      "properties": {
+        "side": { "enum": ["base", "head", "comparison", "backend"] },
+        "diagnostic": {
+          "type": "object",
+          "required": [
+            "schemaVersion",
+            "code",
+            "severity",
+            "message",
+            "parameters",
+            "fingerprint",
+            "documentationUrl",
+            "related",
+            "fixes"
+          ],
+          "properties": {
+            "schemaVersion": { "const": "1" },
+            "code": { "type": "string" },
+            "severity": { "enum": ["error", "warning", "info"] },
+            "message": { "type": "string" },
+            "parameters": { "type": "object" },
+            "fingerprint": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+            "documentationUrl": { "type": "string", "format": "uri" },
+            "related": { "type": "array" },
+            "fixes": { "type": "array" }
+          }
+        }
+      }
+    }
+  }
+}

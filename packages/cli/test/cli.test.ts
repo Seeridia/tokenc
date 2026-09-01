@@ -2,6 +2,7 @@ import { readFile, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { buildImpactReport, compile, parseTokenId } from "@tokenc/core";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 
 import {
@@ -9,7 +10,8 @@ import {
   isConfigFileEvent,
   shouldReloadConfigForEvent,
 } from "../src/config-file.js";
-import { runCli } from "../src/index.js";
+import { loadConfig, runCli } from "../src/index.js";
+import queryGolden from "./fixtures/query-v1.json" with { type: "json" };
 
 const cwd = fileURLToPath(new URL("fixtures/basic", import.meta.url));
 const output = fileURLToPath(new URL("fixtures/basic/dist", import.meta.url));
@@ -99,7 +101,7 @@ describe("tokenc CLI", () => {
 
   it("checks without writing outputs", async () => {
     const result = await invoke(["check"]);
-    expect(result.stdout).toContain("✓ 5 tokens checked");
+    expect(result.stdout).toContain("tokenc check report v1\nVerdict: pass\nTokens: 5");
     await expect(readFile(`${output}/tokens.css`, "utf8")).rejects.toThrow(/ENOENT/u);
   });
 
@@ -119,7 +121,10 @@ describe("tokenc CLI", () => {
     ]);
     expect(invalid.code).toBe(1);
     expect(JSON.parse(invalid.stdout)).toMatchObject({
-      errors: [{ code: "BACKEND_FIXTURE_INVALID" }],
+      schemaVersion: "1",
+      command: "check",
+      verdict: "fail",
+      diagnostics: [{ diagnostic: { code: "BACKEND_UNSUPPORTED_VALUE" } }],
     });
   });
 
@@ -132,7 +137,8 @@ describe("tokenc CLI", () => {
     ]);
     expect(result.code).toBe(1);
     expect(JSON.parse(result.stdout)).toMatchObject({
-      errors: [{ code: "BACKEND_OUTPUT_PATH_COLLISION" }],
+      schemaVersion: "1",
+      diagnostics: [{ code: "BACKEND_ARTIFACT_COLLISION" }],
     });
     await expect(readFile(`${backendLifecycleOutput}/shared.txt`, "utf8")).rejects.toThrow(
       /ENOENT/u,
@@ -142,8 +148,45 @@ describe("tokenc CLI", () => {
   it("emits machine-readable diagnostics", async () => {
     const result = await invoke(["check", "--config", "../invalid/tokenc.config.ts", "--json"]);
     expect(result.code).toBe(1);
+    const payload: unknown = JSON.parse(result.stdout);
+    expect(payload).toMatchObject({
+      schemaVersion: "1",
+      command: "check",
+      verdict: "fail",
+      diagnostics: [{ diagnostic: { code: "TOKEN_UNKNOWN_REFERENCE" } }],
+    });
+    expect(payload).not.toHaveProperty("errors");
+  });
+
+  it("emits Diagnostic v1 findings through SARIF 2.1.0", async () => {
+    const result = await invoke([
+      "check",
+      "--config",
+      "../invalid/tokenc.config.ts",
+      "--format=sarif",
+    ]);
+    expect(result).toMatchObject({ code: 1, stderr: "" });
     expect(JSON.parse(result.stdout)).toMatchObject({
-      errors: [{ code: "TOKEN_UNKNOWN_REFERENCE" }],
+      version: "2.1.0",
+      runs: [
+        {
+          tool: { driver: { name: "tokenc", rules: [{ id: "TOKEN_UNKNOWN_REFERENCE" }] } },
+          results: [
+            {
+              ruleId: "TOKEN_UNKNOWN_REFERENCE",
+              level: "error",
+              locations: [
+                {
+                  physicalLocation: {
+                    artifactLocation: { uri: "tokens.json" },
+                    region: { startLine: 14, startColumn: 26 },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
     });
   });
 
@@ -177,8 +220,136 @@ describe("tokenc CLI", () => {
   it("renders a complete multi-level text dependency tree", async () => {
     const result = await invoke(["graph", "button.primary.background"]);
     expect(result.stdout).toBe(
-      "button.primary.background\n└─ color.brand.default\n   └─ color.blue.600\n",
+      "Dependency graph v1\nbutton.primary.background\n└─ color.brand.default\n   └─ color.blue.600\n",
     );
+  });
+
+  it("emits deterministic Query and Trace v1 JSON matching golden fixtures", async () => {
+    const explain = await invoke(["explain", "button.primary.background", "--json"]);
+    const usages = await invoke(["usages", "color.blue.600", "--json"]);
+    const graph = await invoke(["graph", "button.primary.background", "--json"]);
+
+    expect(JSON.parse(explain.stdout)).toMatchObject(queryGolden.explain);
+    expect(JSON.parse(usages.stdout)).toMatchObject(queryGolden.usages);
+    expect(JSON.parse(graph.stdout)).toMatchObject(queryGolden.graph);
+    expect(explain.stdout).toBe(
+      (await invoke(["explain", "button.primary.background", "--json"])).stdout,
+    );
+    expect(usages.stdout).toBe((await invoke(["usages", "color.blue.600", "--json"])).stdout);
+    expect(graph.stdout).toBe(
+      (await invoke(["graph", "button.primary.background", "--json"])).stdout,
+    );
+  });
+
+  it("matches direct Core diagnostics, traces, and Context query results", async () => {
+    const config = await loadConfig(cwd);
+    const snapshot = await compile(config);
+    if (snapshot.status !== "valid") throw new Error("Expected valid direct-Core snapshot");
+    const explainId = parseTokenId("button.primary.background");
+    const usageId = parseTokenId("color.blue.600");
+
+    const explain = await invoke(["explain", explainId, "--json"]);
+    const usages = await invoke(["usages", usageId, "--json"]);
+    const graph = await invoke(["graph", explainId, "--json"]);
+    expect(JSON.parse(explain.stdout)).toEqual(snapshot.query.explain(explainId));
+    expect(JSON.parse(usages.stdout)).toEqual({
+      schemaVersion: "1",
+      token: usageId,
+      usages: snapshot.query.usages(usageId),
+      impact: snapshot.query.impact([usageId]),
+    });
+    expect(JSON.parse(graph.stdout)).toEqual({
+      schemaVersion: "1",
+      roots: [explainId],
+      edges: snapshot.query.graph([explainId]),
+    });
+
+    const invalidConfig = await loadConfig(cwd, "../invalid/tokenc.config.ts");
+    const invalidSnapshot = await compile(invalidConfig);
+    const invalid = await invoke(["check", "--config", "../invalid/tokenc.config.ts", "--json"]);
+    expect(
+      JSON.parse(invalid.stdout).diagnostics.map(
+        (item: { diagnostic: { fingerprint: string } }) => item.diagnostic.fingerprint,
+      ),
+    ).toEqual(invalidSnapshot.diagnostics.map((item) => item.fingerprint));
+  });
+
+  it("reports source-to-Token impact with Core/CLI JSON parity", async () => {
+    const config = await loadConfig(cwd);
+    const snapshot = await compile(config);
+    const document = snapshot.documents.find((entry) =>
+      entry.identity.endsWith("/tokens/primitive.json"),
+    )?.identity;
+    if (!document) throw new Error("Expected primitive source document");
+
+    const result = await invoke(["impact", "tokens/primitive.json", "--format", "json"]);
+    expect(result).toMatchObject({ code: 0, stderr: "" });
+    expect(JSON.parse(result.stdout)).toEqual(
+      buildImpactReport(snapshot, { documents: [document] }),
+    );
+    expect(result.stdout).toBe(
+      (await invoke(["impact", "tokens/primitive.json", "--format=json"])).stdout,
+    );
+  });
+
+  it("renders impact text and distinguishes empty or unknown source paths", async () => {
+    const text = await invoke(["impact", "tokens/primitive.json"]);
+    expect(text).toMatchObject({ code: 0, stderr: "" });
+    expect(text.stdout).toContain("Impact Report v1\nStatus: complete");
+    expect(text.stdout).toContain("Directly changed:\n\n├─ color.blue.600");
+    expect(text.stdout).toContain("Directly affected:\n\n├─ color.brand.default");
+    expect(text.stdout).toContain("Transitively affected:\n\n└─ button.primary.background");
+
+    const unknown = await invoke(["impact", "tokens/missing.json", "--format", "json"]);
+    expect(unknown).toMatchObject({ code: 2, stderr: "" });
+    expect(JSON.parse(unknown.stdout)).toMatchObject({
+      status: "incomplete",
+      request: { sources: [{ status: "unknown", tokens: [] }] },
+    });
+  });
+
+  it("accepts repeatable Context filters and fails closed for unsupported coverage", async () => {
+    const result = await invokeAt(resolverCwd, [
+      "impact",
+      "tokens/base.json",
+      "--context",
+      "theme=dark",
+      "--format=json",
+    ]);
+    expect(result.code).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      status: "complete",
+      request: { context: { theme: "dark" } },
+    });
+
+    const invalid = await invokeAt(resolverCwd, [
+      "impact",
+      "tokens/base.json",
+      "--context=theme=unknown",
+      "--format=json",
+    ]);
+    expect(invalid.code).toBe(2);
+    expect(JSON.parse(invalid.stdout)).toMatchObject({
+      status: "incomplete",
+      diagnostics: [{ diagnostic: { code: "TOKEN_CONTEXT_UNKNOWN_VALUE" } }],
+    });
+  });
+
+  it("returns incomplete impact for an invalid Snapshot", async () => {
+    const result = await invoke([
+      "impact",
+      "tokens.json",
+      "--config",
+      "../invalid/tokenc.config.ts",
+      "--format=json",
+    ]);
+    expect(result).toMatchObject({ code: 2, stderr: "" });
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      status: "incomplete",
+      snapshot: { status: "invalid" },
+      coverage: { compared: [], omitted: [{ reason: "invalid-head" }] },
+      diagnostics: [{ side: "head", diagnostic: { code: "TOKEN_UNKNOWN_REFERENCE" } }],
+    });
   });
 
   it("explains JSON Pointer components and inherited provenance", async () => {

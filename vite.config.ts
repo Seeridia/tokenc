@@ -73,6 +73,7 @@ export default defineConfig({
   test: {
     include: [
       "benchmarks/test/**/*.test.ts",
+      "examples/*/test/**/*.test.ts",
       "packages/*/test/**/*.test.ts",
       "scripts/test/**/*.test.mjs",
     ],

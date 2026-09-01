@@ -1,0 +1,5118 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Seeridia/tokenc/main/benchmarks/benchmark-report.v1.schema.json",
+  "schemaVersion": 1,
+  "suite": {
+    "name": "tokenc-compiler",
+    "version": 1
+  },
+  "generatedAt": "2026-08-31T16:29:16.773Z",
+  "source": {
+    "commit": "07f44907fde16c9b136b9300e6b94fd1fe52ad46",
+    "dirty": true
+  },
+  "environment": {
+    "node": "v24.20.0",
+    "v8": "13.6.233.17-node.53",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpuModel": "Apple M4",
+    "logicalCores": 10,
+    "totalMemoryBytes": 17179869184
+  },
+  "methodology": {
+    "profile": "baseline",
+    "warmupRuns": 5,
+    "sampleRuns": 20,
+    "memorySampleRuns": 3,
+    "percentileMethod": "linear-r7",
+    "clock": "performance.now",
+    "concurrency": 1,
+    "fixturePreparationIncluded": false,
+    "ioIncluded": false,
+    "timingIsolation": "one-process-per-case",
+    "memoryIsolation": "one-process-per-sample"
+  },
+  "cases": [
+    {
+      "id": "m2/unchanged/layered-1200",
+      "name": "M2 unchanged two-Snapshot baseline",
+      "group": "change-intelligence",
+      "fixture": {
+        "kind": "synthetic",
+        "version": "m2-00-v1",
+        "sha256": "sha256:020dc7eed33ef62aeffa37ad14f973f924bf51f4a67d0215e69090515e1e5446",
+        "files": 6,
+        "bytes": 231472,
+        "description": "Two identical 1,200-token layered revisions with two Context dimensions",
+        "parameters": {
+          "tokensPerRevision": 1200,
+          "dimensions": 2
+        }
+      },
+      "operation": {
+        "cacheState": "compiler-cold-runtime-warm",
+        "outputTarget": "backend-plan",
+        "ioIncluded": false,
+        "kind": "change-intelligence-unchanged"
+      },
+      "validation": {
+        "compilationSuccess": true,
+        "matchesExpected": true,
+        "semanticSha256": "sha256:816af979e7eaf0a15508acce469eff31a0424b2fd255f46ed8a4b7d3d3602250",
+        "diagnostics": {}
+      },
+      "timeSamples": [
+        {
+          "index": 1,
+          "wallMs": 136.47366599999998,
+          "stagesMs": {
+            "parse": 8.305124999999975,
+            "link": 4.372583000000077,
+            "graph": 11.295874000000026,
+            "check": 0.9739589999999225,
+            "resolve": 9.629291999999964,
+            "emit": 0,
+            "total": 39.93870800000002
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 94.28595799999994,
+              "impactTraversal": 0.04258299999992232,
+              "backendPreparation": 41.83104100000003,
+              "reportSerialization": 0.20474999999999
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 2,
+          "wallMs": 131.76637499999993,
+          "stagesMs": {
+            "parse": 8.009082999999919,
+            "link": 3.6460010000000693,
+            "graph": 11.06337499999995,
+            "check": 0.8688329999999951,
+            "resolve": 9.502666999999974,
+            "emit": 0,
+            "total": 37.71629200000007
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 90.07966600000009,
+              "impactTraversal": 0.033875000000080036,
+              "backendPreparation": 41.303666999999905,
+              "reportSerialization": 0.2166669999999158
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 3,
+          "wallMs": 132.45225000000005,
+          "stagesMs": {
+            "parse": 7.869916999999987,
+            "link": 4.561999000000014,
+            "graph": 11.207167000000254,
+            "check": 0.9821669999998903,
+            "resolve": 9.357082999999875,
+            "emit": 0,
+            "total": 39.519791999999825
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 91.70270900000014,
+              "impactTraversal": 0.03608299999996234,
+              "backendPreparation": 40.39429100000007,
+              "reportSerialization": 0.19870800000012423
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 4,
+          "wallMs": 137.59729100000004,
+          "stagesMs": {
+            "parse": 8.524499999999989,
+            "link": 4.142207999999982,
+            "graph": 11.809584000000086,
+            "check": 0.9774159999999483,
+            "resolve": 10.062250000000176,
+            "emit": 0,
+            "total": 40.34858299999996
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 95.13808300000005,
+              "impactTraversal": 0.033208000000058746,
+              "backendPreparation": 42.08833400000003,
+              "reportSerialization": 0.21420800000009876
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 5,
+          "wallMs": 132.85020899999995,
+          "stagesMs": {
+            "parse": 7.910250000000133,
+            "link": 3.902748999999858,
+            "graph": 11.650083999999879,
+            "check": 1.0173330000000078,
+            "resolve": 9.604207999999971,
+            "emit": 0,
+            "total": 39.07674999999995
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 92.05929100000003,
+              "impactTraversal": 0.030874999999923602,
+              "backendPreparation": 40.37658299999998,
+              "reportSerialization": 0.21041700000000674
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 6,
+          "wallMs": 135.160709,
+          "stagesMs": {
+            "parse": 8.294124999999894,
+            "link": 3.79954100000009,
+            "graph": 12.375124999999798,
+            "check": 0.9733340000000226,
+            "resolve": 9.731583,
+            "emit": 0,
+            "total": 39.72737499999994
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 93.36387500000001,
+              "impactTraversal": 0.03608399999984613,
+              "backendPreparation": 41.426749999999856,
+              "reportSerialization": 0.22316699999987577
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 7,
+          "wallMs": 137.7755000000002,
+          "stagesMs": {
+            "parse": 7.627541000000065,
+            "link": 3.991916000000174,
+            "graph": 11.878791000000092,
+            "check": 1.1003339999999753,
+            "resolve": 10.31641599999989,
+            "emit": 0,
+            "total": 39.75316699999985
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 93.94862499999999,
+              "impactTraversal": 0.03720800000019153,
+              "backendPreparation": 43.45133299999998,
+              "reportSerialization": 0.21670799999992596
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 8,
+          "wallMs": 142.49129100000005,
+          "stagesMs": {
+            "parse": 8.505874999999833,
+            "link": 4.600376000000097,
+            "graph": 11.406833000000233,
+            "check": 0.9592499999998836,
+            "resolve": 10.162375000000111,
+            "emit": 0,
+            "total": 40.348207999999886
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 97.95758300000011,
+              "impactTraversal": 0.03241700000012315,
+              "backendPreparation": 44.208624999999984,
+              "reportSerialization": 0.21000000000003638
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 9,
+          "wallMs": 134.23691700000018,
+          "stagesMs": {
+            "parse": 8.488708999999744,
+            "link": 3.7701259999994363,
+            "graph": 11.78912500000024,
+            "check": 0.999250000000302,
+            "resolve": 9.542998999999782,
+            "emit": 0,
+            "total": 39.225374999999985
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 92.9964580000003,
+              "impactTraversal": 0.029333999999835214,
+              "backendPreparation": 40.93529200000012,
+              "reportSerialization": 0.20008300000017698
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 10,
+          "wallMs": 133.84345800000028,
+          "stagesMs": {
+            "parse": 8.00400000000036,
+            "link": 3.8919150000001537,
+            "graph": 11.317167000000154,
+            "check": 1.0003750000000764,
+            "resolve": 10.003709000000072,
+            "emit": 0,
+            "total": 38.96970800000008
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 93.4132910000003,
+              "impactTraversal": 0.03258300000015879,
+              "backendPreparation": 40.08354100000042,
+              "reportSerialization": 0.22454199999992852
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 11,
+          "wallMs": 130.4692500000001,
+          "stagesMs": {
+            "parse": 7.662708000000293,
+            "link": 4.161124999999629,
+            "graph": 11.239958999999999,
+            "check": 0.9184580000001006,
+            "resolve": 9.367792000000009,
+            "emit": 0,
+            "total": 37.9345830000002
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 90.15095900000006,
+              "impactTraversal": 0.040500000000065484,
+              "backendPreparation": 39.997499999999945,
+              "reportSerialization": 0.2007499999999709
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 12,
+          "wallMs": 134.20375000000013,
+          "stagesMs": {
+            "parse": 8.402250000000095,
+            "link": 4.265542000000096,
+            "graph": 11.204541999999492,
+            "check": 0.9137080000000424,
+            "resolve": 9.497000000000298,
+            "emit": 0,
+            "total": 38.72104100000024
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 92.70812500000011,
+              "impactTraversal": 0.033457999999882304,
+              "backendPreparation": 41.17479100000037,
+              "reportSerialization": 0.19787499999983993
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 13,
+          "wallMs": 133.61470899999995,
+          "stagesMs": {
+            "parse": 8.051249999999982,
+            "link": 3.684708000000228,
+            "graph": 11.389791999999943,
+            "check": 0.8797080000003916,
+            "resolve": 9.666666000000077,
+            "emit": 0,
+            "total": 38.38408299999992
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 91.63599999999997,
+              "impactTraversal": 0.03495900000007168,
+              "backendPreparation": 41.58720799999992,
+              "reportSerialization": 0.2147500000000946
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 14,
+          "wallMs": 133.16224999999986,
+          "stagesMs": {
+            "parse": 7.82549999999992,
+            "link": 3.9182080000005044,
+            "graph": 11.256001000000197,
+            "check": 0.9267079999999623,
+            "resolve": 9.821292000000085,
+            "emit": 0,
+            "total": 38.77104199999985
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 91.69641599999977,
+              "impactTraversal": 0.029333999999835214,
+              "backendPreparation": 41.17916699999978,
+              "reportSerialization": 0.18450000000029831
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 15,
+          "wallMs": 134.1438750000002,
+          "stagesMs": {
+            "parse": 8.371375000000171,
+            "link": 4.26641600000039,
+            "graph": 11.20091599999978,
+            "check": 0.8745410000001357,
+            "resolve": 10.726749000000382,
+            "emit": 0,
+            "total": 40.11149999999998
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 92.49379200000021,
+              "impactTraversal": 0.02741599999990285,
+              "backendPreparation": 41.34770800000024,
+              "reportSerialization": 0.20070799999984956
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 16,
+          "wallMs": 132.21945800000003,
+          "stagesMs": {
+            "parse": 8.622959000000264,
+            "link": 3.808542000000216,
+            "graph": 11.672583999999915,
+            "check": 0.8742499999998472,
+            "resolve": 9.736749000000145,
+            "emit": 0,
+            "total": 39.34420799999998
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 91.86699999999973,
+              "impactTraversal": 0.03295899999966423,
+              "backendPreparation": 40.00375000000031,
+              "reportSerialization": 0.20254100000011022
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 17,
+          "wallMs": 132.08958299999995,
+          "stagesMs": {
+            "parse": 8.071582999999919,
+            "link": 3.8614180000004126,
+            "graph": 11.200916000000234,
+            "check": 0.9507499999999709,
+            "resolve": 10.164166000000023,
+            "emit": 0,
+            "total": 39.05820799999992
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 91.3459170000001,
+              "impactTraversal": 0.03350000000000364,
+              "backendPreparation": 40.387040999999954,
+              "reportSerialization": 0.20454099999960818
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 18,
+          "wallMs": 135.4143339999996,
+          "stagesMs": {
+            "parse": 8.1697079999999,
+            "link": 4.6996250000001965,
+            "graph": 11.820083000000068,
+            "check": 1.0445419999996375,
+            "resolve": 9.686250000000655,
+            "emit": 0,
+            "total": 40.20983400000023
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 93.82725000000028,
+              "impactTraversal": 0.03266699999994671,
+              "backendPreparation": 41.299291999999696,
+              "reportSerialization": 0.18204199999991033
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 19,
+          "wallMs": 136.42041699999982,
+          "stagesMs": {
+            "parse": 7.701999999999771,
+            "link": 4.02579199999991,
+            "graph": 12.862250000000131,
+            "check": 0.902791000000434,
+            "resolve": 10.486374999999953,
+            "emit": 0,
+            "total": 40.86900000000014
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 94.46783300000016,
+              "impactTraversal": 0.033999999999650754,
+              "backendPreparation": 41.59395799999993,
+              "reportSerialization": 0.2055000000000291
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        },
+        {
+          "index": 20,
+          "wallMs": 136.86183299999993,
+          "stagesMs": {
+            "parse": 7.4418329999998605,
+            "link": 3.8773340000002463,
+            "graph": 12.141082999999526,
+            "check": 1.0100840000000062,
+            "resolve": 9.741959000000406,
+            "emit": 0,
+            "total": 38.940000000000055
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 93.8396660000003,
+              "impactTraversal": 0.036125000000083674,
+              "backendPreparation": 42.64904200000001,
+              "reportSerialization": 0.2416670000002341
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 0,
+              "reportBytes": 144132
+            }
+          }
+        }
+      ],
+      "memorySamples": [
+        {
+          "index": 1,
+          "baselineRssBytes": 91291648,
+          "preMaxRssBytes": 91291648,
+          "peakRssBytes": 167837696,
+          "peakIncreaseBytes": 76546048
+        },
+        {
+          "index": 2,
+          "baselineRssBytes": 89800704,
+          "preMaxRssBytes": 89800704,
+          "peakRssBytes": 167854080,
+          "peakIncreaseBytes": 78053376
+        },
+        {
+          "index": 3,
+          "baselineRssBytes": 91193344,
+          "preMaxRssBytes": 91275264,
+          "peakRssBytes": 167493632,
+          "peakIncreaseBytes": 76218368
+        }
+      ],
+      "summary": {
+        "wallMs": {
+          "count": 20,
+          "min": 130.4692500000001,
+          "p50": 134.17381250000017,
+          "p95": 138.01128955000019,
+          "max": 142.49129100000005
+        },
+        "stagesMs": {
+          "parse": {
+            "count": 20,
+            "min": 7.4418329999998605,
+            "p50": 8.06141649999995,
+            "p95": 8.529422950000003,
+            "max": 8.622959000000264
+          },
+          "link": {
+            "count": 20,
+            "min": 3.6460010000000693,
+            "p50": 3.955062000000339,
+            "p95": 4.605338450000102,
+            "max": 4.6996250000001965
+          },
+          "graph": {
+            "count": 20,
+            "min": 11.06337499999995,
+            "p50": 11.398312500000088,
+            "p95": 12.399481249999814,
+            "max": 12.862250000000131
+          },
+          "check": {
+            "count": 20,
+            "min": 0.8688329999999951,
+            "p50": 0.9662919999999531,
+            "p95": 1.0473315999996544,
+            "max": 1.1003339999999753
+          },
+          "resolve": {
+            "count": 20,
+            "min": 9.357082999999875,
+            "p50": 9.734166000000073,
+            "p95": 10.498393699999975,
+            "max": 10.726749000000382
+          },
+          "emit": {
+            "count": 20,
+            "min": 0,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "total": {
+            "count": 20,
+            "min": 37.71629200000007,
+            "p50": 39.28479149999998,
+            "p95": 40.37460384999997,
+            "max": 40.86900000000014
+          }
+        },
+        "peakRssBytes": {
+          "count": 3,
+          "min": 167493632,
+          "p50": 167837696,
+          "p95": 167852441.6,
+          "max": 167854080
+        },
+        "peakIncreaseBytes": {
+          "count": 3,
+          "min": 76218368,
+          "p50": 76546048,
+          "p95": 77902643.2,
+          "max": 78053376
+        },
+        "changeIntelligence": {
+          "stagesMs": {
+            "snapshotConstruction": {
+              "count": 20,
+              "min": 90.07966600000009,
+              "p50": 92.8522915000002,
+              "p95": 95.27905800000006,
+              "max": 97.95758300000011
+            },
+            "impactTraversal": {
+              "count": 20,
+              "min": 0.02741599999990285,
+              "p50": 0.03347899999994297,
+              "p95": 0.04060415000005833,
+              "max": 0.04258299999992232
+            },
+            "backendPreparation": {
+              "count": 20,
+              "min": 39.997499999999945,
+              "p50": 41.3014794999998,
+              "p95": 43.489197599999976,
+              "max": 44.208624999999984
+            },
+            "reportSerialization": {
+              "count": 20,
+              "min": 0.18204199999991033,
+              "p50": 0.20512500000000955,
+              "p95": 0.22539824999994382,
+              "max": 0.2416670000002341
+            }
+          },
+          "counters": {
+            "baseTokens": 1200,
+            "headTokens": 1200,
+            "changedTokens": 0,
+            "directlyAffectedTokens": 0,
+            "indirectlyAffectedTokens": 0,
+            "backendPlans": 2,
+            "reportEntries": 0,
+            "reportBytes": 144132
+          }
+        }
+      }
+    },
+    {
+      "id": "m2/one-file-edit/layered-1200",
+      "name": "M2 one-file layered impact baseline",
+      "group": "change-intelligence",
+      "fixture": {
+        "kind": "synthetic",
+        "version": "m2-00-v1",
+        "sha256": "sha256:c7a39659ea22c4291285f977ca5ebe9d06dd831a187d317a1723919660375047",
+        "files": 6,
+        "bytes": 231472,
+        "description": "One primitive edit across a 1,200-token primitive/semantic/component hierarchy",
+        "parameters": {
+          "tokensPerRevision": 1200,
+          "changedFiles": 1,
+          "dimensions": 2
+        }
+      },
+      "operation": {
+        "cacheState": "compiler-cold-runtime-warm",
+        "outputTarget": "backend-plan",
+        "ioIncluded": false,
+        "kind": "change-intelligence-one-file-edit"
+      },
+      "validation": {
+        "compilationSuccess": true,
+        "matchesExpected": true,
+        "semanticSha256": "sha256:c14eab24f59bc5cd401807f912725c869c6952d9d5a68b1026d34cbb998695d5",
+        "diagnostics": {}
+      },
+      "timeSamples": [
+        {
+          "index": 1,
+          "wallMs": 134.88587500000006,
+          "stagesMs": {
+            "parse": 7.86079200000006,
+            "link": 4.153667000000041,
+            "graph": 11.457583999999997,
+            "check": 0.9522499999999354,
+            "resolve": 9.287333000000103,
+            "emit": 0,
+            "total": 38.75183400000003
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 92.05616700000007,
+              "impactTraversal": 0.1529170000000022,
+              "backendPreparation": 42.33699999999999,
+              "reportSerialization": 0.21862500000008822
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 2,
+          "wallMs": 134.14791700000012,
+          "stagesMs": {
+            "parse": 7.960166999999956,
+            "link": 3.7647910000000593,
+            "graph": 11.48683300000016,
+            "check": 0.8913329999998041,
+            "resolve": 9.510332999999946,
+            "emit": 0,
+            "total": 38.213750000000005
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 91.56154200000003,
+              "impactTraversal": 0.14854200000013407,
+              "backendPreparation": 42.08708300000012,
+              "reportSerialization": 0.22000000000002728
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 3,
+          "wallMs": 132.43416700000012,
+          "stagesMs": {
+            "parse": 7.703082999999879,
+            "link": 4.033791000000065,
+            "graph": 11.151959000000033,
+            "check": 0.9064579999999296,
+            "resolve": 9.757166000000097,
+            "emit": 0,
+            "total": 38.32341700000006
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 91.02625000000012,
+              "impactTraversal": 0.15875000000005457,
+              "backendPreparation": 40.921875,
+              "reportSerialization": 0.20229100000005928
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 4,
+          "wallMs": 135.4932080000001,
+          "stagesMs": {
+            "parse": 7.755041000000119,
+            "link": 4.903332999999975,
+            "graph": 12.297458000000233,
+            "check": 0.9519580000001042,
+            "resolve": 9.668957999999975,
+            "emit": 0,
+            "total": 40.22483299999999
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 93.6405830000001,
+              "impactTraversal": 0.15029099999992468,
+              "backendPreparation": 41.36870900000008,
+              "reportSerialization": 0.20270799999980227
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 5,
+          "wallMs": 136.71637499999997,
+          "stagesMs": {
+            "parse": 8.327792000000045,
+            "link": 3.887542000000167,
+            "graph": 11.377915999999914,
+            "check": 0.9623340000000553,
+            "resolve": 9.99304200000006,
+            "emit": 0,
+            "total": 39.41933300000005
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 92.72925000000009,
+              "impactTraversal": 0.13945799999987685,
+              "backendPreparation": 43.516208000000006,
+              "reportSerialization": 0.21254100000010112
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 6,
+          "wallMs": 134.831416,
+          "stagesMs": {
+            "parse": 8.429292000000032,
+            "link": 3.9810010000001057,
+            "graph": 11.636834000000135,
+            "check": 0.9580000000000837,
+            "resolve": 10.053166000000147,
+            "emit": 0,
+            "total": 39.724042000000054
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 92.51658300000008,
+              "impactTraversal": 0.14687499999990905,
+              "backendPreparation": 41.869874999999865,
+              "reportSerialization": 0.20849999999995816
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 7,
+          "wallMs": 134.382292,
+          "stagesMs": {
+            "parse": 7.848540999999841,
+            "link": 4.051956999999902,
+            "graph": 12.084416000000147,
+            "check": 0.9710000000000036,
+            "resolve": 9.801917000000003,
+            "emit": 0,
+            "total": 39.96008299999994
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 92.59287499999982,
+              "impactTraversal": 0.14404100000001563,
+              "backendPreparation": 41.30899999999997,
+              "reportSerialization": 0.22708299999999326
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 8,
+          "wallMs": 133.91812499999992,
+          "stagesMs": {
+            "parse": 7.932874999999967,
+            "link": 4.563916999999947,
+            "graph": 11.423665999999912,
+            "check": 0.9853749999999764,
+            "resolve": 9.239958999999772,
+            "emit": 0,
+            "total": 38.747416999999814
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 91.43925000000013,
+              "impactTraversal": 0.1971249999999145,
+              "backendPreparation": 41.94641699999988,
+              "reportSerialization": 0.2202910000000884
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 9,
+          "wallMs": 136.35483299999987,
+          "stagesMs": {
+            "parse": 8.289915999999948,
+            "link": 3.6795830000000933,
+            "graph": 11.219584000000168,
+            "check": 0.9060420000000704,
+            "resolve": 9.746666999999889,
+            "emit": 0,
+            "total": 38.537417000000005
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 94.94229199999972,
+              "impactTraversal": 0.13933300000007875,
+              "backendPreparation": 40.96770800000013,
+              "reportSerialization": 0.2198329999996531
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 10,
+          "wallMs": 133.79754200000025,
+          "stagesMs": {
+            "parse": 8.040291000000252,
+            "link": 4.594707999999628,
+            "graph": 11.659165999999914,
+            "check": 1.0750000000002728,
+            "resolve": 9.632375000000138,
+            "emit": 0,
+            "total": 39.73129199999994
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 92.75587499999983,
+              "impactTraversal": 0.15341699999999037,
+              "backendPreparation": 40.583916000000045,
+              "reportSerialization": 0.2185829999998532
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 11,
+          "wallMs": 132.06733299999996,
+          "stagesMs": {
+            "parse": 7.885917000000063,
+            "link": 3.843000000000302,
+            "graph": 11.319250000000011,
+            "check": 0.8491659999999683,
+            "resolve": 9.727041999999983,
+            "emit": 0,
+            "total": 38.18604099999993
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 91.33800000000019,
+              "impactTraversal": 0.13629100000025574,
+              "backendPreparation": 40.29258299999992,
+              "reportSerialization": 0.21395799999982046
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 12,
+          "wallMs": 134.54300000000012,
+          "stagesMs": {
+            "parse": 8.044124999999894,
+            "link": 4.028583000000253,
+            "graph": 11.113998999999694,
+            "check": 0.925333000000137,
+            "resolve": 9.41524999999956,
+            "emit": 0,
+            "total": 38.06791599999997
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 91.9513750000001,
+              "impactTraversal": 0.15866700000015044,
+              "backendPreparation": 42.126708000000235,
+              "reportSerialization": 0.2114169999999831
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 13,
+          "wallMs": 132.98174999999992,
+          "stagesMs": {
+            "parse": 7.9354590000002645,
+            "link": 4.132416000000376,
+            "graph": 11.346165999999812,
+            "check": 0.8644170000002305,
+            "resolve": 9.474416999999903,
+            "emit": 0,
+            "total": 38.405666999999994
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 90.99016699999993,
+              "impactTraversal": 0.14645799999971132,
+              "backendPreparation": 41.53849999999966,
+              "reportSerialization": 0.2203749999998763
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 14,
+          "wallMs": 133.61149999999998,
+          "stagesMs": {
+            "parse": 7.965708000000177,
+            "link": 3.7712090000004537,
+            "graph": 11.330250999999862,
+            "check": 0.870209000000159,
+            "resolve": 9.757375000000138,
+            "emit": 0,
+            "total": 38.424625000000106
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 91.79758300000003,
+              "impactTraversal": 0.14666699999997945,
+              "backendPreparation": 41.13304100000005,
+              "reportSerialization": 0.43962499999997817
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 15,
+          "wallMs": 134.8522079999998,
+          "stagesMs": {
+            "parse": 8.428083000000242,
+            "link": 4.384583999999904,
+            "graph": 11.077207999999246,
+            "check": 1.0311249999999745,
+            "resolve": 9.60600100000056,
+            "emit": 0,
+            "total": 39.11454099999992
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 93.37241700000004,
+              "impactTraversal": 0.1475829999999405,
+              "backendPreparation": 41.051332999999886,
+              "reportSerialization": 0.19641700000011042
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 16,
+          "wallMs": 132.24512499999992,
+          "stagesMs": {
+            "parse": 8.045791999999892,
+            "link": 3.7643339999999625,
+            "graph": 11.437124999999924,
+            "check": 0.9235829999997804,
+            "resolve": 9.430749999999534,
+            "emit": 0,
+            "total": 38.07333299999982
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 91.55275000000029,
+              "impactTraversal": 0.14708399999972244,
+              "backendPreparation": 40.2529999999997,
+              "reportSerialization": 0.20454100000006292
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 17,
+          "wallMs": 134.2014589999999,
+          "stagesMs": {
+            "parse": 8.369499999999789,
+            "link": 4.00708399999985,
+            "graph": 11.394416000000092,
+            "check": 0.8802089999999225,
+            "resolve": 9.922915999999987,
+            "emit": 0,
+            "total": 39.46379200000001
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 92.07674999999972,
+              "impactTraversal": 0.15516699999989214,
+              "backendPreparation": 41.603791999999885,
+              "reportSerialization": 0.21870799999987867
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 18,
+          "wallMs": 137.31716700000015,
+          "stagesMs": {
+            "parse": 8.043959000000086,
+            "link": 4.399999999999636,
+            "graph": 12.112416999999823,
+            "check": 1.0994579999996859,
+            "resolve": 9.568582999999762,
+            "emit": 0,
+            "total": 41.791957999999795
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 94.21766699999989,
+              "impactTraversal": 0.16820800000004965,
+              "backendPreparation": 42.6310840000001,
+              "reportSerialization": 0.20775000000003274
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 19,
+          "wallMs": 134.90370799999982,
+          "stagesMs": {
+            "parse": 7.685624999999618,
+            "link": 4.09133299999985,
+            "graph": 12.071500000000015,
+            "check": 0.8527910000002521,
+            "resolve": 9.713916000000154,
+            "emit": 0,
+            "total": 39.242499999999836
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 92.84470799999963,
+              "impactTraversal": 0.14612499999975626,
+              "backendPreparation": 41.3923749999999,
+              "reportSerialization": 0.3105839999998352
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        },
+        {
+          "index": 20,
+          "wallMs": 136.4845409999998,
+          "stagesMs": {
+            "parse": 7.754582999999911,
+            "link": 3.7803329999997004,
+            "graph": 12.382000000000062,
+            "check": 1.0449579999999514,
+            "resolve": 9.228125000000091,
+            "emit": 0,
+            "total": 39.55837500000007
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 93.61462500000016,
+              "impactTraversal": 0.17929099999992104,
+              "backendPreparation": 42.36604200000011,
+              "reportSerialization": 0.2229170000000522
+            },
+            "counters": {
+              "baseTokens": 1200,
+              "headTokens": 1200,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 1,
+              "indirectlyAffectedTokens": 1,
+              "backendPlans": 2,
+              "reportEntries": 3,
+              "reportBytes": 145773
+            }
+          }
+        }
+      ],
+      "memorySamples": [
+        {
+          "index": 1,
+          "baselineRssBytes": 89882624,
+          "preMaxRssBytes": 89882624,
+          "peakRssBytes": 167739392,
+          "peakIncreaseBytes": 77856768
+        },
+        {
+          "index": 2,
+          "baselineRssBytes": 89604096,
+          "preMaxRssBytes": 89604096,
+          "peakRssBytes": 169558016,
+          "peakIncreaseBytes": 79953920
+        },
+        {
+          "index": 3,
+          "baselineRssBytes": 89735168,
+          "preMaxRssBytes": 89735168,
+          "peakRssBytes": 167919616,
+          "peakIncreaseBytes": 78184448
+        }
+      ],
+      "summary": {
+        "wallMs": {
+          "count": 20,
+          "min": 132.06733299999996,
+          "p50": 134.46264600000006,
+          "p95": 136.74641459999998,
+          "max": 137.31716700000015
+        },
+        "stagesMs": {
+          "parse": {
+            "count": 20,
+            "min": 7.685624999999618,
+            "p50": 7.962937500000066,
+            "p95": 8.428143450000231,
+            "max": 8.429292000000032
+          },
+          "link": {
+            "count": 20,
+            "min": 3.6795830000000933,
+            "p50": 4.031187000000159,
+            "p95": 4.610139249999645,
+            "max": 4.903332999999975
+          },
+          "graph": {
+            "count": 20,
+            "min": 11.077207999999246,
+            "p50": 11.430395499999918,
+            "p95": 12.301685100000224,
+            "max": 12.382000000000062
+          },
+          "check": {
+            "count": 20,
+            "min": 0.8491659999999683,
+            "p50": 0.9386455000001206,
+            "p95": 1.0762229000002435,
+            "max": 1.0994579999996859
+          },
+          "resolve": {
+            "count": 20,
+            "min": 9.228125000000091,
+            "p50": 9.650666500000057,
+            "p95": 9.996048200000065,
+            "max": 10.053166000000147
+          },
+          "emit": {
+            "count": 20,
+            "min": 0,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "total": {
+            "count": 20,
+            "min": 38.06791599999997,
+            "p50": 38.933187499999974,
+            "p95": 40.30318924999998,
+            "max": 41.791957999999795
+          }
+        },
+        "peakRssBytes": {
+          "count": 3,
+          "min": 167739392,
+          "p50": 167919616,
+          "p95": 169394176,
+          "max": 169558016
+        },
+        "peakIncreaseBytes": {
+          "count": 3,
+          "min": 77856768,
+          "p50": 78184448,
+          "p95": 79776972.8,
+          "max": 79953920
+        },
+        "changeIntelligence": {
+          "stagesMs": {
+            "snapshotConstruction": {
+              "count": 20,
+              "min": 90.99016699999993,
+              "p50": 92.2966664999999,
+              "p95": 94.25389824999988,
+              "max": 94.94229199999972
+            },
+            "impactTraversal": {
+              "count": 20,
+              "min": 0.13629100000025574,
+              "p50": 0.1480625000000373,
+              "p95": 0.18018269999992073,
+              "max": 0.1971249999999145
+            },
+            "backendPreparation": {
+              "count": 20,
+              "min": 40.2529999999997,
+              "p50": 41.46543749999978,
+              "p95": 42.67534020000009,
+              "max": 43.516208000000006
+            },
+            "reportSerialization": {
+              "count": 20,
+              "min": 0.19641700000011042,
+              "p50": 0.2186039999999707,
+              "p95": 0.3170360499998425,
+              "max": 0.43962499999997817
+            }
+          },
+          "counters": {
+            "baseTokens": 1200,
+            "headTokens": 1200,
+            "changedTokens": 1,
+            "directlyAffectedTokens": 1,
+            "indirectlyAffectedTokens": 1,
+            "backendPlans": 2,
+            "reportEntries": 3,
+            "reportBytes": 145773
+          }
+        }
+      }
+    },
+    {
+      "id": "m2/high-fan-out/2000",
+      "name": "M2 2,000-way dual-Graph impact baseline",
+      "group": "change-intelligence",
+      "fixture": {
+        "kind": "synthetic",
+        "version": "m2-00-v1",
+        "sha256": "sha256:b21bbc1e2310cbe6c8c62b9676c54c4184ca7297b004ce6d7996f276fe775e0f",
+        "files": 4,
+        "bytes": 225868,
+        "description": "One changed primitive referenced by 2,000 direct consumers on both sides",
+        "parameters": {
+          "tokensPerRevision": 2001,
+          "directConsumers": 2000
+        }
+      },
+      "operation": {
+        "cacheState": "compiler-cold-runtime-warm",
+        "outputTarget": "backend-plan",
+        "ioIncluded": false,
+        "kind": "change-intelligence-high-fan-out"
+      },
+      "validation": {
+        "compilationSuccess": true,
+        "matchesExpected": true,
+        "semanticSha256": "sha256:ce8bd84858bbb52c5210510ce0e188ff032fa669ca819e7dd1ef656170f873d6",
+        "diagnostics": {}
+      },
+      "timeSamples": [
+        {
+          "index": 1,
+          "wallMs": 262.05095800000004,
+          "stagesMs": {
+            "parse": 20.266166999999996,
+            "link": 7.964375999999902,
+            "graph": 11.822124999999915,
+            "check": 1.1465829999999642,
+            "resolve": 45.18608300000005,
+            "emit": 0,
+            "total": 92.48991699999988
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 230.46220799999992,
+              "impactTraversal": 22.824708999999984,
+              "backendPreparation": 7.71266700000001,
+              "reportSerialization": 0.7958750000000236
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 2,
+          "wallMs": 241.9173330000001,
+          "stagesMs": {
+            "parse": 21.1126670000001,
+            "link": 8.323666000000003,
+            "graph": 12.520958000000064,
+            "check": 1.2395000000001346,
+            "resolve": 44.62591700000007,
+            "emit": 0,
+            "total": 94.0735830000001
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 209.4334170000002,
+              "impactTraversal": 22.85762499999987,
+              "backendPreparation": 8.59679200000005,
+              "reportSerialization": 0.7453339999999571
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 3,
+          "wallMs": 233.67187499999977,
+          "stagesMs": {
+            "parse": 19.834125000000085,
+            "link": 8.032584000000043,
+            "graph": 12.051082999999835,
+            "check": 1.2435829999999441,
+            "resolve": 42.6070000000002,
+            "emit": 0,
+            "total": 89.7689170000001
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 202.4764580000001,
+              "impactTraversal": 21.460583999999926,
+              "backendPreparation": 8.58566699999983,
+              "reportSerialization": 0.7930419999997866
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 4,
+          "wallMs": 235.71170799999982,
+          "stagesMs": {
+            "parse": 19.65758300000016,
+            "link": 7.948750000000018,
+            "graph": 11.840498999999909,
+            "check": 1.229041000000052,
+            "resolve": 42.920166999999765,
+            "emit": 0,
+            "total": 89.73795800000016
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 205.1113330000003,
+              "impactTraversal": 21.41045800000029,
+              "backendPreparation": 8.050916000000143,
+              "reportSerialization": 0.7916660000000775
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 5,
+          "wallMs": 232.27020800000037,
+          "stagesMs": {
+            "parse": 19.57070900000008,
+            "link": 8.080541000000267,
+            "graph": 11.66745899999978,
+            "check": 1.6006250000000364,
+            "resolve": 43.06354099999953,
+            "emit": 0,
+            "total": 90.48833300000024
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 201.54199999999992,
+              "impactTraversal": 21.660209000000123,
+              "backendPreparation": 8.084707999999864,
+              "reportSerialization": 0.7258750000000873
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 6,
+          "wallMs": 229.70995799999992,
+          "stagesMs": {
+            "parse": 19.639958000000206,
+            "link": 8.265206999999918,
+            "graph": 11.320666000000074,
+            "check": 1.3454999999999018,
+            "resolve": 42.75025000000005,
+            "emit": 0,
+            "total": 89.25583299999971
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 198.9678329999997,
+              "impactTraversal": 21.337082999999893,
+              "backendPreparation": 8.265833999999813,
+              "reportSerialization": 0.893333999999868
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 7,
+          "wallMs": 231.08333300000004,
+          "stagesMs": {
+            "parse": 19.955791999999747,
+            "link": 7.7373759999995855,
+            "graph": 11.452624999999898,
+            "check": 1.4179579999999987,
+            "resolve": 42.566749999999956,
+            "emit": 0,
+            "total": 89.26887499999975
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 200.633875,
+              "impactTraversal": 21.385667000000012,
+              "backendPreparation": 8.117209000000003,
+              "reportSerialization": 0.7251670000000559
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 8,
+          "wallMs": 235.57566700000007,
+          "stagesMs": {
+            "parse": 19.76495900000009,
+            "link": 7.918041000000358,
+            "graph": 11.819209000000228,
+            "check": 1.3937079999996058,
+            "resolve": 43.32541600000013,
+            "emit": 0,
+            "total": 90.26016600000003
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 204.639459,
+              "impactTraversal": 21.652833999999984,
+              "backendPreparation": 8.29537500000015,
+              "reportSerialization": 0.7584999999999127
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 9,
+          "wallMs": 234.82108300000027,
+          "stagesMs": {
+            "parse": 19.740833999999722,
+            "link": 7.795584000000417,
+            "graph": 11.552958000000217,
+            "check": 1.2332079999996495,
+            "resolve": 43.22279200000003,
+            "emit": 0,
+            "total": 89.40429199999971
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 203.5284999999999,
+              "impactTraversal": 21.463083000000097,
+              "backendPreparation": 8.897666999999728,
+              "reportSerialization": 0.7133750000002692
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 10,
+          "wallMs": 239.16587500000014,
+          "stagesMs": {
+            "parse": 20.3606249999998,
+            "link": 8.31195899999966,
+            "graph": 13.07570799999985,
+            "check": 1.3330829999999878,
+            "resolve": 42.86262500000021,
+            "emit": 0,
+            "total": 91.91879100000006
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 206.52262500000006,
+              "impactTraversal": 22.596250000000055,
+              "backendPreparation": 8.883166999999958,
+              "reportSerialization": 0.8255420000000413
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 11,
+          "wallMs": 234.7360410000001,
+          "stagesMs": {
+            "parse": 19.389584000000013,
+            "link": 7.946292000000085,
+            "graph": 12.11808400000018,
+            "check": 1.5652920000002268,
+            "resolve": 42.99279200000001,
+            "emit": 0,
+            "total": 90.65366700000004
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 203.13091600000007,
+              "impactTraversal": 22.701540999999906,
+              "backendPreparation": 7.898541000000023,
+              "reportSerialization": 0.7300840000002609
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 12,
+          "wallMs": 232.949208,
+          "stagesMs": {
+            "parse": 19.835707999999613,
+            "link": 8.648793000000296,
+            "graph": 12.22491699999864,
+            "check": 1.247957999999926,
+            "resolve": 42.9267490000002,
+            "emit": 0,
+            "total": 90.97962499999994
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 201.96100000000024,
+              "impactTraversal": 21.2711249999993,
+              "backendPreparation": 8.619916999999987,
+              "reportSerialization": 0.7793329999994967
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 13,
+          "wallMs": 232.50516699999935,
+          "stagesMs": {
+            "parse": 19.84349999999995,
+            "link": 8.061958000000232,
+            "graph": 11.708625000000211,
+            "check": 1.1559159999997064,
+            "resolve": 43.05833299999995,
+            "emit": 0,
+            "total": 89.9828750000006
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 201.673041,
+              "impactTraversal": 22.093416000000616,
+              "backendPreparation": 7.7681249999996,
+              "reportSerialization": 0.7390830000003916
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 14,
+          "wallMs": 232.87995899999987,
+          "stagesMs": {
+            "parse": 19.436791999999514,
+            "link": 9.291916000000128,
+            "graph": 11.447333000000071,
+            "check": 1.3192920000001322,
+            "resolve": 42.75608300000022,
+            "emit": 0,
+            "total": 90.87829199999942
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 202.3558750000002,
+              "impactTraversal": 21.61241599999994,
+              "backendPreparation": 7.8663329999999405,
+              "reportSerialization": 0.8213749999995343
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 15,
+          "wallMs": 230.56616699999995,
+          "stagesMs": {
+            "parse": 20.032208000000537,
+            "link": 8.334624000000076,
+            "graph": 11.585041999999703,
+            "check": 1.2123750000000655,
+            "resolve": 42.53716700000041,
+            "emit": 0,
+            "total": 89.57424999999967
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 200.76066699999956,
+              "impactTraversal": 21.325708000000304,
+              "backendPreparation": 7.357833999999457,
+              "reportSerialization": 0.8937499999992724
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 16,
+          "wallMs": 231.37170799999967,
+          "stagesMs": {
+            "parse": 19.823208000000704,
+            "link": 7.899833999999828,
+            "graph": 11.67345800000021,
+            "check": 1.3068339999999807,
+            "resolve": 42.80466699999943,
+            "emit": 0,
+            "total": 89.38554099999965
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 199.25054199999977,
+              "impactTraversal": 22.156290999999328,
+              "backendPreparation": 8.833583000000544,
+              "reportSerialization": 0.8885419999996884
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 17,
+          "wallMs": 232.22787499999959,
+          "stagesMs": {
+            "parse": 19.70366599999943,
+            "link": 7.589083000000755,
+            "graph": 11.78924999999981,
+            "check": 1.185790999999881,
+            "resolve": 43.432958999999755,
+            "emit": 0,
+            "total": 89.56220899999971
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 201.28420800000004,
+              "impactTraversal": 21.587916999999834,
+              "backendPreparation": 8.26391700000022,
+              "reportSerialization": 0.7970420000001468
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 18,
+          "wallMs": 233.62770900000032,
+          "stagesMs": {
+            "parse": 19.456833000000188,
+            "link": 7.817707999999584,
+            "graph": 12.415291000000252,
+            "check": 1.3323330000002898,
+            "resolve": 43.38354199999958,
+            "emit": 0,
+            "total": 90.33662499999991
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 201.9878749999998,
+              "impactTraversal": 21.713541000000077,
+              "backendPreparation": 8.838833000000704,
+              "reportSerialization": 0.7877919999991718
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 19,
+          "wallMs": 236.8152909999999,
+          "stagesMs": {
+            "parse": 19.75500000000011,
+            "link": 8.295000999999502,
+            "graph": 11.987416999999368,
+            "check": 1.1785829999998896,
+            "resolve": 42.1684580000001,
+            "emit": 0,
+            "total": 89.19179200000053
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 200.26475000000028,
+              "impactTraversal": 22.881459000000177,
+              "backendPreparation": 12.475124999999935,
+              "reportSerialization": 0.8507079999999405
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        },
+        {
+          "index": 20,
+          "wallMs": 233.71270800000002,
+          "stagesMs": {
+            "parse": 19.444916000000376,
+            "link": 7.885541999999987,
+            "graph": 11.785417000000052,
+            "check": 1.3482080000003407,
+            "resolve": 42.622582999999395,
+            "emit": 0,
+            "total": 89.12575000000015
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 2001,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 201.02808299999924,
+              "impactTraversal": 22.397249999999985,
+              "backendPreparation": 9.013832999999977,
+              "reportSerialization": 0.927958000000217
+            },
+            "counters": {
+              "baseTokens": 2001,
+              "headTokens": 2001,
+              "changedTokens": 1,
+              "directlyAffectedTokens": 2000,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 2001,
+              "reportBytes": 449459
+            }
+          }
+        }
+      ],
+      "memorySamples": [
+        {
+          "index": 1,
+          "baselineRssBytes": 89669632,
+          "preMaxRssBytes": 89669632,
+          "peakRssBytes": 176553984,
+          "peakIncreaseBytes": 86884352
+        },
+        {
+          "index": 2,
+          "baselineRssBytes": 91553792,
+          "preMaxRssBytes": 91553792,
+          "peakRssBytes": 177422336,
+          "peakIncreaseBytes": 85868544
+        },
+        {
+          "index": 3,
+          "baselineRssBytes": 90259456,
+          "preMaxRssBytes": 90259456,
+          "peakRssBytes": 180731904,
+          "peakIncreaseBytes": 90472448
+        }
+      ],
+      "summary": {
+        "wallMs": {
+          "count": 20,
+          "min": 229.70995799999992,
+          "p50": 233.64979200000005,
+          "p95": 242.9240142500001,
+          "max": 262.05095800000004
+        },
+        "stagesMs": {
+          "parse": {
+            "count": 20,
+            "min": 19.389584000000013,
+            "p50": 19.7599795000001,
+            "p95": 20.398227099999815,
+            "max": 21.1126670000001
+          },
+          "link": {
+            "count": 20,
+            "min": 7.589083000000755,
+            "p50": 7.998479999999972,
+            "p95": 8.680949150000288,
+            "max": 9.291916000000128
+          },
+          "graph": {
+            "count": 20,
+            "min": 11.320666000000074,
+            "p50": 11.80422950000002,
+            "p95": 12.548695500000054,
+            "max": 13.07570799999985
+          },
+          "check": {
+            "count": 20,
+            "min": 1.1465829999999642,
+            "p50": 1.2773959999999533,
+            "p95": 1.5670586500002173,
+            "max": 1.6006250000000364
+          },
+          "resolve": {
+            "count": 20,
+            "min": 42.1684580000001,
+            "p50": 42.92345799999998,
+            "p95": 44.65392530000007,
+            "max": 45.18608300000005
+          },
+          "emit": {
+            "count": 20,
+            "min": 0,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "total": {
+            "count": 20,
+            "min": 89.12575000000015,
+            "p50": 89.87589600000035,
+            "p95": 92.56910029999989,
+            "max": 94.0735830000001
+          }
+        },
+        "peakRssBytes": {
+          "count": 3,
+          "min": 176553984,
+          "p50": 177422336,
+          "p95": 180400947.2,
+          "max": 180731904
+        },
+        "peakIncreaseBytes": {
+          "count": 3,
+          "min": 85868544,
+          "p50": 86884352,
+          "p95": 90113638.4,
+          "max": 90472448
+        },
+        "changeIntelligence": {
+          "stagesMs": {
+            "snapshotConstruction": {
+              "count": 20,
+              "min": 198.9678329999997,
+              "p50": 201.97443750000002,
+              "p95": 210.4848565500002,
+              "max": 230.46220799999992
+            },
+            "impactTraversal": {
+              "count": 20,
+              "min": 21.2711249999993,
+              "p50": 21.656521500000053,
+              "p95": 22.858816699999885,
+              "max": 22.881459000000177
+            },
+            "backendPreparation": {
+              "count": 20,
+              "min": 7.357833999999457,
+              "p50": 8.280604499999981,
+              "p95": 9.186897599999977,
+              "max": 12.475124999999935
+            },
+            "reportSerialization": {
+              "count": 20,
+              "min": 0.7133750000002692,
+              "p50": 0.7923539999999321,
+              "p95": 0.8954603999993197,
+              "max": 0.927958000000217
+            }
+          },
+          "counters": {
+            "baseTokens": 2001,
+            "headTokens": 2001,
+            "changedTokens": 1,
+            "directlyAffectedTokens": 2000,
+            "indirectlyAffectedTokens": 0,
+            "backendPlans": 2,
+            "reportEntries": 2001,
+            "reportBytes": 449459
+          }
+        }
+      }
+    },
+    {
+      "id": "m2/report-serialization/10000",
+      "name": "M2 10,000-entry report serialization baseline",
+      "group": "change-intelligence",
+      "fixture": {
+        "kind": "synthetic",
+        "version": "m2-00-v1",
+        "sha256": "sha256:636a18cd7d57dfd87bca791d904a1c96515cc40d250afbe939689ccfb2a4772b",
+        "files": 3,
+        "bytes": 113,
+        "description": "One-token snapshots plus a deterministic 10,000-entry draft report payload",
+        "parameters": {
+          "tokensPerRevision": 1,
+          "reportEntries": 10000
+        }
+      },
+      "operation": {
+        "cacheState": "compiler-cold-runtime-warm",
+        "outputTarget": "backend-plan",
+        "ioIncluded": false,
+        "kind": "change-intelligence-report-serialization"
+      },
+      "validation": {
+        "compilationSuccess": true,
+        "matchesExpected": true,
+        "semanticSha256": "sha256:150bad9ea9e0c848717bf3c89346d784d947ef24f9aa43cb0958ec4b25f74952",
+        "diagnostics": {}
+      },
+      "timeSamples": [
+        {
+          "index": 1,
+          "wallMs": 3.798000000000002,
+          "stagesMs": {
+            "parse": 0.030957999999998265,
+            "link": 0.019707999999980075,
+            "graph": 0.009624999999999773,
+            "check": 0.005167000000000144,
+            "resolve": 0.00808399999999665,
+            "emit": 0,
+            "total": 0.08904200000000628
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.5082500000000039,
+              "impactTraversal": 0.012375000000005798,
+              "backendPreparation": 0.06366599999999778,
+              "reportSerialization": 1.6919169999999895
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 2,
+          "wallMs": 3.2650840000000017,
+          "stagesMs": {
+            "parse": 0.031833000000005995,
+            "link": 0.019207999999963477,
+            "graph": 0.00974899999997092,
+            "check": 0.006584000000003698,
+            "resolve": 0.007082999999994399,
+            "emit": 0,
+            "total": 0.08941699999999742
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.4003749999999968,
+              "impactTraversal": 0.009166999999990821,
+              "backendPreparation": 0.04954100000000494,
+              "reportSerialization": 1.5479579999999942
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 3,
+          "wallMs": 3.5680830000000014,
+          "stagesMs": {
+            "parse": 0.046750000000002956,
+            "link": 0.027706999999992377,
+            "graph": 0.012249999999994543,
+            "check": 0.008165999999988571,
+            "resolve": 0.0105010000000334,
+            "emit": 0,
+            "total": 0.150416000000007
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.616375000000005,
+              "impactTraversal": 0.01270900000000097,
+              "backendPreparation": 0.06166600000000244,
+              "reportSerialization": 1.612542000000019
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 4,
+          "wallMs": 2.7666250000000048,
+          "stagesMs": {
+            "parse": 0.023583999999999605,
+            "link": 0.016707999999994172,
+            "graph": 0.013459000000011656,
+            "check": 0.005583000000001448,
+            "resolve": 0.006292000000001963,
+            "emit": 0,
+            "total": 0.07974999999999
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.34874999999999545,
+              "impactTraversal": 0.0085420000000056,
+              "backendPreparation": 0.04508400000000279,
+              "reportSerialization": 1.540124999999989
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 5,
+          "wallMs": 3.075333999999998,
+          "stagesMs": {
+            "parse": 0.02487499999998022,
+            "link": 0.01779199999998582,
+            "graph": 0.008667999999971698,
+            "check": 0.0047089999999911925,
+            "resolve": 0.006583000000006223,
+            "emit": 0,
+            "total": 0.07654200000001765
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.3654579999999896,
+              "impactTraversal": 0.00941699999998491,
+              "backendPreparation": 0.04883399999999938,
+              "reportSerialization": 1.7371249999999918
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 6,
+          "wallMs": 2.934084000000013,
+          "stagesMs": {
+            "parse": 0.041500000000013415,
+            "link": 0.01816800000003127,
+            "graph": 0.011833000000024185,
+            "check": 0.0063330000000121345,
+            "resolve": 0.007583000000039419,
+            "emit": 0,
+            "total": 0.10708299999998871
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.38937500000000114,
+              "impactTraversal": 0.013332999999988715,
+              "backendPreparation": 0.06241699999998218,
+              "reportSerialization": 1.5227090000000203
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 7,
+          "wallMs": 2.8544160000000147,
+          "stagesMs": {
+            "parse": 0.02508299999999508,
+            "link": 0.017666999999960353,
+            "graph": 0.007999999999981355,
+            "check": 0.003958000000011452,
+            "resolve": 0.00929099999999039,
+            "emit": 0,
+            "total": 0.07720800000001304
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.2943750000000023,
+              "impactTraversal": 0.007791999999994914,
+              "backendPreparation": 0.03545799999997712,
+              "reportSerialization": 1.5472499999999911
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 8,
+          "wallMs": 3.1069579999999917,
+          "stagesMs": {
+            "parse": 0.030459000000007563,
+            "link": 0.019459000000011883,
+            "graph": 0.009790999999978567,
+            "check": 0.0050420000000030996,
+            "resolve": 0.007499999999993179,
+            "emit": 0,
+            "total": 0.08808299999998326
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.47083400000002484,
+              "impactTraversal": 0.009957999999983258,
+              "backendPreparation": 0.06387499999999591,
+              "reportSerialization": 1.544040999999993
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 9,
+          "wallMs": 2.9208749999999952,
+          "stagesMs": {
+            "parse": 0.023875000000003865,
+            "link": 0.01591600000000426,
+            "graph": 0.008082999999999174,
+            "check": 0.004290999999994938,
+            "resolve": 0.005791000000016311,
+            "emit": 0,
+            "total": 0.07129199999999969
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.3221249999999998,
+              "impactTraversal": 0.008000000000009777,
+              "backendPreparation": 0.038250000000005,
+              "reportSerialization": 1.510417000000018
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 10,
+          "wallMs": 3.3634169999999983,
+          "stagesMs": {
+            "parse": 0.038207999999997355,
+            "link": 0.022541999999987183,
+            "graph": 0.0095410000000129,
+            "check": 0.0051660000000026685,
+            "resolve": 0.007375000000024556,
+            "emit": 0,
+            "total": 0.10070799999999736
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.4792500000000075,
+              "impactTraversal": 0.012666999999993322,
+              "backendPreparation": 0.051000000000016144,
+              "reportSerialization": 1.7268750000000068
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 11,
+          "wallMs": 3.125833,
+          "stagesMs": {
+            "parse": 0.05249999999998067,
+            "link": 0.016291999999992868,
+            "graph": 0.012750000000011141,
+            "check": 0.00487500000002683,
+            "resolve": 0.006000999999997703,
+            "emit": 0,
+            "total": 0.116958000000011
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.3984999999999843,
+              "impactTraversal": 0.009624999999999773,
+              "backendPreparation": 0.05516700000001151,
+              "reportSerialization": 1.514916999999997
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 12,
+          "wallMs": 3.1206249999999898,
+          "stagesMs": {
+            "parse": 0.021208000000001448,
+            "link": 0.0610409999999888,
+            "graph": 0.008165999999988571,
+            "check": 0.003999999999990678,
+            "resolve": 0.005668000000014217,
+            "emit": 0,
+            "total": 0.11824999999998909
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.3387079999999969,
+              "impactTraversal": 0.007417000000003782,
+              "backendPreparation": 0.0332920000000172,
+              "reportSerialization": 1.5527500000000032
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 13,
+          "wallMs": 3.070208000000008,
+          "stagesMs": {
+            "parse": 0.022999999999996135,
+            "link": 0.014707999999984622,
+            "graph": 0.007708000000008042,
+            "check": 0.0038749999999936335,
+            "resolve": 0.013707999999951426,
+            "emit": 0,
+            "total": 0.07579200000000696
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.33379099999999085,
+              "impactTraversal": 0.007915999999994483,
+              "backendPreparation": 0.03725000000000023,
+              "reportSerialization": 1.5098749999999939
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 14,
+          "wallMs": 3.1473749999999825,
+          "stagesMs": {
+            "parse": 0.025291000000009944,
+            "link": 0.017250000000018417,
+            "graph": 0.009084000000001424,
+            "check": 0.00462500000000432,
+            "resolve": 0.011833999999964817,
+            "emit": 0,
+            "total": 0.08354199999999423
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.374416999999994,
+              "impactTraversal": 0.009040999999996302,
+              "backendPreparation": 0.04254099999999994,
+              "reportSerialization": 1.5614999999999952
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 15,
+          "wallMs": 2.9633340000000032,
+          "stagesMs": {
+            "parse": 0.023707999999999174,
+            "link": 0.020625000000023874,
+            "graph": 0.008751000000017939,
+            "check": 0.00433400000000006,
+            "resolve": 0.0061249999999972715,
+            "emit": 0,
+            "total": 0.07875000000001364
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.3447909999999865,
+              "impactTraversal": 0.008207999999996218,
+              "backendPreparation": 0.03983400000001325,
+              "reportSerialization": 1.721749999999986
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 16,
+          "wallMs": 2.8619170000000054,
+          "stagesMs": {
+            "parse": 0.02533299999998917,
+            "link": 0.016082000000011476,
+            "graph": 0.008167000000014468,
+            "check": 0.0041250000000161435,
+            "resolve": 0.005750000000006139,
+            "emit": 0,
+            "total": 0.0730000000000075
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.36137500000000955,
+              "impactTraversal": 0.008707999999984395,
+              "backendPreparation": 0.04470799999998576,
+              "reportSerialization": 1.5351660000000038
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 17,
+          "wallMs": 2.9215829999999983,
+          "stagesMs": {
+            "parse": 0.023082999999985532,
+            "link": 0.01608300000000895,
+            "graph": 0.00895900000000438,
+            "check": 0.004667000000011967,
+            "resolve": 0.006207999999986669,
+            "emit": 0,
+            "total": 0.07266599999999812
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.3414590000000146,
+              "impactTraversal": 0.00837500000000091,
+              "backendPreparation": 0.0383329999999944,
+              "reportSerialization": 1.5426249999999868
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 18,
+          "wallMs": 3.015500000000003,
+          "stagesMs": {
+            "parse": 0.02616699999998673,
+            "link": 0.017124000000023898,
+            "graph": 0.01074999999997317,
+            "check": 0.00462500000000432,
+            "resolve": 0.0063750000000197815,
+            "emit": 0,
+            "total": 0.07937499999999886
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.4278750000000002,
+              "impactTraversal": 0.009415999999987434,
+              "backendPreparation": 0.04775000000000773,
+              "reportSerialization": 1.5290410000000065
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 19,
+          "wallMs": 3.059917000000013,
+          "stagesMs": {
+            "parse": 0.024541999999996733,
+            "link": 0.01658399999996618,
+            "graph": 0.013582999999982803,
+            "check": 0.004582999999996673,
+            "resolve": 0.0063330000000121345,
+            "emit": 0,
+            "total": 0.09137499999999932
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.3809590000000185,
+              "impactTraversal": 0.011459000000002106,
+              "backendPreparation": 0.041500000000013415,
+              "reportSerialization": 1.5535830000000033
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        },
+        {
+          "index": 20,
+          "wallMs": 3.1781250000000227,
+          "stagesMs": {
+            "parse": 0.023624999999981355,
+            "link": 0.015290999999990618,
+            "graph": 0.007957999999973708,
+            "check": 0.004042000000026746,
+            "resolve": 0.0058339999999930114,
+            "emit": 0,
+            "total": 0.06991699999997536
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": {
+            "stagesMs": {
+              "snapshotConstruction": 0.33287500000000136,
+              "impactTraversal": 0.012167000000033568,
+              "backendPreparation": 0.041166999999973086,
+              "reportSerialization": 1.6582919999999604
+            },
+            "counters": {
+              "baseTokens": 1,
+              "headTokens": 1,
+              "changedTokens": 0,
+              "directlyAffectedTokens": 0,
+              "indirectlyAffectedTokens": 0,
+              "backendPlans": 2,
+              "reportEntries": 10000,
+              "reportBytes": 1249607
+            }
+          }
+        }
+      ],
+      "memorySamples": [
+        {
+          "index": 1,
+          "baselineRssBytes": 89767936,
+          "preMaxRssBytes": 89767936,
+          "peakRssBytes": 94650368,
+          "peakIncreaseBytes": 4882432
+        },
+        {
+          "index": 2,
+          "baselineRssBytes": 91521024,
+          "preMaxRssBytes": 91570176,
+          "peakRssBytes": 96288768,
+          "peakIncreaseBytes": 4718592
+        },
+        {
+          "index": 3,
+          "baselineRssBytes": 90095616,
+          "preMaxRssBytes": 90095616,
+          "peakRssBytes": 94896128,
+          "peakIncreaseBytes": 4800512
+        }
+      ],
+      "summary": {
+        "wallMs": {
+          "count": 20,
+          "min": 2.7666250000000048,
+          "p50": 3.072771000000003,
+          "p95": 3.5795788500000016,
+          "max": 3.798000000000002
+        },
+        "stagesMs": {
+          "parse": {
+            "count": 20,
+            "min": 0.021208000000001448,
+            "p50": 0.025187000000002513,
+            "p95": 0.04703750000000185,
+            "max": 0.05249999999998067
+          },
+          "link": {
+            "count": 20,
+            "min": 0.014707999999984622,
+            "p50": 0.017458499999989385,
+            "p95": 0.02937369999999222,
+            "max": 0.0610409999999888
+          },
+          "graph": {
+            "count": 20,
+            "min": 0.007708000000008042,
+            "p50": 0.009312500000007162,
+            "p95": 0.013465200000010214,
+            "max": 0.013582999999982803
+          },
+          "check": {
+            "count": 20,
+            "min": 0.0038749999999936335,
+            "p50": 0.004646000000008144,
+            "p95": 0.006663100000002943,
+            "max": 0.008165999999988571
+          },
+          "resolve": {
+            "count": 20,
+            "min": 0.005668000000014217,
+            "p50": 0.006479000000013002,
+            "p95": 0.01192769999996415,
+            "max": 0.013707999999951426
+          },
+          "emit": {
+            "count": 20,
+            "min": 0,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "total": {
+            "count": 20,
+            "min": 0.06991699999997536,
+            "p50": 0.08164599999999211,
+            "p95": 0.11985829999999001,
+            "max": 0.150416000000007
+          }
+        },
+        "peakRssBytes": {
+          "count": 3,
+          "min": 94650368,
+          "p50": 94896128,
+          "p95": 96149504,
+          "max": 96288768
+        },
+        "peakIncreaseBytes": {
+          "count": 3,
+          "min": 4718592,
+          "p50": 4800512,
+          "p95": 4874240,
+          "max": 4882432
+        },
+        "changeIntelligence": {
+          "stagesMs": {
+            "snapshotConstruction": {
+              "count": 20,
+              "min": 0.2943750000000023,
+              "p50": 0.3699374999999918,
+              "p95": 0.513656250000004,
+              "max": 0.616375000000005
+            },
+            "impactTraversal": {
+              "count": 20,
+              "min": 0.007417000000003782,
+              "p50": 0.009291499999989128,
+              "p95": 0.012740200000000357,
+              "max": 0.013332999999988715
+            },
+            "backendPreparation": {
+              "count": 20,
+              "min": 0.0332920000000172,
+              "p50": 0.044895999999994274,
+              "p95": 0.06367644999999769,
+              "max": 0.06387499999999591
+            },
+            "reportSerialization": {
+              "count": 20,
+              "min": 1.5098749999999939,
+              "p50": 1.5476039999999927,
+              "p95": 1.727387500000006,
+              "max": 1.7371249999999918
+            }
+          },
+          "counters": {
+            "baseTokens": 1,
+            "headTokens": 1,
+            "changedTokens": 0,
+            "directlyAffectedTokens": 0,
+            "indirectlyAffectedTokens": 0,
+            "backendPlans": 2,
+            "reportEntries": 10000,
+            "reportBytes": 1249607
+          }
+        }
+      }
+    }
+  ]
+}

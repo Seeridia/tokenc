@@ -1,8 +1,9 @@
-import type { CompilationResult } from "@tokenc/core";
+import type { BackendEmissionResult, CompilationSnapshot, SessionMetrics } from "@tokenc/core";
 
 export type BenchmarkFixtureKind = "ecosystem" | "repository" | "synthetic";
 
 export type BenchmarkFixtureGroup =
+  | "change-intelligence"
   | "deep"
   | "dtcg-examples"
   | "fan-out"
@@ -14,7 +15,13 @@ export type BenchmarkFixtureGroup =
   | "sparse-context"
   | "wide";
 
-export type BenchmarkOperationKind = "cold-compile" | "incremental-update";
+export type BenchmarkOperationKind =
+  | "change-intelligence-high-fan-out"
+  | "change-intelligence-one-file-edit"
+  | "change-intelligence-report-serialization"
+  | "change-intelligence-unchanged"
+  | "cold-compile"
+  | "incremental-update";
 
 export interface BenchmarkFixtureMetadata {
   readonly kind: BenchmarkFixtureKind;
@@ -34,8 +41,38 @@ export interface BenchmarkFixtureMetadata {
 export interface BenchmarkOperationMetadata {
   readonly kind: BenchmarkOperationKind;
   readonly cacheState: "compiler-cold-runtime-warm" | "initialized-session";
-  readonly outputTarget: "css" | "none";
+  readonly outputTarget: "backend-plan" | "css" | "none";
   readonly ioIncluded: false;
+}
+
+export interface BenchmarkChangeIntelligenceStageTimings {
+  readonly snapshotConstruction: number;
+  readonly impactTraversal: number;
+  readonly backendPreparation: number;
+  readonly reportSerialization: number;
+}
+
+export interface BenchmarkChangeIntelligenceCounters {
+  readonly baseTokens: number;
+  readonly headTokens: number;
+  readonly changedTokens: number;
+  readonly directlyAffectedTokens: number;
+  readonly indirectlyAffectedTokens: number;
+  readonly backendPlans: number;
+  readonly reportEntries: number;
+  readonly reportBytes: number;
+}
+
+export interface BenchmarkChangeIntelligenceMeasurement {
+  readonly stagesMs: BenchmarkChangeIntelligenceStageTimings;
+  readonly counters: BenchmarkChangeIntelligenceCounters;
+}
+
+export interface BenchmarkChangeIntelligenceSummary {
+  readonly stagesMs: Readonly<
+    Record<keyof BenchmarkChangeIntelligenceStageTimings, BenchmarkDistribution>
+  >;
+  readonly counters: BenchmarkChangeIntelligenceCounters;
 }
 
 export interface BenchmarkExpectation {
@@ -48,19 +85,17 @@ export interface BenchmarkExpectation {
   readonly outputFiles?: number;
   readonly diagnostics?: Readonly<Record<string, number>>;
   readonly contextCycles?: Partial<BenchmarkContextCycleCounters>;
-}
-
-export interface BenchmarkIncrementalCounters {
-  readonly changedTokens: number;
-  readonly affectedTokens: number;
-  readonly recomputedTokens: number;
-  readonly graphTouchedNodes: number;
-  readonly graphTouchedEdges: number;
+  readonly changeIntelligence?: Partial<BenchmarkChangeIntelligenceCounters>;
 }
 
 export interface BenchmarkRunResult {
-  readonly result: CompilationResult;
-  readonly incremental?: BenchmarkIncrementalCounters;
+  readonly snapshot: CompilationSnapshot;
+  readonly backend?: BackendEmissionResult;
+  readonly session?: SessionMetrics;
+  readonly changeIntelligence?: BenchmarkChangeIntelligenceMeasurement & {
+    /** Canonical draft payload used only for semantic validation and byte measurement. */
+    readonly reportJson: string;
+  };
 }
 
 /** A single-use operation. Runners create a fresh invocation for every warm-up or sample. */
@@ -128,6 +163,7 @@ export interface BenchmarkTimeSample {
   readonly wallMs: number;
   readonly stagesMs: BenchmarkStageTimings;
   readonly counters: BenchmarkCounters;
+  readonly changeIntelligence: BenchmarkChangeIntelligenceMeasurement | null;
 }
 
 export interface BenchmarkMemorySample {
@@ -159,6 +195,7 @@ export interface BenchmarkCaseReport {
     readonly stagesMs: Readonly<Record<keyof BenchmarkStageTimings, BenchmarkDistribution>>;
     readonly peakRssBytes: BenchmarkDistribution | null;
     readonly peakIncreaseBytes: BenchmarkDistribution | null;
+    readonly changeIntelligence: BenchmarkChangeIntelligenceSummary | null;
   };
 }
 
@@ -204,4 +241,5 @@ export interface BenchmarkMemoryWorkerResponse {
   readonly sample: BenchmarkMemorySample;
   readonly validation: BenchmarkValidation;
   readonly counters: BenchmarkCounters;
+  readonly changeIntelligence: BenchmarkChangeIntelligenceMeasurement | null;
 }

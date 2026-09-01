@@ -3,7 +3,7 @@
 CSS Custom Properties backend for tokenc.
 
 ```bash
-pnpm add -D @tokenc/core @tokenc/backend-css
+vp add -D @tokenc/core @tokenc/backend-css
 ```
 
 ```ts
@@ -31,8 +31,9 @@ stops but not a CSS gradient function or geometry, so they require an explicit p
 Font-family control characters use CSS hexadecimal escapes; null and lone surrogate code units
 cannot be represented losslessly. Those values, gradients, custom dash-array stroke styles, and
 CSS-invalid negative composite fields produce `BACKEND_UNSUPPORTED_VALUE` instead of lossy or
-invalid output. Normalized custom-property collisions produce `BACKEND_NAME_COLLISION` before
-output is emitted.
+invalid output. Every custom property is allocated by Core's shared `SymbolAllocator`; invalid names
+produce `BACKEND_SYMBOL_INVALID` and normalized collisions produce `BACKEND_SYMBOL_COLLISION` before
+output is emitted. Use the explicit `rename` map to resolve a collision.
 
 Without `selectors`, non-default contexts use mutually exclusive selectors such as
 `[data-context="brand=consumer&theme=dark"]`. Set the attribute to the complete canonical context

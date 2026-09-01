@@ -1,7 +1,28 @@
-import { compileDocuments } from "@tokenc/core";
+import {
+  compileDocuments as compileSnapshot,
+  type CompilationOptions,
+  type TokenBackend,
+  type TokenSourceInput,
+} from "@tokenc/core";
 import { describe, expect, it } from "vite-plus/test";
 
 import { tailwind } from "../src/index.js";
+
+async function compileDocuments(
+  sources: readonly TokenSourceInput[],
+  options: CompilationOptions & { readonly outputs?: readonly TokenBackend[] } = {},
+) {
+  const { outputs = [], ...compilationOptions } = options;
+  const snapshot = await compileSnapshot(sources, compilationOptions);
+  if (snapshot.status === "invalid")
+    return { success: false, diagnostics: snapshot.diagnostics, outputs: [] };
+  const operation = await snapshot.emit(outputs);
+  return {
+    success: operation.success,
+    diagnostics: [...snapshot.diagnostics, ...operation.diagnostics],
+    outputs: operation.outputs,
+  };
+}
 
 const source = {
   file: "tokens.json",
@@ -107,7 +128,7 @@ describe("Tailwind v4 backend", () => {
     expect(result.outputs).toEqual([]);
     expect(result.diagnostics).toContainEqual(
       expect.objectContaining({
-        code: "BACKEND_NAME_COLLISION",
+        code: "BACKEND_SYMBOL_COLLISION",
         message: expect.stringContaining("--color-brand-blue"),
       }),
     );
@@ -251,7 +272,7 @@ describe("Tailwind v4 backend", () => {
     expect(result.outputs).toEqual([]);
     expect(result.diagnostics).toContainEqual(
       expect.objectContaining({
-        code: "BACKEND_NAME_COLLISION",
+        code: "BACKEND_SYMBOL_COLLISION",
         message: expect.stringContaining("--token-foo-bar"),
       }),
     );

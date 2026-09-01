@@ -69,7 +69,9 @@ jobs:
           vp run check:versions
           vp check
           vp run -r build
+          vp run check:contracts
           vp test --run
+          vp run bench:gate
 
       - name: Verify release inputs are clean
         run: |

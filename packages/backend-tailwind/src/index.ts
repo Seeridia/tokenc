@@ -1,14 +1,19 @@
 import { serializeCssTokenValue, type CssValueSerialization } from "@tokenc/backend-css";
 import {
-  backendNameCollisionDiagnostics,
+  ALL_TOKEN_TYPES,
+  BackendContractError,
   contextKey,
   defaultContext,
+  DiagnosticBag,
   parseContextKey,
   selectTokenCandidate,
-  type BackendOutputName,
-  type Compilation,
+  SymbolAllocator,
+  type AllocatedSymbol,
+  type BackendPlan,
+  type CompilationIR,
   type CompilationContext,
   type Diagnostic,
+  type SymbolRequest,
   type TokenBackend,
   type TokenId,
   type TokenNode,
@@ -18,6 +23,7 @@ export interface TailwindBackendOptions {
   readonly output?: string;
   readonly references?: "preserve" | "resolve";
   readonly selectors?: Readonly<Record<string, string>>;
+  readonly rename?: Readonly<Record<string, string>>;
 }
 
 interface ConfiguredContext {
@@ -61,12 +67,12 @@ function parseConfiguredContext(key: string): CompilationContext | undefined {
 }
 
 function configuredContexts(
-  compilation: Compilation,
+  compilation: CompilationIR,
   selectors: Readonly<Record<string, string>> = {},
 ): { readonly entries: readonly ConfiguredContext[]; readonly diagnostics: readonly Diagnostic[] } {
   const defaults = defaultContext(compilation.contexts);
   const entries: ConfiguredContext[] = [];
-  const diagnostics: Diagnostic[] = [];
+  const diagnostics = new DiagnosticBag();
   const seen = new Set<string>();
   const selectorOwners = new Map<string, string>();
   for (const [key, selector] of Object.entries(selectors)) {
@@ -104,7 +110,9 @@ function configuredContexts(
           code: "BACKEND_INVALID_CONTEXT_SELECTOR",
           severity: "error",
           message: `Backend \`tailwind\` context key \`${key}\` uses unknown value \`${value}\` for \`${name}\``,
-          suggestions: dimension.values,
+          related: dimension.values.map((candidate) => ({
+            message: `Valid value: \`${candidate}\``,
+          })),
         });
         valid = false;
       }
@@ -162,7 +170,7 @@ function automaticSelector(context: CompilationContext): string {
 }
 
 function validationContexts(
-  compilation: Compilation,
+  compilation: CompilationIR,
   configured: readonly ConfiguredContext[],
   explicit: boolean,
 ): readonly CompilationContext[] {
@@ -177,7 +185,7 @@ function matches(selector: CompilationContext, context: CompilationContext): boo
   return Object.entries(selector).every(([name, value]) => context[name] === value);
 }
 
-function contextCoverageDiagnostics(compilation: Compilation): readonly Diagnostic[] {
+function contextCoverageDiagnostics(compilation: CompilationIR): readonly Diagnostic[] {
   const predicates = new Map<
     string,
     {
@@ -186,14 +194,14 @@ function contextCoverageDiagnostics(compilation: Compilation): readonly Diagnost
       readonly source: TokenNode["source"];
     }
   >();
-  for (const token of compilation.graph.tokens) {
+  for (const token of compilation.sourceTokens) {
     for (const override of token.overrides) {
       const key = contextKey(override.selector);
       if (!predicates.has(key))
         predicates.set(key, { selector: override.selector, token, source: override.source });
     }
   }
-  const diagnostics: Diagnostic[] = [];
+  const diagnostics = new DiagnosticBag();
   const varyingDimensions = Object.entries(compilation.contexts).flatMap(([name, dimension]) => {
     const values = [...new Set([dimension.default, ...dimension.values])];
     return values.length > 1 ? [{ name, values }] : [];
@@ -226,8 +234,11 @@ function contextCoverageDiagnostics(compilation: Compilation): readonly Diagnost
       severity: "error",
       message: `Backend \`tailwind\` cannot safely emit automatic selectors for context predicate \`${predicateKey}\`: it omits varying dimension${missing.length === 1 ? "" : "s"} ${missing.map((dimension) => `\`${dimension.name}\``).join(", ")} and covers ${covered} of ${expected} combinations`,
       source: predicate.source,
-      suggestions: [
-        "Configure `tailwind({ selectors: { ... } })` with every complete context that should be emitted.",
+      related: [
+        {
+          message:
+            "Configure `tailwind({ selectors: { ... } })` with every complete context that should be emitted.",
+        },
       ],
     });
   }
@@ -238,7 +249,7 @@ function contextCoverageDiagnostics(compilation: Compilation): readonly Diagnost
   if (compilation.availableContexts.length < totalContexts) {
     const defaults = defaultContext(compilation.contexts);
     const resolutionOrder = Object.keys(compilation.contexts);
-    for (const token of compilation.graph.tokens) {
+    for (const token of compilation.sourceTokens) {
       const selected = selectTokenCandidate(token, defaults, resolutionOrder);
       if (
         !selected.selector ||
@@ -255,8 +266,11 @@ function contextCoverageDiagnostics(compilation: Compilation): readonly Diagnost
         severity: "error",
         message: `Backend \`tailwind\` cannot safely use default-context override \`${predicateKey}\` as a global base while only ${compilation.availableContexts.length} of ${totalContexts} contexts are declared`,
         source: selected.source,
-        suggestions: [
-          "Configure `tailwind({ selectors: { ... } })` with every complete context that should be emitted.",
+        related: [
+          {
+            message:
+              "Configure `tailwind({ selectors: { ... } })` with every complete context that should be emitted.",
+          },
         ],
       });
     }
@@ -265,33 +279,54 @@ function contextCoverageDiagnostics(compilation: Compilation): readonly Diagnost
 }
 
 function render(
-  compilation: Compilation,
+  compilation: CompilationIR,
   id: TokenId,
   context: CompilationContext,
   strategy: "preserve" | "resolve",
+  runtimeSymbol: (id: TokenId, suffix: string) => string | undefined,
 ): CssValueSerialization | undefined {
   const resolved = compilation.resolveToken(id, context);
   if (!resolved) return undefined;
   const serialized = serializeCssTokenValue(resolved.type, resolved.value);
   if (!serialized.ok) return undefined;
   if (strategy === "preserve" && resolved.expression.kind === "reference") {
-    const target = resolved.expression.target;
-    return {
-      values: Object.fromEntries(
-        Object.keys(serialized.serialization.values).map((suffix) => [
-          suffix,
-          `var(${runtimeName(target, suffix)})`,
-        ]),
-      ),
-    };
+    const values: Record<string, string> = {};
+    for (const suffix of Object.keys(serialized.serialization.values)) {
+      const target = runtimeSymbol(resolved.expression.target, suffix);
+      if (!target) return undefined;
+      values[suffix] = `var(${target})`;
+    }
+    return { values };
   }
   return serialized.serialization;
 }
 
+const CSS_NAMESPACE = {
+  name: "css-custom-property",
+  caseSensitive: true,
+  normalize: "NFC",
+  reserved: new Set<string>(),
+  pattern: /^--[-_a-zA-Z0-9\u0080-\u{10ffff}]+$/u,
+} as const;
+
+function runtimeSymbolId(id: TokenId, suffix: string): string {
+  return suffix === "." ? `runtime:${id}` : `runtime:${id}.${suffix}`;
+}
+
+function themeSymbolId(id: TokenId): string {
+  return `theme:${id}`;
+}
+
+interface TailwindValidation {
+  readonly diagnostics: readonly Diagnostic[];
+  readonly symbols: readonly AllocatedSymbol[];
+}
+
 function validateTailwind(
-  compilation: Compilation,
+  compilation: CompilationIR,
   selectors: TailwindBackendOptions["selectors"],
-): readonly Diagnostic[] {
+  rename: Readonly<Record<string, string>> | undefined,
+): TailwindValidation {
   const explicit = hasExplicitContexts(selectors);
   const configured = configuredContexts(compilation, selectors);
   const defaults = defaultContext(compilation.contexts);
@@ -303,7 +338,8 @@ function validateTailwind(
     : configured.entries.find(
         (entry) => !sameContext(entry.context, defaults) && entry.selector.trim() === ":root",
       );
-  const diagnostics: Diagnostic[] = [
+  const diagnostics = new DiagnosticBag();
+  diagnostics.push(
     ...configured.diagnostics,
     ...(explicit ? [] : contextCoverageDiagnostics(compilation)),
     ...(baseSelectorAlias
@@ -315,8 +351,8 @@ function validateTailwind(
           },
         ]
       : []),
-  ];
-  const names: BackendOutputName[] = [];
+  );
+  const requests: SymbolRequest[] = [];
   const seenUnsupported = new Set<TokenId>();
   const seenNames = new Set<string>();
   for (const context of validationContexts(compilation, configured.entries, explicit)) {
@@ -334,27 +370,37 @@ function validateTailwind(
           severity: "error",
           message: `Backend \`tailwind\` cannot losslessly serialize \`${token.id}\`: ${serialized.unsupported.reason}`,
           source: selected.source,
-          suggestions: [
-            "Use a supported value shape or a backend with an explicit transform policy.",
-          ],
+          related: [{ message: "Use a supported value shape or an explicit transform policy." }],
         });
         continue;
       }
       for (const suffix of Object.keys(serialized.serialization.values)) {
         const name = runtimeName(token.id, suffix);
-        const key = `${token.id}\u0000${name}`;
+        const key = `${token.id}\u0000${suffix}`;
         if (seenNames.has(key)) continue;
         seenNames.add(key);
-        names.push({ name, token: source, namespace: "css-custom-property" });
+        const id = runtimeSymbolId(token.id, suffix);
+        requests.push({ id, token: source, namespace: CSS_NAMESPACE, name, renameKey: id });
       }
     }
   }
   for (const token of compilation.tokens) {
     const source = compilation.getToken(token.id);
     const name = source ? themeName(source) : undefined;
-    if (source && name) names.push({ name, token: source, namespace: "css-custom-property" });
+    if (source && name) {
+      const id = themeSymbolId(token.id);
+      requests.push({ id, token: source, namespace: CSS_NAMESPACE, name, renameKey: id });
+    }
   }
-  return [...diagnostics, ...backendNameCollisionDiagnostics("tailwind", names)];
+  const allocation = new SymbolAllocator().allocate({
+    backendId: "tailwind",
+    requests,
+    ...(rename ? { renameMap: rename } : {}),
+  });
+  return {
+    diagnostics: [...diagnostics, ...allocation.diagnostics],
+    symbols: allocation.symbols,
+  };
 }
 
 function cssBlock(selector: string, declarations: readonly string[]): string {
@@ -368,9 +414,19 @@ export function tailwind(options: TailwindBackendOptions = {}): TokenBackend {
   const output = options.output ?? "dist/tailwind.css";
   const strategy = options.references ?? "preserve";
   return {
-    name: "tailwind",
-    validate: (compilation) => validateTailwind(compilation, options.selectors),
-    emit(compilation) {
+    id: "tailwind",
+    capabilities: {
+      tokenTypes: ALL_TOKEN_TYPES,
+      referenceStrategies: new Set(["preserve", "resolve"]),
+      contextMode: "finite-selectors",
+      colorSpaces: "preserve",
+      composite: "serialized-subset",
+    },
+    prepare(compilation) {
+      const validation = validateTailwind(compilation, options.selectors, options.rename);
+      const symbols = new Map(validation.symbols.map((symbol) => [symbol.id, symbol.name]));
+      const runtimeSymbol = (id: TokenId, suffix = "."): string | undefined =>
+        symbols.get(runtimeSymbolId(id, suffix));
       const defaults = defaultContext(compilation.contexts);
       const explicit = hasExplicitContexts(options.selectors);
       const configured = configuredContexts(compilation, options.selectors).entries;
@@ -378,10 +434,11 @@ export function tailwind(options: TailwindBackendOptions = {}): TokenBackend {
       const base = new Map<string, string>();
       const rootLines: string[] = [];
       for (const token of compilation.tokens) {
-        const rendered = render(compilation, token.id, defaults, strategy);
+        const rendered = render(compilation, token.id, defaults, strategy, runtimeSymbol);
         if (rendered !== undefined) {
           for (const [suffix, value] of Object.entries(rendered.values)) {
-            const name = runtimeName(token.id, suffix);
+            const name = runtimeSymbol(token.id, suffix);
+            if (!name) continue;
             base.set(name, value);
             rootLines.push(`${name}: ${value};`);
           }
@@ -396,10 +453,11 @@ export function tailwind(options: TailwindBackendOptions = {}): TokenBackend {
       for (const entry of contexts) {
         const lines: string[] = [];
         for (const token of compilation.tokens) {
-          const rendered = render(compilation, token.id, entry.context, strategy);
+          const rendered = render(compilation, token.id, entry.context, strategy, runtimeSymbol);
           if (rendered !== undefined) {
             for (const [suffix, value] of Object.entries(rendered.values)) {
-              const name = runtimeName(token.id, suffix);
+              const name = runtimeSymbol(token.id, suffix);
+              if (!name) continue;
               if (value !== base.get(name)) lines.push(`${name}: ${value};`);
             }
           }
@@ -408,13 +466,38 @@ export function tailwind(options: TailwindBackendOptions = {}): TokenBackend {
         if (renderedBlock) blocks.push(renderedBlock);
       }
       const themeLines = compilation.tokens.flatMap((token) => {
-        const source = compilation.getToken(token.id);
-        const name = source ? themeName(source) : undefined;
-        const rendered = render(compilation, token.id, defaults, strategy);
-        return name && rendered?.values["."] ? [`${name}: var(${runtimeName(token.id)});`] : [];
+        const name = symbols.get(themeSymbolId(token.id));
+        const runtime = runtimeSymbol(token.id);
+        const rendered = render(compilation, token.id, defaults, strategy, runtimeSymbol);
+        return name && runtime && rendered?.values["."] ? [`${name}: var(${runtime});`] : [];
       });
       blocks.push(`@theme {\n${themeLines.map((line) => `  ${line}`).join("\n")}\n}`);
-      return [{ path: output, content: `${blocks.filter(Boolean).join("\n\n")}\n` }];
+      const content = `${blocks.filter(Boolean).join("\n\n")}\n`;
+      return {
+        backendId: "tailwind",
+        diagnostics: validation.diagnostics,
+        symbols: validation.symbols,
+        artifacts: [
+          {
+            id: "tailwind",
+            path: output,
+            mediaType: "text/css",
+            tokenIds: compilation.tokens.map((token) => token.id),
+            payload: content,
+          },
+        ],
+        data: null,
+      };
+    },
+    emit(plan: BackendPlan) {
+      return plan.artifacts.map((artifact) => {
+        if (typeof artifact.payload !== "string")
+          throw new BackendContractError(
+            plan.backendId,
+            `artifact \`${artifact.id}\` has no Tailwind payload`,
+          );
+        return { id: artifact.id, path: artifact.path, content: artifact.payload };
+      });
     },
   };
 }

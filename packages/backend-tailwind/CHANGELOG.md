@@ -1,5 +1,35 @@
 # @tokenc/backend-tailwind
 
+## 0.4.0
+
+### Minor Changes
+
+- Replace Backend `validate + emit(compilation)` with immutable `CompilationIR`, declared
+  `BackendCapabilities`, `prepare(ir) → BackendPlan`, global artifact preflight, shared symbol
+  allocation, and contract-checked `emit(plan)`. Output files now carry their planned artifact ID,
+  and unsafe or colliding paths prevent every Backend from emitting.
+- Replace the legacy diagnostic shape and CLI JSON output with Diagnostic v1. Diagnostics now carry a
+  schema version, registered code metadata, structured parameters, semantic source anchors, stable
+  SHA-256 fingerprints, documentation URLs, related information, and validated structured fixes.
+- Finalize the M1 public API boundary, ship the Explain Trace v1 JSON Schema, lock generated public
+  declarations and machine schemas, expand differential and concurrency proof, and enforce stable
+  incremental-work performance budgets in CI.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [07f4490]
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @tokenc/core@0.4.0
+  - @tokenc/backend-css@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes

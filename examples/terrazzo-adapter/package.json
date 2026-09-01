@@ -1,0 +1,16 @@
+{
+  "name": "@tokenc/example-terrazzo-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Non-published adapter example for compiling Terrazzo-bundled DTCG with tokenc",
+  "type": "module",
+  "scripts": {
+    "demo": "vp exec tsx src/demo.ts fixtures/bundled.tokens.json"
+  },
+  "dependencies": {
+    "@tokenc/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.12"
+  }
+}

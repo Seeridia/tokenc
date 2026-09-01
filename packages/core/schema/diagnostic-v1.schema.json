@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tokenc.dev/schemas/diagnostic-v1.schema.json",
+  "title": "tokenc Diagnostic v1 output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "diagnostics"],
+  "properties": {
+    "schemaVersion": { "const": "1" },
+    "diagnostics": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/diagnostic" }
+    }
+  },
+  "$defs": {
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line", "column", "offset", "length"],
+      "properties": {
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 },
+        "offset": { "type": "integer", "minimum": 0 },
+        "length": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "anchor": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["token", "candidate", "field", "json-pointer", "offset"] },
+        "token": { "type": "string" },
+        "candidate": { "type": "string" },
+        "path": { "type": "array", "items": { "type": ["string", "integer"] } },
+        "pointer": { "type": "string" },
+        "errorKind": { "type": "string" },
+        "offset": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["document", "range"],
+      "properties": {
+        "document": { "type": "string" },
+        "range": { "$ref": "#/$defs/range" },
+        "anchor": { "$ref": "#/$defs/anchor" },
+        "excerpt": { "type": "string" }
+      }
+    },
+    "related": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["message"],
+      "properties": {
+        "message": { "type": "string" },
+        "source": { "$ref": "#/$defs/location" }
+      }
+    },
+    "edit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["document", "range", "newText", "expectedDocumentDigest"],
+      "properties": {
+        "document": { "type": "string" },
+        "range": { "$ref": "#/$defs/range" },
+        "newText": { "type": "string" },
+        "expectedDocumentDigest": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" }
+      }
+    },
+    "fix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "applicability", "edits"],
+      "properties": {
+        "title": { "type": "string" },
+        "applicability": { "enum": ["safe", "requires-review"] },
+        "edits": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/edit" } }
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "code",
+        "severity",
+        "message",
+        "parameters",
+        "fingerprint",
+        "documentationUrl",
+        "related",
+        "fixes"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "1" },
+        "code": { "type": "string" },
+        "severity": { "enum": ["error", "warning", "info"] },
+        "message": { "type": "string" },
+        "parameters": { "type": "object" },
+        "fingerprint": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+        "documentationUrl": { "type": "string", "format": "uri" },
+        "source": { "$ref": "#/$defs/location" },
+        "related": { "type": "array", "items": { "$ref": "#/$defs/related" } },
+        "fixes": { "type": "array", "items": { "$ref": "#/$defs/fix" } }
+      }
+    }
+  }
+}

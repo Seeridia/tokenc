@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { compileDocuments } from "../../src/compiler.js";
-import { IncrementalCompiler } from "../../src/incremental.js";
+import { compileDocumentsInternal as compileDocuments } from "../../src/compiler.js";
 import { parseTokenDocument } from "../../src/parser.js";
+import { createCompilerSession } from "../../src/session.js";
 import { parseTokenId } from "../../src/token-id.js";
 
 const pointerSource = (value: number) => ({
@@ -29,7 +29,9 @@ describe("DTCG JSON Pointer references", () => {
         id: "alias",
         type: "number",
         value: { kind: "reference", target: "base", pointer: reference },
-        dependencies: ["base"],
+        dependencyOccurrences: [
+          { target: "base", kind: "json-pointer", fieldPath: [], sourceOrder: 0 },
+        ],
       });
     },
   );
@@ -52,8 +54,10 @@ describe("DTCG JSON Pointer references", () => {
       target: "curve",
       value: 0.25,
     });
-    expect(firstX?.dependencies).toEqual(["curve"]);
-    expect(result.graph.getDependents(parseTokenId("curve"))).toEqual(["firstX"]);
+    expect(firstX?.dependencyOccurrences.map((occurrence) => occurrence.target)).toEqual(["curve"]);
+    expect(result.graph.getIncomingEdges(parseTokenId("curve")).map((edge) => edge.from)).toEqual([
+      "firstX",
+    ]);
     expect(result.compilation.resolveToken(parseTokenId("firstX"))?.value).toBe(0.25);
   });
 
@@ -89,8 +93,7 @@ describe("DTCG JSON Pointer references", () => {
     );
     expect(parsed.diagnostics).toEqual([]);
     expect(parsed.tokens[1]).toMatchObject({
-      dependencies: ["red"],
-      propertyReferences: [{ pointer: "#/red/$value", target: "red" }],
+      dependencyOccurrences: [{ target: "red", kind: "json-pointer", fieldPath: ["color"] }],
       value: { kind: "literal", value: { color: { colorSpace: "srgb" } } },
     });
   });
@@ -155,11 +158,25 @@ describe("DTCG JSON Pointer references", () => {
   });
 
   it("invalidates pointer dependents incrementally", async () => {
-    const compiler = new IncrementalCompiler();
-    await compiler.initialize([pointerSource(0)]);
-    const update = await compiler.update(pointerSource(0.5));
-    expect(update.affected).toEqual(new Set(["curve", "firstX"]));
-    expect(update.result.compilation.resolveToken(parseTokenId("firstX"))?.value).toBe(0.5);
+    const compiler = createCompilerSession();
+    await compiler.apply({
+      documents: [
+        {
+          kind: "add",
+          document: { identity: pointerSource(0).file, content: pointerSource(0).content },
+        },
+      ],
+    });
+    const update = await compiler.apply({
+      documents: [
+        {
+          kind: "update",
+          document: { identity: pointerSource(0.5).file, content: pointerSource(0.5).content },
+        },
+      ],
+    });
+    if (update.status !== "valid") throw new Error("Expected a valid snapshot");
+    expect(update.query.resolve(parseTokenId("firstX"))?.value).toBe(0.5);
   });
 
   it("resolves whole-token and component pointers from the same last-source winner", async () => {

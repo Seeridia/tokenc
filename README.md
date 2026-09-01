@@ -30,7 +30,8 @@ Traditional token pipelines often grow into `JSON → deep merge → transforms 
 - **Incremental** — changed files are reparsed and reverse edges identify affected tokens.
 - **Backend-driven** — each target decides whether references are preserved, resolved, or emitted as
   symbols.
-- **Diagnostic-first** — errors retain codes, source locations, related locations, and suggestions.
+- **Diagnostic-first** — versioned errors retain registered codes, semantic anchors, stable
+  fingerprints, related locations, documentation links, and structured fixes.
 
 ## Quick start
 
@@ -100,6 +101,8 @@ npx tokenc build
 See the [basic example](examples/basic) for CSS, Tailwind CSS, TypeScript, aliases, and component
 tokens. The [Resolver example](examples/dtcg-resolver) demonstrates structured DTCG colors, sets,
 modifiers, and explicit resolution order.
+The [Terrazzo adapter example](examples/terrazzo-adapter) demonstrates a read-only handoff of an
+already-bundled standard DTCG document without importing or emulating Terrazzo.
 
 ## CLI
 
@@ -107,12 +110,45 @@ modifiers, and explicit resolution order.
 | ------------------------------- | ------------------------------------------------ |
 | `tokenc build`                  | Validate, compile, and write configured outputs. |
 | `tokenc check`                  | Validate without writing files.                  |
-| `tokenc check --json`           | Emit machine-readable diagnostics.               |
+| `tokenc check --format <type>`  | Emit text, Report v1 JSON, or SARIF 2.1.0.       |
 | `tokenc dev`                    | Watch files and compile incrementally.           |
 | `tokenc explain <token>`        | Trace a token to its literal value.              |
 | `tokenc usages <token>`         | List direct and indirect dependents.             |
 | `tokenc graph [token]`          | Print a dependency graph.                        |
 | `tokenc graph --format mermaid` | Emit Mermaid graph syntax.                       |
+| `tokenc impact <source...>`     | Map changed source files to affected Tokens.     |
+| `tokenc diff --base <ref>`      | Compare a Git revision with the worktree.        |
+| `tokenc diff --policy <path>`   | Enforce Breaking-change Policy v1.               |
+
+For example, from this repository:
+
+```bash
+vp -C examples/basic run tokenc impact tokens/primitive.json
+vp -C examples/basic run tokenc impact tokens/primitive.json --format json
+vp -C examples/basic run tokenc diff --base HEAD~1 --format json
+vp -C examples/basic run tokenc diff --base HEAD~1 --policy tokenc.policy.json
+vp -C examples/basic run tokenc check --format sarif
+```
+
+Repeat `--context name=value` to restrict impact to a Context region. Without a Context filter,
+the report retains exact Predicate regions. Exit code `2` means the result is incomplete, such as
+for an unknown source, invalid Snapshot, or unsupported Context.
+
+`diff` reads Git objects and the worktree without checkout, stash, index writes, or branch movement.
+It executes only the current trusted configuration. If the default config differs across revisions,
+the result is incomplete; passing `--config path` explicitly selects the current config as the
+common trusted analysis config.
+
+With `--policy`, exit code `0` is pass, `1` is an unallowed error-level change, and `2` is an
+incomplete or invalid decision. Policy rules support severity and Context scope; allow entries refer
+to the stable `changeId` emitted by diff.
+
+`check` and `diff` share one immutable report model across text, JSON, and SARIF. Source paths are
+repository-relative, and Diagnostic code, severity, location, and fingerprint stay identical across
+formats. The JSON envelope schema is exported as `@tokenc/cli/report-v1.schema.json`.
+
+For baseline selection, shallow-clone requirements, exit-code handling, artifact retention, fork
+permissions, and a commit-pinned GitHub Actions workflow, see the [CI integration guide](docs/CI.md).
 
 Compilation errors never produce partial output artifacts.
 
@@ -158,19 +194,20 @@ Non-DTCG formats are outside the compiler language. Convert legacy token files t
 compilation; an importer or migrator should emit DTCG rather than bypassing the DTCG parser.
 
 See [Architecture](docs/ARCHITECTURE.md) for the data model, context semantics, incremental
-invalidation, and backend contracts.
+invalidation, and backend contracts. The [M1 API stability boundary](docs/M1-API-STABILITY.md)
+records supported entry points and direct breaking replacements.
 
 ## Programmatic API
 
 ```ts
 import { compile, parseTokenId } from "@tokenc/core";
 
-const result = await compile({
+const snapshot = await compile({
   source: ["tokens/**/*.json"],
 });
 
-if (result.success) {
-  const impact = result.graph.analyzeImpact([parseTokenId("color.blue.600")]);
+if (snapshot.status === "valid") {
+  const impact = snapshot.query.impact([parseTokenId("color.blue.600")]);
   console.log(impact.directlyAffected, impact.indirectlyAffected);
 }
 ```
@@ -214,6 +251,8 @@ vp test --run
 This is a library monorepo: packages are built with `vp pack`, orchestrated by `vp run -r build`.
 
 ## Documentation
+
+- [M2 release-candidate acceptance](docs/M2-ACCEPTANCE.md) · [简体中文](docs/M2-ACCEPTANCE.zh-CN.md)
 
 - [Architecture](docs/ARCHITECTURE.md) · [中文](docs/ARCHITECTURE.zh-CN.md)
 - [Product strategy and roadmap](docs/ROADMAP.md) · [中文](docs/ROADMAP.zh-CN.md)

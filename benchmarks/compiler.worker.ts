@@ -8,6 +8,7 @@ import { assertFiniteNumbers } from "./statistics.js";
 import type {
   BenchmarkContextCycleCounters,
   BenchmarkCounters,
+  BenchmarkChangeIntelligenceMeasurement,
   BenchmarkExpectation,
   BenchmarkMemoryWorkerResponse,
   BenchmarkRunResult,
@@ -64,7 +65,10 @@ function parseArguments(arguments_: readonly string[]): WorkerOptions {
 
 function diagnosticCounts(result: BenchmarkRunResult): Readonly<Record<string, number>> {
   const counts = new Map<string, number>();
-  for (const diagnostic of result.result.diagnostics) {
+  for (const diagnostic of [
+    ...result.snapshot.diagnostics,
+    ...(result.backend?.diagnostics ?? []),
+  ]) {
     if (diagnostic.severity !== "error") continue;
     counts.set(diagnostic.code, (counts.get(diagnostic.code) ?? 0) + 1);
   }
@@ -73,7 +77,7 @@ function diagnosticCounts(result: BenchmarkRunResult): Readonly<Record<string, n
 
 function contextCycles(result: BenchmarkRunResult): BenchmarkContextCycleCounters {
   return (
-    result.result.stats.contextCycles ?? {
+    result.snapshot.stats.contextCycles ?? {
       candidateRegions: 0,
       relevantDimensions: 0,
       estimatedProjections: 0,
@@ -86,20 +90,22 @@ function contextCycles(result: BenchmarkRunResult): BenchmarkContextCycleCounter
 }
 
 function counters(result: BenchmarkRunResult): BenchmarkCounters {
-  const incremental = result.incremental;
+  const session = result.session;
+  const graphRecomputed = session?.stages.graph.recomputed ?? null;
   return {
-    tokens: result.result.stats.tokens,
-    references: result.result.stats.references,
-    contexts: result.result.stats.contexts,
-    affectedTokens: result.result.stats.affectedTokens ?? incremental?.affectedTokens ?? null,
-    checkedTokens: result.result.stats.checkedTokens ?? null,
-    resolverComputations: result.result.compilation.resolver.computations,
-    changedTokens: incremental?.changedTokens ?? null,
-    recomputedTokens: incremental?.recomputedTokens ?? null,
-    graphTouchedNodes: incremental?.graphTouchedNodes ?? null,
-    graphTouchedEdges: incremental?.graphTouchedEdges ?? null,
-    outputFiles: result.result.outputs.length,
-    outputBytes: result.result.outputs.reduce(
+    tokens: result.snapshot.stats.tokens,
+    references: result.snapshot.stats.references,
+    contexts: result.snapshot.stats.contexts,
+    affectedTokens: session?.affectedTokens ?? result.snapshot.stats.affectedTokens ?? null,
+    checkedTokens: result.snapshot.stats.checkedTokens ?? null,
+    resolverComputations: result.snapshot.status === "valid" ? result.snapshot.ir.tokens.length : 0,
+    changedTokens: session?.changedTokens ?? null,
+    recomputedTokens: session?.stages.resolve.recomputed ?? null,
+    graphTouchedNodes: graphRecomputed,
+    graphTouchedEdges:
+      graphRecomputed === null ? null : graphRecomputed > 0 ? result.snapshot.stats.references : 0,
+    outputFiles: result.backend?.outputs.length ?? 0,
+    outputBytes: (result.backend?.outputs ?? []).reduce(
       (bytes, output) => bytes + Buffer.byteLength(output.content),
       0,
     ),
@@ -109,7 +115,17 @@ function counters(result: BenchmarkRunResult): BenchmarkCounters {
 }
 
 function stageTimings(result: BenchmarkRunResult): BenchmarkStageTimings {
-  return { ...result.result.stats.timings };
+  return { ...result.snapshot.stats.timings };
+}
+
+function changeIntelligence(
+  result: BenchmarkRunResult,
+): BenchmarkChangeIntelligenceMeasurement | null {
+  if (!result.changeIntelligence) return null;
+  return {
+    stagesMs: { ...result.changeIntelligence.stagesMs },
+    counters: { ...result.changeIntelligence.counters },
+  };
 }
 
 function stableJson(value: unknown): string {
@@ -123,22 +139,33 @@ function stableJson(value: unknown): string {
 
 function semanticSha256(result: BenchmarkRunResult): `sha256:${string}` {
   const semantic = {
-    success: result.result.success,
-    diagnostics: result.result.diagnostics.map((diagnostic) => ({
-      code: diagnostic.code,
-      severity: diagnostic.severity,
-      message: diagnostic.message,
-    })),
-    tokens: result.result.compilation.tokens.map((token) => ({
-      id: token.id,
-      type: token.type,
-      value: token.value,
-      context: token.context,
-      dependencies: token.dependencies,
-    })),
-    outputs: result.result.outputs
+    success:
+      result.snapshot.status === "valid" &&
+      (result.backend === undefined || result.backend.success),
+    diagnostics: [...result.snapshot.diagnostics, ...(result.backend?.diagnostics ?? [])].map(
+      (diagnostic) => ({
+        code: diagnostic.code,
+        severity: diagnostic.severity,
+        message: diagnostic.message,
+      }),
+    ),
+    tokens:
+      result.snapshot.status === "valid"
+        ? result.snapshot.ir.tokens.map((token) => ({
+            id: token.id,
+            type: token.type,
+            value: token.value,
+            context: token.context,
+            dependencies: token.dependencies,
+          }))
+        : result.snapshot.query.completions().map((id) => ({
+            id,
+            type: result.snapshot.query.token(id)?.type,
+          })),
+    outputs: (result.backend?.outputs ?? [])
       .map((output) => ({ path: output.path, content: output.content }))
       .toSorted((left, right) => left.path.localeCompare(right.path)),
+    changeIntelligenceReport: result.changeIntelligence?.reportJson,
   };
   return `sha256:${createHash("sha256").update(stableJson(semantic)).digest("hex")}`;
 }
@@ -158,7 +185,12 @@ function assertExpected(
   measured: BenchmarkCounters,
 ): void {
   const checks: readonly [string, number | boolean | undefined, number | boolean][] = [
-    ["success", expected.success, result.result.success],
+    [
+      "success",
+      expected.success,
+      result.snapshot.status === "valid" &&
+        (result.backend === undefined || result.backend.success),
+    ],
     ["tokens", expected.tokens, measured.tokens],
     ["references", expected.references, measured.references],
     ["contexts", expected.contexts, measured.contexts],
@@ -180,11 +212,22 @@ function assertExpected(
         `Benchmark Context-cycle expectation ${name}=${String(wanted)} failed; received ${String(actual)}`,
       );
   }
+  for (const [name, wanted] of Object.entries(expected.changeIntelligence ?? {})) {
+    const actual = result.changeIntelligence
+      ? Reflect.get(result.changeIntelligence.counters, name)
+      : undefined;
+    if (wanted !== actual)
+      throw new Error(
+        `Benchmark change-intelligence expectation ${name}=${String(wanted)} failed; received ${String(actual)}`,
+      );
+  }
 }
 
 function validation(result: BenchmarkRunResult, measured: BenchmarkCounters): BenchmarkValidation {
   return {
-    compilationSuccess: result.result.success,
+    compilationSuccess:
+      result.snapshot.status === "valid" &&
+      (result.backend === undefined || result.backend.success),
     matchesExpected: true,
     semanticSha256: semanticSha256(result),
     diagnostics: measured.diagnostics,
@@ -234,6 +277,7 @@ async function runTiming(options: TimingOptions): Promise<BenchmarkTimingWorkerR
       wallMs,
       stagesMs: stageTimings(result),
       counters: measuredCounters,
+      changeIntelligence: changeIntelligence(result),
     });
   }
   if (!expectedValidation) throw new Error("Timing worker produced no samples");
@@ -262,6 +306,7 @@ async function runMemory(options: MemoryOptions): Promise<BenchmarkMemoryWorkerR
     },
     validation: validation(result, measuredCounters),
     counters: measuredCounters,
+    changeIntelligence: changeIntelligence(result),
   };
 }
 

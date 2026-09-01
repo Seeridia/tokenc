@@ -1,0 +1,22 @@
+{
+  "$schema": "https://www.designtokens.org/schemas/2025.10/format.json",
+  "color": {
+    "$type": "color",
+    "blue": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [0, 0.3215686275, 0.8509803922],
+        "alpha": 1,
+        "hex": "#0052D9"
+      },
+      "$extensions": {
+        "org.example.design-tool": {
+          "collection": "brand"
+        }
+      }
+    },
+    "brand": {
+      "$value": "{color.blue}"
+    }
+  }
+}

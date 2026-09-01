@@ -129,7 +129,10 @@ describe("DTCG composite token validation", () => {
     );
     expect(parsed.diagnostics).toEqual([]);
     expect(parsed.tokens.find((token) => token.id === "combined")).toMatchObject({
-      dependencies: ["start", "end"],
+      dependencyOccurrences: [
+        { target: "start", kind: "composite-field", fieldPath: [0] },
+        { target: "end", kind: "composite-field", fieldPath: [2] },
+      ],
       value: {
         kind: "literal",
         value: [[{ position: 0 }], { position: 0.5 }, [{ position: 1 }]],

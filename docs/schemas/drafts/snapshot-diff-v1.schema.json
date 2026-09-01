@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tokenc.dev/schemas/drafts/snapshot-diff-v1.schema.json",
+  "title": "tokenc Snapshot Diff v1 draft pointer",
+  "description": "The M2-00 draft was promoted and refined by M2-01.",
+  "$ref": "https://tokenc.dev/schemas/snapshot-diff-v1.schema.json"
+}

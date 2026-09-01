@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vite-plus/test";
 
-import { compileDocuments } from "../src/compiler.js";
+import { compileDocumentsInternal as compileDocuments } from "../src/compiler.js";
 import {
   checkContexts,
   contextKey,

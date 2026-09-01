@@ -1,0 +1,78 @@
+name: tokenc change intelligence
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Git revision to compare against
+        required: true
+        default: HEAD~1
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  tokenc:
+    name: Design Token compatibility
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout complete history
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@313600b80b104eadebb9111787d37a2e83e014ca # v1.17.0
+        with:
+          node-version: 24
+          cache: true
+          run-install: false
+
+      - name: Install dependencies
+        run: vp install --frozen-lockfile
+
+      - name: Build tokenc
+        run: vp run -r build
+
+      - name: Generate text, JSON, and SARIF reports
+        env:
+          TOKENC_BASE: ${{ github.event.pull_request.base.sha || inputs.base || 'HEAD~1' }}
+        run: |
+          mkdir -p artifacts/tokenc
+          set +e
+          vp exec tsx packages/cli/src/bin.ts diff --base "$TOKENC_BASE" --head HEAD --config examples/basic/tokenc.config.ts --policy examples/basic/tokenc.policy.json --format text > artifacts/tokenc/report.txt
+          text_status=$?
+          vp exec tsx packages/cli/src/bin.ts diff --base "$TOKENC_BASE" --head HEAD --config examples/basic/tokenc.config.ts --policy examples/basic/tokenc.policy.json --format json > artifacts/tokenc/report.json
+          json_status=$?
+          vp exec tsx packages/cli/src/bin.ts diff --base "$TOKENC_BASE" --head HEAD --config examples/basic/tokenc.config.ts --policy examples/basic/tokenc.policy.json --format sarif > artifacts/tokenc/report.sarif
+          sarif_status=$?
+          set -e
+
+          if [[ "$text_status" != "$json_status" || "$json_status" != "$sarif_status" ]]; then
+            echo "tokenc report formats returned different exit codes" >&2
+            exit 2
+          fi
+          exit "$json_status"
+
+      - name: Retain tokenc reports
+        if: always() && hashFiles('artifacts/tokenc/*') != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: tokenc-reports
+          path: artifacts/tokenc
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload SARIF to code scanning
+        if: always() && hashFiles('artifacts/tokenc/report.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
+        with:
+          sarif_file: artifacts/tokenc/report.sarif

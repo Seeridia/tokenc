@@ -2,7 +2,7 @@
 
 [English](ROADMAP.md) | [简体中文](ROADMAP.zh-CN.md)
 
-> 状态：方向性规划，不是版本承诺。更新时间：2026-08-25。
+> 状态：方向性规划，不是版本承诺。更新时间：2026-08-31。
 
 本文定义 tokenc 在未来几个里程碑中的产品定位、架构演进、交付顺序与验收标准。它补充
 [架构文档](ARCHITECTURE.zh-CN.md)和
@@ -360,8 +360,9 @@ provenance 和 annotated package tags。`tokenc check` Backend 预检、输出�
 
 **目标：** 把差异化从内部实现转成可靠的公共接口。
 
-**状态（2026-08-25）：计划就绪。** 有序任务、依赖关系和自动化验收矩阵见
-[M1 执行计划](M1-PLAN.zh-CN.md)。完成计划中的发布完整性与测量 Gate 后，才开始合并公共 API。
+**状态（2026-08-31）：实现完成，0.4.0 release candidate。** 有序任务、依赖关系和自动化验收矩阵见
+[M1 执行计划](M1-PLAN.zh-CN.md)；本地候选版本已由 [M1 验收记录](M1-ACCEPTANCE.zh-CN.md)
+确认通过。发布及发布后 registry 验证完成后，里程碑正式关闭。
 
 交付物：
 
@@ -371,7 +372,7 @@ provenance 和 annotated package tags。`tokenc check` Backend 预检、输出�
 - `CompilationSnapshot` 和进程内 `CompilerSession`。
 - Parser/Linker/Resolver/Graph 阶段的 cache metrics。
 - Diagnostic schema v1，包括 fingerprint、related locations 和 optional fix。
-- API stability 文档与弃用策略。
+- API stability 文档与直接破坏式替代策略。
 
 退出条件：
 
@@ -384,6 +385,15 @@ provenance 和 annotated package tags。`tokenc check` Backend 预检、输出�
 ### M2 — CI 与变更智能
 
 **目标：** 让 tokenc 首先作为现有 Token 流水线的安全检查层被采用。
+
+**状态（2026-09-01）：实现已完成；M2-00 至 M2-09 已通过 `0.5.0` release candidate 验收。** 变更智能契约、证据基线、
+公开 Snapshot Diff v1 与 Impact Report v1 API、JSON Schema、`tokenc impact` 和只读 Git-backed
+`tokenc diff`、Breaking-change Policy v1、共享 Report v1 text/JSON/SARIF renderer，以及 Resolver
+permutation 惰性规划、Session 编译、Snapshot Diff 比较与 Backend 批量 preflight，以及固定 commit 的 CI
+参考 workflow、fork-safe artifact 路径与四结果可执行 fixture，以及有界、仅使用公开 API 的 Terrazzo
+handoff 与显式 unsupported-extension 分类、独立 differential proof、语义工作量门禁、公共契约锁和
+packed release 证据均已完成。发布与发布后验证仍是外部操作；详见
+[M2 验收记录](M2-ACCEPTANCE.zh-CN.md)。
 
 交付物：
 

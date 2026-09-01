@@ -10,6 +10,10 @@ import { assertFiniteNumbers, summarizeDistribution } from "./statistics.js";
 import type {
   BenchmarkCaseDefinition,
   BenchmarkCaseReport,
+  BenchmarkChangeIntelligenceCounters,
+  BenchmarkChangeIntelligenceMeasurement,
+  BenchmarkChangeIntelligenceSummary,
+  BenchmarkChangeIntelligenceStageTimings,
   BenchmarkContextCycleCounters,
   BenchmarkCounters,
   BenchmarkDistribution,
@@ -173,6 +177,40 @@ function parseStages(value: unknown): BenchmarkStageTimings {
   };
 }
 
+function parseChangeIntelligenceStages(value: unknown): BenchmarkChangeIntelligenceStageTimings {
+  if (!isRecord(value)) throw new TypeError("Worker change-intelligence stages must be an object");
+  return {
+    snapshotConstruction: numberField(value, "snapshotConstruction"),
+    impactTraversal: numberField(value, "impactTraversal"),
+    backendPreparation: numberField(value, "backendPreparation"),
+    reportSerialization: numberField(value, "reportSerialization"),
+  };
+}
+
+function parseChangeIntelligenceCounters(value: unknown): BenchmarkChangeIntelligenceCounters {
+  if (!isRecord(value))
+    throw new TypeError("Worker change-intelligence counters must be an object");
+  return {
+    baseTokens: integerOrNull(value, "baseTokens") ?? 0,
+    headTokens: integerOrNull(value, "headTokens") ?? 0,
+    changedTokens: integerOrNull(value, "changedTokens") ?? 0,
+    directlyAffectedTokens: integerOrNull(value, "directlyAffectedTokens") ?? 0,
+    indirectlyAffectedTokens: integerOrNull(value, "indirectlyAffectedTokens") ?? 0,
+    backendPlans: integerOrNull(value, "backendPlans") ?? 0,
+    reportEntries: integerOrNull(value, "reportEntries") ?? 0,
+    reportBytes: integerOrNull(value, "reportBytes") ?? 0,
+  };
+}
+
+function parseChangeIntelligence(value: unknown): BenchmarkChangeIntelligenceMeasurement | null {
+  if (value === null) return null;
+  if (!isRecord(value)) throw new TypeError("Worker changeIntelligence must be an object or null");
+  return {
+    stagesMs: parseChangeIntelligenceStages(value.stagesMs),
+    counters: parseChangeIntelligenceCounters(value.counters),
+  };
+}
+
 function parseValidation(value: unknown): BenchmarkValidation {
   if (!isRecord(value)) throw new TypeError("Worker validation must be an object");
   if (typeof value.compilationSuccess !== "boolean")
@@ -200,6 +238,7 @@ function parseTimeSample(value: unknown): BenchmarkTimeSample {
     wallMs: numberField(value, "wallMs"),
     stagesMs: parseStages(value.stagesMs),
     counters: parseCounters(value.counters),
+    changeIntelligence: parseChangeIntelligence(value.changeIntelligence),
   };
 }
 
@@ -234,6 +273,7 @@ function parseMemoryResponse(output: string): BenchmarkMemoryWorkerResponse {
     sample: parseMemorySample(parsed.sample),
     validation: parseValidation(parsed.validation),
     counters: parseCounters(parsed.counters),
+    changeIntelligence: parseChangeIntelligence(parsed.changeIntelligence),
   };
 }
 
@@ -268,6 +308,33 @@ function summarizeStages(
     resolve: distribution("resolve"),
     emit: distribution("emit"),
     total: distribution("total"),
+  };
+}
+
+function summarizeChangeIntelligence(
+  samples: readonly BenchmarkTimeSample[],
+): BenchmarkChangeIntelligenceSummary | null {
+  const measurements = samples.flatMap((sample) => sample.changeIntelligence ?? []);
+  if (measurements.length === 0) return null;
+  if (measurements.length !== samples.length)
+    throw new Error("Change-intelligence measurements must be present in every sample or none");
+  const counters = measurements[0]?.counters;
+  if (!counters) throw new Error("Change-intelligence benchmark produced no counters");
+  for (const measurement of measurements)
+    if (JSON.stringify(measurement.counters) !== JSON.stringify(counters))
+      throw new Error("Change-intelligence semantic counters changed between samples");
+  const distribution = (
+    stage: keyof BenchmarkChangeIntelligenceStageTimings,
+  ): BenchmarkDistribution =>
+    summarizeDistribution(measurements.map((measurement) => measurement.stagesMs[stage]));
+  return {
+    stagesMs: {
+      snapshotConstruction: distribution("snapshotConstruction"),
+      impactTraversal: distribution("impactTraversal"),
+      backendPreparation: distribution("backendPreparation"),
+      reportSerialization: distribution("reportSerialization"),
+    },
+    counters,
   };
 }
 
@@ -321,6 +388,7 @@ async function runCase(
         memorySamples.length > 0
           ? summarizeDistribution(memorySamples.map((sample) => sample.peakIncreaseBytes))
           : null,
+      changeIntelligence: summarizeChangeIntelligence(timing.samples),
     },
   };
 }

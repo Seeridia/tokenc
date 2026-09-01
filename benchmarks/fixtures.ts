@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { css } from "@tokenc/backend-css";
 import {
   compileDocuments,
-  IncrementalCompiler,
+  createCompilerSession,
   parseResolverDocument,
   resolverSourceFiles,
   type CompilationContext,
@@ -15,6 +15,7 @@ import {
   type TokenSourceInput,
 } from "@tokenc/core";
 
+import { changeIntelligenceBenchmarkCases } from "./change-intelligence.js";
 import type {
   BenchmarkCaseDefinition,
   BenchmarkExpectation,
@@ -366,7 +367,7 @@ const wideCases = [1_000, 10_000].map((count): BenchmarkCaseDefinition => {
     expected: { success: true, tokens: count, references: 0, outputFiles: 0 },
     createRun: () => {
       const input = independentTokens(count);
-      return async () => ({ result: await compileDocuments([input]) });
+      return async () => ({ snapshot: await compileDocuments([input]) });
     },
   });
 });
@@ -376,7 +377,6 @@ const sparseDefinition: ContextDefinition = {
 };
 
 const projectionCases = [8, 10, 12, 14, 15].map((dimensions): BenchmarkCaseDefinition => {
-  const overLimit = dimensions === 15;
   return coldCase({
     id: `synthetic/context-projection/cold/${dimensions}`,
     name: `${dimensions}-dimension conditional-cycle projection`,
@@ -385,13 +385,13 @@ const projectionCases = [8, 10, 12, 14, 15].map((dimensions): BenchmarkCaseDefin
       const fixture = projectionFixture(dimensions);
       return fixtureDescriptor({
         kind: "synthetic",
-        version: "1",
-        description: `Two-token conditional cycle spanning ${dimensions} binary dimensions`,
+        version: "2",
+        description: `Two-token symbolically analyzed conditional cycle spanning ${dimensions} binary dimensions`,
         files: sourceFiles([fixture.source]),
         parameters: {
           dimensions,
           estimatedProjections: 2 ** dimensions,
-          projectionLimitCase: overLimit,
+          symbolicPredicate: true,
         },
       });
     },
@@ -402,20 +402,18 @@ const projectionCases = [8, 10, 12, 14, 15].map((dimensions): BenchmarkCaseDefin
       contextCycles: {
         candidateRegions: 1,
         relevantDimensions: dimensions,
-        estimatedProjections: 2 ** dimensions,
+        estimatedProjections: 0,
         estimateSaturated: false,
-        enumeratedProjections: overLimit ? 0 : 2 ** dimensions,
+        enumeratedProjections: 0,
         earlyExits: 0,
-        limitHits: overLimit ? 1 : 0,
+        limitHits: 0,
       },
-      diagnostics: {
-        [overLimit ? "TOKEN_CONTEXT_PROJECTION_LIMIT" : "TOKEN_CIRCULAR_REFERENCE"]: 1,
-      },
+      diagnostics: { TOKEN_CIRCULAR_REFERENCE: 1 },
     },
     createRun: () => {
       const fixture = projectionFixture(dimensions);
       return async () => ({
-        result: await compileDocuments([fixture.source], { contexts: fixture.contexts }),
+        snapshot: await compileDocuments([fixture.source], { contexts: fixture.contexts }),
       });
     },
   });
@@ -459,7 +457,7 @@ const syntheticCases: readonly BenchmarkCaseDefinition[] = [
       parameters: { source: "packages/core/test/fixtures/basic/tokens.json" },
     }),
     expected: { success: true, tokens: 5, references: 0, outputFiles: 0 },
-    createRun: () => async () => ({ result: await compileDocuments([smallSource]) }),
+    createRun: () => async () => ({ snapshot: await compileDocuments([smallSource]) }),
   }),
   ...wideCases,
   coldCase({
@@ -479,7 +477,7 @@ const syntheticCases: readonly BenchmarkCaseDefinition[] = [
     expected: { success: true, tokens: 10_000, references: 9_999, outputFiles: 0 },
     createRun: () => {
       const input = aliasChain(10_000);
-      return async () => ({ result: await compileDocuments([input]) });
+      return async () => ({ snapshot: await compileDocuments([input]) });
     },
   }),
   coldCase({
@@ -499,7 +497,7 @@ const syntheticCases: readonly BenchmarkCaseDefinition[] = [
     expected: { success: true, tokens: 2_001, references: 2_000, outputFiles: 0 },
     createRun: () => {
       const inputs = fanOut(2_000);
-      return async () => ({ result: await compileDocuments(inputs) });
+      return async () => ({ snapshot: await compileDocuments(inputs) });
     },
   }),
   coldCase({
@@ -520,7 +518,7 @@ const syntheticCases: readonly BenchmarkCaseDefinition[] = [
     createRun: () => {
       const input = sparseContexts(1_000);
       return async () => ({
-        result: await compileDocuments([input], { contexts: sparseDefinition }),
+        snapshot: await compileDocuments([input], { contexts: sparseDefinition }),
       });
     },
   }),
@@ -543,7 +541,7 @@ const syntheticCases: readonly BenchmarkCaseDefinition[] = [
     createRun: () => {
       const fixture = overrideHeavy(1_000);
       return async () => ({
-        result: await compileDocuments([fixture.source], { contexts: fixture.contexts }),
+        snapshot: await compileDocuments([fixture.source], { contexts: fixture.contexts }),
       });
     },
   }),
@@ -580,19 +578,28 @@ const syntheticCases: readonly BenchmarkCaseDefinition[] = [
     },
     async createInvocation() {
       const initial = incrementalSources();
-      const compiler = new IncrementalCompiler();
-      await compiler.initialize(initial);
+      const session = createCompilerSession();
+      await session.apply({
+        documents: initial.map((input) => ({
+          kind: "add",
+          document: { identity: input.file, content: input.content },
+        })),
+      });
       return singleUse(async () => {
-        const update = await compiler.update(primitive(2));
+        const snapshot = await session.apply({
+          documents: [
+            {
+              kind: "update",
+              document: {
+                identity: primitive(2).file,
+                content: primitive(2).content,
+              },
+            },
+          ],
+        });
         return {
-          result: update.result,
-          incremental: {
-            changedTokens: update.changed.length,
-            affectedTokens: update.affected.size,
-            recomputedTokens: update.recomputed,
-            graphTouchedNodes: update.graphDelta.touchedNodes,
-            graphTouchedEdges: update.graphDelta.touchedEdges,
-          },
+          snapshot,
+          ...(session.metrics ? { session: session.metrics } : {}),
         };
       });
     },
@@ -622,12 +629,16 @@ const syntheticCases: readonly BenchmarkCaseDefinition[] = [
     outputTarget: "css",
     createRun: () => {
       const fixture = representativeProject();
-      return async () => ({
-        result: await compileDocuments(fixture.sources, {
+      return async () => {
+        const snapshot = await compileDocuments(fixture.sources, {
           contexts: fixture.contexts,
-          outputs: [css({ output: "tokens.css", references: "preserve" })],
-        }),
-      });
+        });
+        const backend =
+          snapshot.status === "valid"
+            ? await snapshot.emit([css({ output: "tokens.css", references: "preserve" })])
+            : undefined;
+        return { snapshot, ...(backend ? { backend } : {}) };
+      };
     },
   }),
 ];
@@ -732,7 +743,7 @@ function dtcgCases(): readonly BenchmarkCaseDefinition[] {
       createRun: () => {
         const loaded = load();
         return async () => ({
-          result: await compileDocuments(loaded.inputs, {
+          snapshot: await compileDocuments(loaded.inputs, {
             resolver: loaded.document,
             resolverInput: defaultResolverInput(loaded.document),
             resolverDiagnostics: loaded.parsed.diagnostics,
@@ -746,6 +757,7 @@ function dtcgCases(): readonly BenchmarkCaseDefinition[] {
 export const BENCHMARK_CASES: readonly BenchmarkCaseDefinition[] = [
   ...syntheticCases,
   ...dtcgCases(),
+  ...changeIntelligenceBenchmarkCases(fixtureDescriptor),
 ];
 
 export function benchmarkCase(id: string): BenchmarkCaseDefinition | undefined {

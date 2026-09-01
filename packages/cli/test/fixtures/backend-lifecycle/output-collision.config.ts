@@ -1,18 +1,60 @@
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { ALL_TOKEN_TYPES, defineConfig, type BackendPlan, type TokenBackend } from "@tokenc/core";
 
-import { defineConfig, type TokenBackend } from "@tokenc/core";
+const capabilities = {
+  tokenTypes: ALL_TOKEN_TYPES,
+  referenceStrategies: new Set(["resolve" as const]),
+  contextMode: "none" as const,
+  colorSpaces: "preserve" as const,
+  composite: "native" as const,
+};
 
-const absoluteOutput = resolve(dirname(fileURLToPath(import.meta.url)), "dist/shared.txt");
+const emit = (plan: BackendPlan) =>
+  plan.artifacts.map((artifact) => ({
+    id: artifact.id,
+    path: artifact.path,
+    content: String(artifact.payload),
+  }));
 
 const first: TokenBackend = {
-  name: "first",
-  emit: () => [{ path: absoluteOutput, content: "first" }],
+  id: "first",
+  capabilities,
+  prepare: () => ({
+    backendId: "first",
+    diagnostics: [],
+    symbols: [],
+    artifacts: [
+      {
+        id: "main",
+        path: "dist/Shared.txt",
+        mediaType: "text/plain",
+        tokenIds: [],
+        payload: "first",
+      },
+    ],
+    data: null,
+  }),
+  emit,
 };
 
 const second: TokenBackend = {
-  name: "second",
-  emit: () => [{ path: "dist/shared.txt", content: "second" }],
+  id: "second",
+  capabilities,
+  prepare: () => ({
+    backendId: "second",
+    diagnostics: [],
+    symbols: [],
+    artifacts: [
+      {
+        id: "main",
+        path: "DIST/shared.txt",
+        mediaType: "text/plain",
+        tokenIds: [],
+        payload: "second",
+      },
+    ],
+    data: null,
+  }),
+  emit,
 };
 
 export default defineConfig({ source: ["tokens.json"], outputs: [first, second] });

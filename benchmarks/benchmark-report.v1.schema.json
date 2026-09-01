@@ -168,6 +168,55 @@
         "limitHits": { "type": "integer", "minimum": 0 }
       }
     },
+    "changeIntelligenceStages": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshotConstruction",
+        "impactTraversal",
+        "backendPreparation",
+        "reportSerialization"
+      ],
+      "properties": {
+        "snapshotConstruction": { "$ref": "#/$defs/nonNegativeNumber" },
+        "impactTraversal": { "$ref": "#/$defs/nonNegativeNumber" },
+        "backendPreparation": { "$ref": "#/$defs/nonNegativeNumber" },
+        "reportSerialization": { "$ref": "#/$defs/nonNegativeNumber" }
+      }
+    },
+    "changeIntelligenceCounters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseTokens",
+        "headTokens",
+        "changedTokens",
+        "directlyAffectedTokens",
+        "indirectlyAffectedTokens",
+        "backendPlans",
+        "reportEntries",
+        "reportBytes"
+      ],
+      "properties": {
+        "baseTokens": { "type": "integer", "minimum": 0 },
+        "headTokens": { "type": "integer", "minimum": 0 },
+        "changedTokens": { "type": "integer", "minimum": 0 },
+        "directlyAffectedTokens": { "type": "integer", "minimum": 0 },
+        "indirectlyAffectedTokens": { "type": "integer", "minimum": 0 },
+        "backendPlans": { "type": "integer", "minimum": 0 },
+        "reportEntries": { "type": "integer", "minimum": 0 },
+        "reportBytes": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "changeIntelligence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stagesMs", "counters"],
+      "properties": {
+        "stagesMs": { "$ref": "#/$defs/changeIntelligenceStages" },
+        "counters": { "$ref": "#/$defs/changeIntelligenceCounters" }
+      }
+    },
     "counters": {
       "type": "object",
       "additionalProperties": false,
@@ -236,9 +285,18 @@
       "additionalProperties": false,
       "required": ["kind", "cacheState", "outputTarget", "ioIncluded"],
       "properties": {
-        "kind": { "enum": ["cold-compile", "incremental-update"] },
+        "kind": {
+          "enum": [
+            "change-intelligence-high-fan-out",
+            "change-intelligence-one-file-edit",
+            "change-intelligence-report-serialization",
+            "change-intelligence-unchanged",
+            "cold-compile",
+            "incremental-update"
+          ]
+        },
         "cacheState": { "enum": ["compiler-cold-runtime-warm", "initialized-session"] },
-        "outputTarget": { "enum": ["css", "none"] },
+        "outputTarget": { "enum": ["backend-plan", "css", "none"] },
         "ioIncluded": { "const": false }
       }
     },
@@ -261,7 +319,10 @@
         "index": { "type": "integer", "minimum": 1 },
         "wallMs": { "$ref": "#/$defs/nonNegativeNumber" },
         "stagesMs": { "$ref": "#/$defs/stages" },
-        "counters": { "$ref": "#/$defs/counters" }
+        "counters": { "$ref": "#/$defs/counters" },
+        "changeIntelligence": {
+          "oneOf": [{ "$ref": "#/$defs/changeIntelligence" }, { "type": "null" }]
+        }
       }
     },
     "memorySample": {
@@ -301,6 +362,7 @@
         "name": { "type": "string", "minLength": 1 },
         "group": {
           "enum": [
+            "change-intelligence",
             "deep",
             "dtcg-examples",
             "fan-out",
@@ -337,6 +399,35 @@
             },
             "peakIncreaseBytes": {
               "oneOf": [{ "$ref": "#/$defs/distribution" }, { "type": "null" }]
+            },
+            "changeIntelligence": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["stagesMs", "counters"],
+                  "properties": {
+                    "stagesMs": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "snapshotConstruction",
+                        "impactTraversal",
+                        "backendPreparation",
+                        "reportSerialization"
+                      ],
+                      "properties": {
+                        "snapshotConstruction": { "$ref": "#/$defs/distribution" },
+                        "impactTraversal": { "$ref": "#/$defs/distribution" },
+                        "backendPreparation": { "$ref": "#/$defs/distribution" },
+                        "reportSerialization": { "$ref": "#/$defs/distribution" }
+                      }
+                    },
+                    "counters": { "$ref": "#/$defs/changeIntelligenceCounters" }
+                  }
+                },
+                { "type": "null" }
+              ]
             }
           }
         }

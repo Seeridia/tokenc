@@ -38,6 +38,7 @@ describe("benchmark fixtures", () => {
     );
     expect(new Set(BENCHMARK_CASES.map((definition) => definition.group))).toEqual(
       new Set([
+        "change-intelligence",
         "small",
         "wide",
         "deep",
@@ -77,11 +78,11 @@ describe("benchmark fixtures", () => {
     });
     const invocation = await definition!.createInvocation();
     const measured = await invocation.run();
-    expect(measured.result).toMatchObject({
-      success: true,
+    expect(measured.snapshot).toMatchObject({
+      status: "valid",
       stats: { tokens: 2_000, references: 1_400 },
     });
-    expect(measured.result.outputs).toHaveLength(1);
+    expect(measured.backend?.outputs).toHaveLength(1);
     await expect(invocation.run()).rejects.toThrow("already run");
   });
 
@@ -89,15 +90,17 @@ describe("benchmark fixtures", () => {
     const definition = benchmarkCase("synthetic/incremental/point-edit/10000+12")!;
     const first = await (await definition.createInvocation()).run();
     const second = await (await definition.createInvocation()).run();
-    expect(first.incremental).toEqual({
+    expect(first.session).toEqual(second.session);
+    expect(first.session).toMatchObject({
       changedTokens: 1,
       affectedTokens: 12,
-      recomputedTokens: 12,
-      graphTouchedNodes: 1,
-      graphTouchedEdges: 0,
+      stages: {
+        parse: { reused: 2, recomputed: 1 },
+        link: { reused: 1, recomputed: 2 },
+        resolve: { reused: 10_000, recomputed: 12 },
+      },
     });
-    expect(second.incremental).toEqual(first.incremental);
-    expect(first.result.stats).toMatchObject({ tokens: 10_012, references: 11 });
+    expect(first.snapshot.stats).toMatchObject({ tokens: 10_012, references: 11 });
   });
 
   it("pins all dtcg-examples resolvers and records expected diagnostics", async () => {
@@ -109,8 +112,8 @@ describe("benchmark fixtures", () => {
     });
     expect(definition.expected).toMatchObject({ success: true, tokens: 67, diagnostics: {} });
     const measured = await (await definition.createInvocation()).run();
-    expect(measured.result.success).toBe(true);
-    expect(measured.result.stats.tokens).toBe(67);
+    expect(measured.snapshot.status).toBe("valid");
+    expect(measured.snapshot.stats.tokens).toBe(67);
 
     const adobe = benchmarkCase("ecosystem/dtcg-examples/adobe-spectrum/default")!;
     expect(adobe.expected.success).toBe(false);

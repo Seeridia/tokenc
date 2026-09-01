@@ -1,13 +1,91 @@
-import { resolve } from "node:path";
-
 import { describe, expect, it } from "vite-plus/test";
 
-import { compileDocuments, defineConfig, type TokenBackend } from "../src/compiler.js";
-import type { ColorValue, CompilationStageTimings } from "../src/model.js";
+import { ALL_TOKEN_TYPES, type BackendPlan, type TokenBackend } from "../src/backend.js";
+import {
+  compileDocuments as compileSnapshot,
+  defineConfig,
+  type CompilationOptions,
+} from "../src/compiler.js";
+import { createDiagnostic } from "../src/diagnostic.js";
+import type { TokenSourceInput } from "../src/loader.js";
+import type {
+  ColorValue,
+  CompiledToken,
+  CompilationStageTimings,
+  OutputFile,
+  TokenNode,
+} from "../src/model.js";
 import { parseTokenId } from "../src/token-id.js";
 
 const PIPELINE_STAGES = ["parse", "link", "graph", "check", "resolve", "emit"] as const;
 const TIMING_STAGES = [...PIPELINE_STAGES, "total"] as const;
+const TEST_CAPABILITIES = {
+  tokenTypes: ALL_TOKEN_TYPES,
+  referenceStrategies: new Set(["resolve" as const]),
+  contextMode: "none" as const,
+  colorSpaces: "preserve" as const,
+  composite: "native" as const,
+};
+
+function outputPlan(
+  backendId: string,
+  path: string,
+  content: string,
+  diagnostics = [] as BackendPlan["diagnostics"],
+): BackendPlan {
+  return {
+    backendId,
+    diagnostics,
+    symbols: [],
+    artifacts: [{ id: "main", path, mediaType: "text/plain", tokenIds: [], payload: content }],
+    data: null,
+  };
+}
+
+function emitPlan(plan: BackendPlan) {
+  return plan.artifacts.map((artifact) => ({
+    id: artifact.id,
+    path: artifact.path,
+    content: String(artifact.payload),
+  }));
+}
+
+async function compileDocuments(
+  sources: readonly TokenSourceInput[],
+  options: CompilationOptions & {
+    readonly outputs?: readonly TokenBackend[];
+    readonly emit?: boolean;
+  } = {},
+) {
+  const snapshot = await compileSnapshot(sources, options);
+  const operation =
+    snapshot.status === "valid"
+      ? options.emit === false
+        ? await snapshot.prepare(options.outputs ?? [])
+        : await snapshot.emit(options.outputs ?? [])
+      : { success: false, diagnostics: [], outputs: [] };
+  const diagnostics = [...snapshot.diagnostics, ...operation.diagnostics];
+  const outputs: readonly OutputFile[] = "outputs" in operation ? operation.outputs : [];
+  return {
+    success: snapshot.status === "valid" && operation.success,
+    diagnostics,
+    outputs,
+    stats: snapshot.stats,
+    compilation: {
+      success: !diagnostics.some((diagnostic) => diagnostic.severity === "error"),
+      diagnostics,
+      tokensOfType: <T extends TokenNode["type"]>(type: T): readonly CompiledToken<T>[] =>
+        snapshot.status === "valid"
+          ? snapshot.ir.tokens.filter((token): token is CompiledToken<T> => token.type === type)
+          : [],
+      getDefinition: (id: Parameters<typeof snapshot.query.definition>[0]) =>
+        snapshot.query.definition(id),
+      getTokenAtSourcePosition: (document: string, offset: number) =>
+        snapshot.query.tokenAt(document, offset),
+      getCompletionCandidates: (prefix: string) => snapshot.query.completions(prefix),
+    },
+  };
+}
 
 function expectValidTimings(timings: CompilationStageTimings): void {
   expect(Object.keys(timings)).toEqual(TIMING_STAGES);
@@ -21,10 +99,11 @@ function expectValidTimings(timings: CompilationStageTimings): void {
 describe("compiler pipeline", () => {
   it("produces backend-facing IR and stats", async () => {
     const backend: TokenBackend = {
-      name: "test",
-      emit: (compilation) => [
-        { path: "tokens.txt", content: compilation.tokens.map((token) => token.id).join("\n") },
-      ],
+      id: "test",
+      capabilities: TEST_CAPABILITIES,
+      prepare: (ir) =>
+        outputPlan("test", "tokens.txt", ir.tokens.map((token) => token.id).join("\n")),
+      emit: emitPlan,
     };
     const result = await compileDocuments(
       [
@@ -43,7 +122,12 @@ describe("compiler pipeline", () => {
   });
 
   it("suppresses all artifacts when an error exists", async () => {
-    const backend: TokenBackend = { name: "never", emit: () => [{ path: "bad", content: "bad" }] };
+    const backend: TokenBackend = {
+      id: "never",
+      capabilities: TEST_CAPABILITIES,
+      prepare: () => outputPlan("never", "bad", "bad"),
+      emit: emitPlan,
+    };
     const result = await compileDocuments(
       [{ file: "bad.json", content: '{"a":{"$type":"color","$value":"{missing}"}}' }],
       { outputs: [backend] },
@@ -55,18 +139,21 @@ describe("compiler pipeline", () => {
   it("collects backend validation diagnostics before emitting artifacts", async () => {
     let emitted = false;
     const backend: TokenBackend = {
-      name: "validated",
-      validate: (compilation) => [
-        {
-          code: "BACKEND_TEST_ERROR",
-          severity: "error",
-          message: "Backend cannot represent this token",
-          source: compilation.tokens[0]!.source,
-        },
-      ],
+      id: "validated",
+      capabilities: TEST_CAPABILITIES,
+      prepare: (ir) =>
+        outputPlan("validated", "bad", "bad", [
+          createDiagnostic({
+            code: "BACKEND_UNSUPPORTED_VALUE",
+            severity: "error",
+            message: "Backend cannot represent this token",
+            source: ir.tokens[0]!.source,
+            anchor: { kind: "token", token: ir.tokens[0]!.id },
+          }),
+        ]),
       emit: () => {
         emitted = true;
-        return [{ path: "bad", content: "bad" }];
+        return [{ id: "main", path: "bad", content: "bad" }];
       },
     };
     const result = await compileDocuments(
@@ -74,20 +161,23 @@ describe("compiler pipeline", () => {
       { outputs: [backend] },
     );
     expect(result.success).toBe(false);
-    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain("BACKEND_TEST_ERROR");
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      "BACKEND_UNSUPPORTED_VALUE",
+    );
     expect(result.compilation.diagnostics).toEqual(result.diagnostics);
     expect(result.compilation.success).toBe(false);
     expect(result.outputs).toEqual([]);
     expect(emitted).toBe(false);
   });
 
-  it("does not validate backends when frontend diagnostics already contain an error", async () => {
-    let validated = false;
+  it("does not prepare backends when frontend diagnostics already contain an error", async () => {
+    let prepared = false;
     const backend: TokenBackend = {
-      name: "never",
-      validate: () => {
-        validated = true;
-        return [];
+      id: "never",
+      capabilities: TEST_CAPABILITIES,
+      prepare: () => {
+        prepared = true;
+        return outputPlan("never", "bad", "bad");
       },
       emit: () => [],
     };
@@ -95,21 +185,22 @@ describe("compiler pipeline", () => {
       [{ file: "bad.json", content: '{"a":{"$type":"color","$value":"{missing}"}}' }],
       { outputs: [backend] },
     );
-    expect(validated).toBe(false);
+    expect(prepared).toBe(false);
   });
 
-  it("validates configured backends without emitting when emission is disabled", async () => {
-    let validated = false;
+  it("prepares configured backends without emitting when emission is disabled", async () => {
+    let prepared = false;
     let emitted = false;
     const backend: TokenBackend = {
-      name: "check-only",
-      validate: () => {
-        validated = true;
-        return [];
+      id: "check-only",
+      capabilities: TEST_CAPABILITIES,
+      prepare: () => {
+        prepared = true;
+        return outputPlan("check-only", "should-not-exist.txt", "bad");
       },
       emit: () => {
         emitted = true;
-        return [{ path: "should-not-exist.txt", content: "bad" }];
+        return [{ id: "main", path: "should-not-exist.txt", content: "bad" }];
       },
     };
     const result = await compileDocuments(
@@ -117,68 +208,51 @@ describe("compiler pipeline", () => {
       { outputs: [backend], emit: false },
     );
     expect(result.success).toBe(true);
-    expect(validated).toBe(true);
+    expect(prepared).toBe(true);
     expect(emitted).toBe(false);
     expect(result.outputs).toEqual([]);
   });
 
-  it("rejects colliding normalized output paths before returning artifacts", async () => {
-    const outputRoot = resolve(process.cwd(), "virtual-output-root");
+  it("rejects invalid output paths before emission", async () => {
+    let emitted = false;
     const first: TokenBackend = {
-      name: "first",
-      emit: () => [{ path: resolve(outputRoot, "dist/shared.txt"), content: "first" }],
-    };
-    const second: TokenBackend = {
-      name: "second",
-      emit: () => [{ path: "dist/nested/../shared.txt", content: "second" }],
+      id: "first",
+      capabilities: TEST_CAPABILITIES,
+      prepare: () => outputPlan("first", "dist/nested/../shared.txt", "first"),
+      emit: (plan) => {
+        emitted = true;
+        return emitPlan(plan);
+      },
     };
     const result = await compileDocuments(
       [{ file: "tokens.json", content: '{"a":{"$type":"number","$value":1}}' }],
-      { outputs: [first, second], outputRoot },
+      { outputs: [first] },
     );
     expect(result.success).toBe(false);
     expect(result.outputs).toEqual([]);
     expect(result.diagnostics).toContainEqual(
       expect.objectContaining({
-        code: "BACKEND_OUTPUT_PATH_COLLISION",
+        code: "BACKEND_ARTIFACT_INVALID_PATH",
         severity: "error",
-        message: expect.stringMatching(/`second`.*`first`/u),
       }),
     );
+    expect(emitted).toBe(false);
     expect(result.compilation.diagnostics).toEqual(result.diagnostics);
     expect(result.compilation.success).toBe(false);
   });
 
   it("conservatively rejects output paths that differ only by case", async () => {
-    const outputRoot = resolve(process.cwd(), "virtual-output-root");
     const first: TokenBackend = {
-      name: "uppercase",
-      emit: () => [{ path: resolve(outputRoot, "dist/Tokens.CSS"), content: "first" }],
+      id: "uppercase",
+      capabilities: TEST_CAPABILITIES,
+      prepare: () => outputPlan("uppercase", "dist/Tokens.CSS", "first"),
+      emit: emitPlan,
     };
     const second: TokenBackend = {
-      name: "lowercase",
-      emit: () => [{ path: "DIST/tokens.css", content: "second" }],
-    };
-    const result = await compileDocuments(
-      [{ file: "tokens.json", content: '{"a":{"$type":"number","$value":1}}' }],
-      { outputs: [first, second], outputRoot },
-    );
-
-    expect(result.success).toBe(false);
-    expect(result.outputs).toEqual([]);
-    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
-      "BACKEND_OUTPUT_PATH_COLLISION",
-    );
-  });
-
-  it("rejects canonically equivalent Unicode output paths", async () => {
-    const first: TokenBackend = {
-      name: "composed",
-      emit: () => [{ path: "dist/R\u00e9sum\u00e9.css", content: "first" }],
-    };
-    const second: TokenBackend = {
-      name: "decomposed",
-      emit: () => [{ path: "dist/RE\u0301SUME\u0301.css", content: "second" }],
+      id: "lowercase",
+      capabilities: TEST_CAPABILITIES,
+      prepare: () => outputPlan("lowercase", "DIST/tokens.css", "second"),
+      emit: emitPlan,
     };
     const result = await compileDocuments(
       [{ file: "tokens.json", content: '{"a":{"$type":"number","$value":1}}' }],
@@ -188,7 +262,32 @@ describe("compiler pipeline", () => {
     expect(result.success).toBe(false);
     expect(result.outputs).toEqual([]);
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
-      "BACKEND_OUTPUT_PATH_COLLISION",
+      "BACKEND_ARTIFACT_COLLISION",
+    );
+  });
+
+  it("rejects canonically equivalent Unicode output paths", async () => {
+    const first: TokenBackend = {
+      id: "composed",
+      capabilities: TEST_CAPABILITIES,
+      prepare: () => outputPlan("composed", "dist/R\u00e9sum\u00e9.css", "first"),
+      emit: emitPlan,
+    };
+    const second: TokenBackend = {
+      id: "decomposed",
+      capabilities: TEST_CAPABILITIES,
+      prepare: () => outputPlan("decomposed", "dist/RE\u0301SUME\u0301.css", "second"),
+      emit: emitPlan,
+    };
+    const result = await compileDocuments(
+      [{ file: "tokens.json", content: '{"a":{"$type":"number","$value":1}}' }],
+      { outputs: [first, second] },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.outputs).toEqual([]);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      "BACKEND_ARTIFACT_COLLISION",
     );
   });
 

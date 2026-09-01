@@ -15,9 +15,12 @@
   "type": "module",
   "scripts": {
     "bench": "vp exec tsx benchmarks/compiler.bench.ts",
+    "bench:gate": "vp exec tsx benchmarks/performance-gate.ts",
+    "bench:m2:gate": "vp exec tsx benchmarks/m2-performance-gate.ts",
     "build": "vp run -r build",
     "changeset": "changeset",
     "check": "vp check",
+    "check:contracts": "node scripts/check-public-contracts.mjs",
     "check:versions": "node scripts/check-package-versions.mjs",
     "format": "vp fmt --write .",
     "format:check": "vp fmt --check .",
@@ -28,7 +31,7 @@
     "test:watch": "vp test",
     "typecheck": "vp check --no-fmt --no-lint",
     "tokenc": "tsx packages/cli/src/bin.ts",
-    "verify": "vp run check:versions && vp check && vp run -r build && vp test --run",
+    "verify": "vp run check:versions && vp check && vp run -r build && vp run check:contracts && vp test --run && vp run bench:gate && vp run bench:m2:gate",
     "verify-release": "node scripts/verify-release.mjs",
     "version-packages": "changeset version && vp run check:versions"
   },

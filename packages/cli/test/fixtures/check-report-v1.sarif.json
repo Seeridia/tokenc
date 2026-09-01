@@ -1,0 +1,116 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "tokenc",
+          "semanticVersion": "0.4.0",
+          "informationUri": "https://github.com/Seeridia/tokenc",
+          "rules": [
+            {
+              "id": "TOKEN_UNKNOWN_REFERENCE",
+              "name": "TOKEN_UNKNOWN_REFERENCE",
+              "shortDescription": {
+                "text": "token unknown reference"
+              },
+              "helpUri": "https://github.com/Seeridia/tokenc/blob/main/docs/DIAGNOSTICS-V1.md#token-unknown-reference",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "stage": "checker"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "TOKEN_UNKNOWN_REFERENCE",
+          "level": "error",
+          "message": {
+            "text": "Unknown token `missing`"
+          },
+          "partialFingerprints": {
+            "tokenc/v1": "0MpIg5fUH1G8VKnRO4_ro0Vu-OwYQ5Hk8VUHuGfxjSc"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "tokens/base%20token.json"
+                },
+                "region": {
+                  "startLine": 3,
+                  "startColumn": 12,
+                  "charOffset": 42,
+                  "charLength": 9
+                }
+              }
+            }
+          ],
+          "relatedLocations": [
+            {
+              "id": 1,
+              "message": {
+                "text": "External definition"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "_external/source.json"
+                },
+                "region": {
+                  "startLine": 2,
+                  "startColumn": 4,
+                  "charOffset": 8,
+                  "charLength": 3
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": "Replace reference"
+              },
+              "artifactChanges": [
+                {
+                  "artifactLocation": {
+                    "uri": "tokens/base%20token.json"
+                  },
+                  "replacements": [
+                    {
+                      "deletedRegion": {
+                        "startLine": 3,
+                        "startColumn": 12,
+                        "charOffset": 42,
+                        "charLength": 9
+                      },
+                      "insertedContent": {
+                        "text": "{present}"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "properties": {
+                "applicability": "safe"
+              }
+            }
+          ],
+          "properties": {
+            "origin": "compiler",
+            "allowed": false
+          }
+        }
+      ],
+      "properties": {
+        "command": "check",
+        "verdict": "fail",
+        "reportSchemaVersion": "1"
+      }
+    }
+  ]
+}

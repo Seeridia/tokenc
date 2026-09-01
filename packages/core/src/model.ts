@@ -1,5 +1,6 @@
 /** Canonical, dot-separated token identifier. */
 export type TokenId = string & { readonly __brand: "TokenId" };
+export type DependencyCandidateId = string;
 
 export type TokenType =
   | "color"
@@ -197,12 +198,6 @@ export type TokenExpression<T extends TokenType = TokenType> =
   | TokenLiteralExpression<T>
   | JsonPointerReferenceExpression<T>;
 
-export interface JsonPointerDependency {
-  readonly pointer: string;
-  readonly target: TokenId;
-  readonly source: SourceLocation;
-}
-
 export interface TokenInheritance {
   readonly token: TokenId;
   readonly group: string;
@@ -213,10 +208,11 @@ export interface TokenInheritance {
 export type CompilationContext = Readonly<Record<string, string>>;
 
 export interface ContextOverride<T extends TokenType = TokenType> {
+  readonly candidate: DependencyCandidateId;
   readonly selector: CompilationContext;
   readonly expression: TokenExpression<T>;
-  /** Dependencies used only when this override is selected. */
-  readonly dependencies?: readonly TokenId[];
+  /** Source occurrences used only when this override is selected. */
+  readonly dependencyOccurrences: readonly DependencyOccurrence[];
   readonly source: SourceLocation;
   /** Explicit semantic precedence; higher values win. */
   readonly precedence?: number;
@@ -228,17 +224,29 @@ export interface TokenNode<T extends TokenType = TokenType> {
   readonly kind: "token";
   readonly id: TokenId;
   readonly type: T;
+  readonly baseCandidate: DependencyCandidateId;
   readonly value: TokenExpression<T>;
-  /** Dependencies used by the base expression before context overrides are applied. */
-  readonly baseDependencies?: readonly TokenId[];
   readonly description?: string;
   readonly deprecated?: boolean | string;
   readonly extensions?: Readonly<Record<string, JsonValue>>;
   readonly overrides: readonly ContextOverride<T>[];
   readonly source: SourceLocation;
-  readonly dependencies: readonly TokenId[];
-  readonly propertyReferences?: readonly JsonPointerDependency[];
+  readonly dependencyOccurrences: readonly DependencyOccurrence[];
   readonly inheritance?: TokenInheritance;
+}
+
+export type DependencyKind = "alias" | "json-pointer" | "inheritance" | "composite-field";
+
+/** One source-level dependency spelling before Graph indexing or deduplication. */
+export interface DependencyOccurrence {
+  readonly id: string;
+  readonly owner: TokenId;
+  readonly candidate: DependencyCandidateId;
+  readonly target: TokenId;
+  readonly kind: DependencyKind;
+  readonly fieldPath: readonly (string | number)[];
+  readonly source: SourceLocation;
+  readonly sourceOrder: number;
 }
 
 export interface ParsedTokenDocument {
@@ -250,19 +258,71 @@ export interface ParsedTokenDocument {
 
 export type DiagnosticSeverity = "error" | "warning" | "info";
 
-export interface RelatedDiagnostic {
-  readonly message: string;
-  readonly source?: SourceLocation;
+export type DiagnosticCode = string;
+
+export interface SourceRange {
+  readonly line: number;
+  readonly column: number;
+  readonly offset: number;
+  readonly length: number;
 }
 
-export interface Diagnostic {
-  readonly code: string;
+export type SemanticAnchor =
+  | { readonly kind: "token"; readonly token: TokenId }
+  | {
+      readonly kind: "candidate";
+      readonly token: TokenId;
+      readonly candidate: DependencyCandidateId;
+    }
+  | {
+      readonly kind: "field";
+      readonly token: TokenId;
+      readonly candidate?: DependencyCandidateId;
+      readonly path: readonly (string | number)[];
+    }
+  | { readonly kind: "json-pointer"; readonly pointer: string }
+  | { readonly kind: "offset"; readonly errorKind: string; readonly offset: number };
+
+export interface DiagnosticLocation {
+  readonly document: string;
+  readonly range: SourceRange;
+  readonly anchor?: SemanticAnchor;
+  /** Source line retained for terminal code frames; it is excluded from fingerprints. */
+  readonly excerpt?: string;
+}
+
+export interface RelatedDiagnosticV1 {
+  readonly message: string;
+  readonly source?: DiagnosticLocation;
+}
+
+export interface TextEdit {
+  readonly document: string;
+  readonly range: SourceRange;
+  readonly newText: string;
+  readonly expectedDocumentDigest: string;
+}
+
+export interface DiagnosticFixV1 {
+  readonly title: string;
+  readonly applicability: "safe" | "requires-review";
+  readonly edits: readonly TextEdit[];
+}
+
+export interface DiagnosticV1 {
+  readonly schemaVersion: "1";
+  readonly code: DiagnosticCode;
   readonly severity: DiagnosticSeverity;
   readonly message: string;
-  readonly source?: SourceLocation;
-  readonly related?: readonly RelatedDiagnostic[];
-  readonly suggestions?: readonly string[];
+  readonly parameters: Readonly<Record<string, JsonValue>>;
+  readonly fingerprint: string;
+  readonly documentationUrl: string;
+  readonly source?: DiagnosticLocation;
+  readonly related: readonly RelatedDiagnosticV1[];
+  readonly fixes: readonly DiagnosticFixV1[];
 }
+
+export type Diagnostic = DiagnosticV1;
 
 export interface ContextDimension {
   readonly default: string;
@@ -288,6 +348,7 @@ export interface CompiledToken<T extends TokenType = TokenType> extends Resolved
 }
 
 export interface OutputFile {
+  readonly id: string;
   readonly path: string;
   readonly content: string;
 }
@@ -323,34 +384,38 @@ export interface CompilationStats {
   readonly timings: CompilationStageTimings;
 }
 
-export interface ImpactAnalysis {
-  readonly changed: readonly TokenId[];
-  readonly directlyAffected: readonly TokenId[];
-  readonly indirectlyAffected: readonly TokenId[];
+export interface DependencyTraceStepV1 {
+  readonly target: TokenId;
+  readonly candidate: DependencyCandidateId;
+  readonly kind: DependencyKind;
+  readonly fieldPath: readonly (string | number)[];
+  readonly source: SourceLocation;
 }
 
-export interface ResolutionTraceStep {
+export interface ExplainTraceStepV1 {
   readonly token: TokenId;
+  readonly candidate: DependencyCandidateId;
   readonly selection: "base" | "override";
   readonly expression: TokenExpression;
   readonly source: SourceLocation;
+  readonly dependencies: readonly DependencyTraceStepV1[];
   readonly selector?: CompilationContext;
   readonly origin?: "resolver" | "extension-context";
   readonly precedence?: number;
 }
 
-export interface ResolverTraceStep {
+export interface ResolverTraceStepV1 {
   readonly kind: "set" | "modifier";
   readonly name: string;
   readonly context?: string;
   readonly source: SourceLocation;
 }
 
-export interface ResolutionTrace {
+export interface ExplainTraceV1 {
+  readonly schemaVersion: "1";
   readonly token: TokenId;
   readonly context: CompilationContext;
-  readonly selectedSource?: SourceLocation;
-  readonly steps: readonly ResolutionTraceStep[];
-  readonly resolverSteps: readonly ResolverTraceStep[];
-  readonly value?: TokenLiteral;
+  readonly steps: readonly ExplainTraceStepV1[];
+  readonly resolverSteps: readonly ResolverTraceStepV1[];
+  readonly finalValue?: TokenLiteral;
 }

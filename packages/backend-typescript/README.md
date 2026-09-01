@@ -3,7 +3,7 @@
 TypeScript constants backend for tokenc.
 
 ```bash
-pnpm add -D @tokenc/core @tokenc/backend-typescript
+vp add -D @tokenc/core @tokenc/backend-typescript
 ```
 
 ```ts
@@ -23,8 +23,9 @@ export default defineConfig({
 ```
 
 The backend supports nested object output, flat exports, preserved symbol references, and resolved literal output.
-Flat bindings and private bindings used by object symbol mode are checked for normalized-name
-collisions before emit. JavaScript reserved and strict-mode binding names receive a stable `token`
+Flat bindings and private bindings used by object symbol mode are allocated by Core's shared
+`SymbolAllocator` and checked for normalized-name collisions before emit. The explicit `rename` map
+can resolve collisions. JavaScript reserved and strict-mode binding names receive a stable `token`
 prefix. sRGB colors are emitted as hex only when every channel (including alpha) is exactly
 representable as an 8-bit value; otherwise the backend preserves their precision with CSS
 `color(srgb ...)` syntax.

@@ -1,5 +1,42 @@
 # @tokenc/core
 
+## 0.4.0
+
+### Minor Changes
+
+- Replace Backend `validate + emit(compilation)` with immutable `CompilationIR`, declared
+  `BackendCapabilities`, `prepare(ir) → BackendPlan`, global artifact preflight, shared symbol
+  allocation, and contract-checked `emit(plan)`. Output files now carry their planned artifact ID,
+  and unsafe or colliding paths prevent every Backend from emitting.
+- 07f4490: Expose complete compiler stage timings and read-only Context cycle-analysis work metrics through
+  `CompilationResult.stats`. The existing `parse` timing now measures parsing only; linking has its
+  own `link` field, and token resolution has its own `resolve` field.
+- Lock CLI and bundled-backend consumers to public Core boundaries. All CLI commands now compile with
+  `CompilerSession`; dev reuses one Session for config and Resolver reloads with latest-wins
+  cancellation, and Query exposes effective Context construction without IR access.
+- Add the transactional, correctness-first `CompilerSession`, injectable document loading, and a
+  reusable full-compilation differential oracle. Migrate one-shot compilation, CLI dev mode, and the
+  point-edit benchmark to immutable Session snapshots, and remove `IncrementalCompiler` and mutable
+  Graph patching without compatibility aliases.
+- Replace ID-only token dependency arrays and graph adjacency queries with source-located conditional
+  dependency occurrences and edges. Context predicates now support exact symbolic intersection, union,
+  complement, and subtraction without enumerating the Context Cartesian product.
+- Replace the legacy diagnostic shape and CLI JSON output with Diagnostic v1. Diagnostics now carry a
+  schema version, registered code metadata, structured parameters, semantic source anchors, stable
+  SHA-256 fingerprints, documentation URLs, related information, and validated structured fixes.
+- Replace mutable compilation results and implicit Backend output with immutable, revisioned
+  `CompilationSnapshot` values. Valid snapshots expose fixed Query/IR state and explicit
+  `prepare(backends)` / `emit(backends)` operations; invalid snapshots retain safe graph queries while
+  resolution and explanation report unavailable.
+- Finalize the M1 public API boundary, ship the Explain Trace v1 JSON Schema, lock generated public
+  declarations and machine schemas, expand differential and concurrency proof, and enforce stable
+  incremental-work performance budgets in CI.
+- Add the read-only, predicate-aware Compilation Query API and versioned ExplainTraceV1. Migrate CLI
+  explain, usages, and graph commands to the facade with deterministic v1 JSON output.
+- Add Session-owned parser, cross-document Link component, conditional Graph, and Context-aware
+  resolver caches. Expose immutable `SessionMetrics` with per-stage hit, miss, reuse, recomputation,
+  and invalidation data while keeping Backend plan caching disabled without a complete stable key.
+
 ## 0.3.0
 
 ### Minor Changes

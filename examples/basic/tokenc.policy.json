@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "1",
+  "rules": {
+    "direct-value-change": { "severity": "error" },
+    "propagated-value-change": { "severity": "warning" }
+  },
+  "allow": []
+}

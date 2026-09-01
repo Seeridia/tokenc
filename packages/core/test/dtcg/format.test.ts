@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { compileDocuments } from "../../src/compiler.js";
+import { compileDocumentsInternal as compileDocuments } from "../../src/compiler.js";
 import { parseTokenDocument } from "../../src/parser.js";
 
 describe("DTCG 2025.10 format", () => {

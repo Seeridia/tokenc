@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "description": "Public TypeScript declarations and machine-readable schemas through M2-09",
+  "files": {
+    "packages/backend-css/dist/index.d.ts": "878bbef3fe34d27a1e38d7c08d35b350da58a69d294f2e5bdcedb1597445a503",
+    "packages/backend-tailwind/dist/index.d.ts": "44d5766d71bb83cf4c356ceb985c44a43d82428b21cc32c91075fc4f11a87c03",
+    "packages/backend-typescript/dist/index.d.ts": "ea907dd11266213511c7c9d1e5cb2ded2ce21308850088978fb4e29854cd0801",
+    "packages/cli/dist/bin.d.ts": "f4c5cf9bb78e85f15dc27180260637cf24b2a24bc39e0788783a3accc4dde614",
+    "packages/cli/dist/index.d.ts": "78623eb236925efb917b51064230c6cfc747a49b218d62582db57bb7444c691f",
+    "packages/cli/schema/report-v1.schema.json": "cdf6749c93475055680dac2695d158da0ae47b9cccb8d6f8f6e0d6d8ff75b5d4",
+    "packages/core/dist/index.d.ts": "70e61504b338b3fb57ba80217debef40d14ccdd6e0effee068351d000de19514",
+    "packages/core/schema/breaking-policy-v1.schema.json": "9b25c26ec4956bed4a351e44ae1ac2e211be7ae0e5b3feb9609fcfce46c48eaf",
+    "packages/core/schema/diagnostic-v1.schema.json": "51ab781a529c6f2c734c69d0bb5e896743e0bd3982a6c126f63aa9e97f4730ed",
+    "packages/core/schema/explain-trace-v1.schema.json": "61d6900ea96d85807fd210b70293f747e2419c3ff29d1fb6834990ac391b85a9",
+    "packages/core/schema/impact-report-v1.schema.json": "ff1e1c86381d6547fc301a4ca1b0306466883a3dff8611466b097a4fb5644058",
+    "packages/core/schema/snapshot-diff-v1.schema.json": "bef4137767ea3c037c5172363428938251628d63e497b5634c742c9a057229ca"
+  }
+}

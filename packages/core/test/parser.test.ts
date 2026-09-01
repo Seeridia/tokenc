@@ -39,7 +39,9 @@ describe("DTCG parser", () => {
   it("parses aliases into reference nodes", () => {
     const result = parseTokenDocument(fixture("aliases/tokens.json"), "aliases.json");
     expect(result.tokens[1]?.value).toMatchObject({ kind: "reference", target: "color.blue.600" });
-    expect(result.tokens[2]?.dependencies).toEqual(["color.brand"]);
+    expect(result.tokens[2]?.dependencyOccurrences.map((occurrence) => occurrence.target)).toEqual([
+      "color.brand",
+    ]);
   });
 
   it("reports invalid JSON with a location", () => {
@@ -47,7 +49,7 @@ describe("DTCG parser", () => {
     expect(result.tokens).toEqual([]);
     expect(result.diagnostics[0]).toMatchObject({
       code: "TOKEN_INVALID_JSON",
-      source: { file: "broken.json", line: 1 },
+      source: { document: "broken.json", range: { line: 1 } },
     });
   });
 

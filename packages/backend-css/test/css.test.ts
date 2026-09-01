@@ -1,7 +1,34 @@
-import { compileDocuments } from "@tokenc/core";
+import {
+  compileDocuments as compileSnapshot,
+  type CompilationOptions,
+  type TokenBackend,
+  type TokenSourceInput,
+} from "@tokenc/core";
 import { describe, expect, it } from "vite-plus/test";
 
 import { css } from "../src/index.js";
+
+async function compileDocuments(
+  sources: readonly TokenSourceInput[],
+  options: CompilationOptions & { readonly outputs?: readonly TokenBackend[] } = {},
+) {
+  const { outputs = [], ...compilationOptions } = options;
+  const snapshot = await compileSnapshot(sources, compilationOptions);
+  if (snapshot.status === "invalid")
+    return {
+      success: false,
+      diagnostics: snapshot.diagnostics,
+      outputs: [],
+      graph: { tokens: [] },
+    };
+  const operation = await snapshot.emit(outputs);
+  return {
+    success: operation.success,
+    diagnostics: [...snapshot.diagnostics, ...operation.diagnostics],
+    outputs: operation.outputs,
+    graph: { tokens: snapshot.ir.sourceTokens },
+  };
+}
 
 const srgb = (red: number, green: number, blue: number, hex: string) => ({
   colorSpace: "srgb",
@@ -98,7 +125,7 @@ describe("CSS backend", () => {
     expect(result.outputs).toEqual([]);
     expect(result.diagnostics).toContainEqual(
       expect.objectContaining({
-        code: "BACKEND_INVALID_OUTPUT_NAME",
+        code: "BACKEND_SYMBOL_INVALID",
         message: expect.stringContaining("--dt-color.blue.600"),
       }),
     );
@@ -406,7 +433,7 @@ describe("CSS backend", () => {
       expect.objectContaining({
         code: "BACKEND_UNSUPPORTED_VALUE",
         severity: "error",
-        source: expect.objectContaining({ file: "stroke.json" }),
+        source: expect.objectContaining({ document: "stroke.json" }),
       }),
     );
   });
@@ -428,7 +455,7 @@ describe("CSS backend", () => {
     expect(result.outputs).toEqual([]);
     expect(result.diagnostics).toContainEqual(
       expect.objectContaining({
-        code: "BACKEND_NAME_COLLISION",
+        code: "BACKEND_SYMBOL_COLLISION",
         message: expect.stringContaining("--foo-bar"),
         related: [expect.objectContaining({ source: expect.any(Object) })],
       }),
@@ -633,7 +660,15 @@ describe("CSS backend", () => {
     );
     expect(result.success).toBe(false);
     expect(overrideSource).toBeDefined();
-    expect(diagnostic?.source).toEqual(overrideSource);
+    expect(diagnostic?.source).toMatchObject({
+      document: overrideSource?.file,
+      range: {
+        line: overrideSource?.line,
+        column: overrideSource?.column,
+        offset: overrideSource?.offset,
+        length: overrideSource?.length,
+      },
+    });
   });
 
   it.each([

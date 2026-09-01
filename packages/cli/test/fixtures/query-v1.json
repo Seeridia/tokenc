@@ -1,0 +1,71 @@
+{
+  "explain": {
+    "schemaVersion": "1",
+    "token": "button.primary.background",
+    "context": {},
+    "steps": [
+      {
+        "token": "button.primary.background",
+        "candidate": "button.primary.background#base",
+        "selection": "base",
+        "dependencies": [{ "target": "color.brand.default", "kind": "alias", "fieldPath": [] }]
+      },
+      {
+        "token": "color.brand.default",
+        "candidate": "color.brand.default#base",
+        "selection": "base",
+        "dependencies": [{ "target": "color.blue.600", "kind": "alias", "fieldPath": [] }]
+      },
+      {
+        "token": "color.blue.600",
+        "candidate": "color.blue.600#base",
+        "selection": "base",
+        "dependencies": []
+      }
+    ],
+    "resolverSteps": [],
+    "finalValue": {
+      "colorSpace": "srgb",
+      "components": [0, 0.3215686275, 0.8509803922],
+      "alpha": 1,
+      "hex": "#0052D9"
+    }
+  },
+  "usages": {
+    "schemaVersion": "1",
+    "token": "color.blue.600",
+    "usages": [
+      {
+        "from": "color.brand.default",
+        "to": "color.blue.600",
+        "candidate": "color.brand.default#base",
+        "condition": { "key": "[{}]" }
+      }
+    ],
+    "impact": {
+      "changed": [{ "token": "color.blue.600" }],
+      "directlyAffected": [{ "token": "color.brand.default" }],
+      "indirectlyAffected": [{ "token": "button.primary.background" }]
+    }
+  },
+  "graph": {
+    "schemaVersion": "1",
+    "roots": ["button.primary.background"],
+    "edges": [
+      {
+        "from": "button.primary.background",
+        "to": "color.brand.default",
+        "candidate": "button.primary.background#base",
+        "kind": "alias",
+        "condition": { "key": "[{}]" }
+      },
+      {
+        "from": "color.brand.default",
+        "to": "color.blue.600",
+        "candidate": "color.brand.default#base",
+        "kind": "alias",
+        "condition": { "key": "[{}]" }
+      }
+    ]
+  }
+}

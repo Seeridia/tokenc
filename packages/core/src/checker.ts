@@ -1,13 +1,13 @@
-import { contextKey, defaultContext, selectTokenCandidate } from "./context.js";
+import { contextKey } from "./context.js";
+import { DiagnosticBag } from "./diagnostic.js";
 import { TokenGraph } from "./graph.js";
 import type {
-  CompilationContext,
   ContextCycleMetrics,
   ContextDefinition,
+  DependencyOccurrence,
   Diagnostic,
   TokenId,
   TokenNode,
-  TokenReference,
 } from "./model.js";
 
 function distance(left: string, right: string): number {
@@ -47,254 +47,19 @@ export function suggestTokenIds(
     .map((item) => item.candidate);
 }
 
-function references(
-  graph: TokenGraph,
-  scope?: ReadonlySet<TokenId>,
-): readonly { owner: TokenId; reference: TokenReference }[] {
-  const tokens = scope
-    ? [...scope].flatMap((id) => {
-        const token = graph.getToken(id);
-        return token ? [token] : [];
-      })
-    : graph.tokens;
-  return tokens.flatMap((token) =>
-    [token.value, ...token.overrides.map((override) => override.expression)]
-      .filter((expression): expression is TokenReference => expression.kind === "reference")
-      .map((reference) => ({ owner: token.id, reference })),
-  );
+function candidateExpression(token: TokenNode, occurrence: DependencyOccurrence) {
+  if (occurrence.candidate === token.baseCandidate) return token.value;
+  return token.overrides.find((override) => override.candidate === occurrence.candidate)
+    ?.expression;
 }
 
-interface CheckedCycle {
-  readonly path: readonly TokenId[];
-  readonly context?: CompilationContext;
-}
-
-interface CycleProjectionLimit {
-  readonly region: readonly TokenId[];
-  readonly dimensions: readonly RelevantDimension[];
-}
-
-interface ContextAwareCycleResult {
-  readonly cycles: readonly CheckedCycle[];
-  readonly limits: readonly CycleProjectionLimit[];
-  readonly metrics: ContextCycleMetrics;
-}
-
-/** Maximum number of Context projections checked for one cyclic candidate region. */
-export const CONTEXT_CYCLE_PROJECTION_LIMIT = 16_384;
-
-interface SaturatedNumber {
-  readonly value: number;
-  readonly saturated: boolean;
-}
-
-function saturatedAdd(left: number, right: number): SaturatedNumber {
-  if (right > Number.MAX_SAFE_INTEGER - left)
-    return { value: Number.MAX_SAFE_INTEGER, saturated: true };
-  return { value: left + right, saturated: false };
-}
-
-function projectionEstimate(dimensions: readonly RelevantDimension[]): SaturatedNumber {
-  let value = 1;
-  for (const dimension of dimensions) {
-    if (dimension.values.length > Math.floor(Number.MAX_SAFE_INTEGER / value))
-      return { value: Number.MAX_SAFE_INTEGER, saturated: true };
-    value *= dimension.values.length;
-  }
-  return { value, saturated: false };
-}
-
-function canonicalCycle(cycle: readonly TokenId[]): string {
-  const body = cycle.slice(0, -1).map(String);
+function requiresWholeTokenType(token: TokenNode, occurrence: DependencyOccurrence): boolean {
+  const expression = candidateExpression(token, occurrence);
   return (
-    body
-      .map((_, index) => [...body.slice(index), ...body.slice(0, index)].join("\0"))
-      .toSorted()[0] ?? ""
+    expression?.kind === "reference" &&
+    expression.target === occurrence.target &&
+    occurrence.fieldPath.length === 0
   );
-}
-
-function reachable(
-  graph: TokenGraph,
-  root: TokenId,
-  direction: "dependencies" | "dependents",
-): ReadonlySet<TokenId> {
-  const found = new Set<TokenId>([root]);
-  const queue = [root];
-  for (let index = 0; index < queue.length; index += 1) {
-    const current = queue[index];
-    if (!current) continue;
-    const adjacent =
-      direction === "dependencies" ? graph.getDependencies(current) : graph.getDependents(current);
-    for (const id of adjacent) {
-      if (!graph.hasToken(id) || found.has(id)) continue;
-      found.add(id);
-      queue.push(id);
-    }
-  }
-  return found;
-}
-
-/** Find union-graph strongly connected regions without materializing unrelated Context products. */
-function cyclicRegions(
-  graph: TokenGraph,
-  scope?: ReadonlySet<TokenId>,
-): readonly (readonly TokenId[])[] {
-  const regions: TokenId[][] = [];
-  const assigned = new Set<TokenId>();
-  for (const cycle of graph.detectCycles(scope)) {
-    const root = cycle[0];
-    if (!root || assigned.has(root)) continue;
-    const forward = reachable(graph, root, "dependencies");
-    const backward = reachable(graph, root, "dependents");
-    const region = [...forward]
-      .filter((id) => backward.has(id))
-      .toSorted((left, right) => (left < right ? -1 : left > right ? 1 : 0));
-    for (const id of region) assigned.add(id);
-    regions.push(region);
-  }
-  return regions;
-}
-
-interface RelevantDimension {
-  readonly name: string;
-  readonly values: readonly string[];
-}
-
-function relevantDimensions(
-  tokens: readonly TokenNode[],
-  definition: ContextDefinition,
-): readonly RelevantDimension[] {
-  const selectedValues = new Map<string, Set<string>>();
-  for (const token of tokens) {
-    for (const override of token.overrides) {
-      for (const [name, value] of Object.entries(override.selector)) {
-        const values = selectedValues.get(name) ?? new Set<string>();
-        values.add(value);
-        selectedValues.set(name, values);
-      }
-    }
-  }
-  return Object.entries(definition).flatMap(([name, dimension]) => {
-    const selected = selectedValues.get(name);
-    if (!selected) return [];
-    const allowed = [...new Set([dimension.default, ...dimension.values])];
-    const unselectedRepresentative = allowed.find((value) => !selected.has(value));
-    return [
-      {
-        name,
-        values: allowed.filter(
-          (value) => selected.has(value) || value === unselectedRepresentative,
-        ),
-      },
-    ];
-  });
-}
-
-/** Lazily enumerate only dimensions that can change edge selection inside one cyclic region. */
-function* projectedContexts(
-  definition: ContextDefinition,
-  dimensions: readonly RelevantDimension[],
-): Generator<CompilationContext> {
-  const context: Record<string, string> = { ...defaultContext(definition) };
-  function* visit(index: number): Generator<CompilationContext> {
-    const dimension = dimensions[index];
-    if (!dimension) {
-      yield { ...context };
-      return;
-    }
-    for (const value of dimension.values) {
-      context[dimension.name] = value;
-      yield* visit(index + 1);
-    }
-  }
-  yield* visit(0);
-}
-
-function selectedDependencies(
-  token: TokenNode,
-  context: CompilationContext,
-  resolutionOrder: readonly string[],
-): readonly TokenId[] {
-  const selected = selectTokenCandidate(token, context, resolutionOrder);
-  return [
-    ...new Set([...selected.dependencies, ...(token.inheritance ? [token.inheritance.token] : [])]),
-  ];
-}
-
-function contextAwareCycles(
-  graph: TokenGraph,
-  definition: ContextDefinition,
-  scope?: ReadonlySet<TokenId>,
-): ContextAwareCycleResult {
-  const cycles: CheckedCycle[] = [];
-  const limits: CycleProjectionLimit[] = [];
-  const signatures = new Set<string>();
-  const resolutionOrder = Object.keys(definition);
-  let candidateRegions = 0;
-  let relevantDimensionCount = 0;
-  let estimatedProjections = 0;
-  let estimateSaturated = false;
-  let enumeratedProjections = 0;
-  let earlyExits = 0;
-  let limitHits = 0;
-  for (const region of cyclicRegions(graph, scope)) {
-    candidateRegions = saturatedAdd(candidateRegions, 1).value;
-    const tokens = region.flatMap((id) => {
-      const token = graph.getToken(id);
-      return token ? [token] : [];
-    });
-    if (tokens.every((token) => token.overrides.length === 0)) {
-      earlyExits = saturatedAdd(earlyExits, 1).value;
-      for (const path of new TokenGraph(tokens).detectCycles()) {
-        const signature = canonicalCycle(path);
-        if (signatures.has(signature)) continue;
-        signatures.add(signature);
-        cycles.push({ path });
-      }
-      continue;
-    }
-    const dimensions = relevantDimensions(tokens, definition);
-    relevantDimensionCount = saturatedAdd(relevantDimensionCount, dimensions.length).value;
-    const regionEstimate = projectionEstimate(dimensions);
-    const totalEstimate = saturatedAdd(estimatedProjections, regionEstimate.value);
-    estimatedProjections = totalEstimate.value;
-    estimateSaturated ||= regionEstimate.saturated || totalEstimate.saturated;
-    if (regionEstimate.saturated || regionEstimate.value > CONTEXT_CYCLE_PROJECTION_LIMIT) {
-      limitHits = saturatedAdd(limitHits, 1).value;
-      limits.push({ region, dimensions });
-      continue;
-    }
-    for (const context of projectedContexts(definition, dimensions)) {
-      enumeratedProjections = saturatedAdd(enumeratedProjections, 1).value;
-      const projectedTokens: TokenNode[] = [];
-      for (const token of tokens) {
-        projectedTokens.push({
-          ...token,
-          dependencies: selectedDependencies(token, context, resolutionOrder),
-        });
-      }
-      const projection = new TokenGraph(projectedTokens);
-      for (const path of projection.detectCycles()) {
-        const signature = canonicalCycle(path);
-        if (signatures.has(signature)) continue;
-        signatures.add(signature);
-        cycles.push({ path, context });
-      }
-    }
-  }
-  return {
-    cycles,
-    limits,
-    metrics: {
-      candidateRegions,
-      relevantDimensions: relevantDimensionCount,
-      estimatedProjections,
-      estimateSaturated,
-      enumeratedProjections,
-      earlyExits,
-      limitHits,
-    },
-  };
 }
 
 export interface TokenGraphCheckResult {
@@ -302,74 +67,101 @@ export interface TokenGraphCheckResult {
   readonly metrics: ContextCycleMetrics;
 }
 
-/** @internal Perform graph integrity and reference type checks while retaining work metrics. */
+/** Maximum retained for benchmark/report compatibility; conditional edges no longer enumerate it. */
+export const CONTEXT_CYCLE_PROJECTION_LIMIT = 16_384;
+
+/** @internal Check graph integrity directly against conditional dependency edges. */
 export function checkTokenGraphDetailed(
   graph: TokenGraph,
   scope?: ReadonlySet<TokenId>,
-  contexts: ContextDefinition = {},
+  _contexts: ContextDefinition = {},
 ): TokenGraphCheckResult {
-  const diagnostics: Diagnostic[] = [];
-  let ids: readonly TokenId[] | undefined;
-  for (const { owner, reference } of references(graph, scope)) {
-    const sourceToken = graph.getToken(owner);
-    const targetToken = graph.getToken(reference.target);
+  const diagnostics = new DiagnosticBag();
+  const ids = graph.tokens.map((token) => token.id);
+  const edges = scope ? [...scope].flatMap((id) => graph.getOutgoingEdges(id)) : graph.edges;
+  for (const edge of edges) {
+    const sourceToken = graph.getToken(edge.from);
+    const targetToken = graph.getToken(edge.to);
     if (!sourceToken) continue;
     if (!targetToken) {
-      ids ??= graph.tokens.map((token) => token.id);
-      const suggestions = suggestTokenIds(reference.target, ids).map(String);
+      const suggestions = suggestTokenIds(edge.to, ids).map(String);
       diagnostics.push({
         code: "TOKEN_UNKNOWN_REFERENCE",
         severity: "error",
-        message: `Unknown token \`${reference.target}\``,
-        source: reference.source,
-        ...(suggestions.length > 0 ? { suggestions } : {}),
+        message: `Unknown token \`${edge.to}\``,
+        source: edge.occurrence.source,
+        anchor: {
+          kind: "field",
+          token: edge.from,
+          candidate: edge.occurrence.candidate,
+          path: edge.occurrence.fieldPath,
+        },
+        parameters: { target: edge.to },
+        related: suggestions.map((suggestion) => ({ message: `Did you mean \`${suggestion}\`?` })),
       });
-    } else if (sourceToken.type !== targetToken.type) {
+    } else if (
+      requiresWholeTokenType(sourceToken, edge.occurrence) &&
+      sourceToken.type !== targetToken.type
+    ) {
       diagnostics.push({
         code: "TOKEN_REFERENCE_TYPE_MISMATCH",
         severity: "error",
-        message: `Invalid token reference: \`${owner}\` expects ${sourceToken.type}, but \`${reference.target}\` is ${targetToken.type}`,
-        source: reference.source,
+        message: `Invalid token reference: \`${edge.from}\` expects ${sourceToken.type}, but \`${edge.to}\` is ${targetToken.type}`,
+        source: edge.occurrence.source,
+        anchor: {
+          kind: "field",
+          token: edge.from,
+          candidate: edge.occurrence.candidate,
+          path: edge.occurrence.fieldPath,
+        },
+        parameters: { target: edge.to, expected: sourceToken.type, actual: targetToken.type },
         related: [
           {
-            message: `\`${reference.target}\` is defined here as ${targetToken.type}`,
+            message: `\`${edge.to}\` is defined here as ${targetToken.type}`,
             source: targetToken.source,
           },
         ],
       });
     }
   }
-  const cycleCheck = contextAwareCycles(graph, contexts, scope);
-  for (const cycle of cycleCheck.cycles) {
-    const first = cycle.path[0];
+
+  const cycles = graph.detectConditionalCycles(scope);
+  for (const cycle of cycles) {
+    const first = cycle.edges[0];
     if (!first) continue;
-    const token = graph.getToken(first);
-    const activeContext = cycle.context ? contextKey(cycle.context) : "";
+    const path = [first.from, ...cycle.edges.map((edge) => edge.to)];
+    const activeContext = contextKey(cycle.witness);
     diagnostics.push({
       code: "TOKEN_CIRCULAR_REFERENCE",
       severity: "error",
-      message: `Circular token reference detected:\n${cycle.path.map((id, index) => `${"    ".repeat(index)}${index === 0 ? "" : "└── "}${id}`).join("\n")}${activeContext ? `\nActive context: \`${activeContext}\`` : ""}`,
-      ...(token ? { source: token.source } : {}),
-      related: cycle.path.slice(1, -1).flatMap((id) => {
-        const related = graph.getToken(id);
-        return related
-          ? [{ message: `\`${id}\` participates in this cycle`, source: related.source }]
-          : [];
-      }),
+      message: `Circular token reference detected:\n${path.map((id, index) => `${"    ".repeat(index)}${index === 0 ? "" : "└── "}${id}`).join("\n")}${activeContext ? `\nActive context: \`${activeContext}\`` : ""}`,
+      source: first.occurrence.source,
+      anchor: { kind: "token", token: first.from },
+      parameters: { cycle: path.map(String), context: cycle.witness },
+      related: cycle.edges.slice(1).map((edge) => ({
+        message: `\`${edge.from}\` references \`${edge.to}\` here`,
+        source: edge.occurrence.source,
+      })),
     });
   }
-  for (const limit of cycleCheck.limits) {
-    const first = limit.region[0];
-    if (!first) continue;
-    const token = graph.getToken(first);
-    diagnostics.push({
-      code: "TOKEN_CONTEXT_PROJECTION_LIMIT",
-      severity: "error",
-      message: `Context-aware cycle analysis exceeded its limit of ${CONTEXT_CYCLE_PROJECTION_LIMIT} projections for the region rooted at \`${first}\` (${limit.region.length} tokens; ${limit.dimensions.length} relevant dimensions: ${limit.dimensions.map((dimension) => `${dimension.name}=${dimension.values.length}`).join(", ")}). Reduce the region's Context combinations before checking.`,
-      ...(token ? { source: token.source } : {}),
-    });
-  }
-  return { diagnostics, metrics: cycleCheck.metrics };
+
+  return {
+    diagnostics,
+    metrics: {
+      candidateRegions: cycles.length,
+      relevantDimensions: cycles.reduce(
+        (count, cycle) => count + Object.keys(cycle.witness).length,
+        0,
+      ),
+      estimatedProjections: 0,
+      estimateSaturated: false,
+      enumeratedProjections: 0,
+      earlyExits: 0,
+      limitHits: graph.diagnostics.filter(
+        (diagnostic) => diagnostic.code === "TOKEN_CONTEXT_PREDICATE_LIMIT",
+      ).length,
+    },
+  };
 }
 
 /** Perform graph integrity and reference type checks. */

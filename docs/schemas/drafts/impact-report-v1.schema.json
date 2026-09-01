@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tokenc.dev/schemas/drafts/impact-report-v1.schema.json",
+  "title": "tokenc Impact Report v1 draft",
+  "description": "Non-public M2-00 contract draft. It becomes stable only after M2-02 acceptance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "snapshot",
+    "request",
+    "coverage",
+    "impact",
+    "diagnostics"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1" },
+    "status": { "enum": ["complete", "incomplete"] },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceRevision", "configurationIdentity", "status"],
+      "properties": {
+        "sourceRevision": { "type": "string", "minLength": 1 },
+        "configurationIdentity": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["valid", "invalid"] }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["documents", "tokens", "predicate"],
+      "properties": {
+        "documents": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "tokens": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "predicate": {
+          "$ref": "https://tokenc.dev/schemas/snapshot-diff-v1.schema.json#/$defs/predicate"
+        }
+      }
+    },
+    "coverage": {
+      "$ref": "https://tokenc.dev/schemas/snapshot-diff-v1.schema.json#/$defs/coverage"
+    },
+    "impact": { "$ref": "https://tokenc.dev/schemas/snapshot-diff-v1.schema.json#/$defs/impact" },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "https://tokenc.dev/schemas/snapshot-diff-v1.schema.json#/$defs/sidedDiagnostic"
+      }
+    }
+  }
+}

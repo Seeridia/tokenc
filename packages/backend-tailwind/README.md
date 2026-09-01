@@ -3,7 +3,7 @@
 Tailwind CSS v4 backend for tokenc.
 
 ```bash
-pnpm add -D @tokenc/core @tokenc/backend-tailwind
+vp add -D @tokenc/core @tokenc/backend-tailwind
 ```
 
 ```ts
@@ -19,7 +19,9 @@ export default defineConfig({
 The backend emits shared `--token-*` runtime properties and maps supported types into Tailwind v4 `@theme` namespaces. Theme switching changes the runtime layer without duplicating semantic values.
 
 Runtime values use the same typed CSS serializers as `@tokenc/backend-css`. Unsupported lossless
-CSS shapes and normalized variable collisions fail during backend validation. A token whose complete
+CSS shapes and normalized variable collisions fail during backend planning. Runtime and theme names
+are allocated by Core's shared `SymbolAllocator`, and the explicit `rename` map can resolve a
+collision. A token whose complete
 ID is a Tailwind namespace, such as `shadow`, maps to the explicit `--shadow-default` theme variable.
 Token path segments are normalized before they become `@theme` custom-property names.
 

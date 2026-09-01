@@ -47,9 +47,9 @@ TypeScript Backend，得到 `dist/tokens.css`、`dist/tailwind.css` 和 `dist/to
 可从验收提交复跑源码验证与合成 benchmark：
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm verify
-pnpm bench
+vp install --frozen-lockfile
+vp run verify
+vp run bench
 ```
 
 上文链接的 CI run 是保留的源码验证记录。Registry provenance、tarball digest、tag 与 consumer smoke

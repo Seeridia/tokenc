@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { compileDocuments } from "../../src/compiler.js";
-import { IncrementalCompiler } from "../../src/incremental.js";
+import { compileDocumentsInternal as compileDocuments } from "../../src/compiler.js";
 import { parseTokenDocument } from "../../src/parser.js";
+import { createCompilerSession } from "../../src/session.js";
 import { parseTokenId } from "../../src/token-id.js";
 
 const inheritedSource = (small: number) => ({
@@ -48,7 +48,7 @@ describe("DTCG group $extends", () => {
     expect(parsed.tokens.find((token) => token.id === "derived.small")).toMatchObject({
       type: "number",
       value: { kind: "literal", value: 1 },
-      dependencies: ["base.small"],
+      dependencyOccurrences: [{ target: "base.small", kind: "inheritance" }],
       inheritance: { token: "base.small", group: "base" },
     });
     const local = parsed.tokens.find((token) => token.id === "derived.large");
@@ -211,20 +211,53 @@ describe("DTCG group $extends", () => {
   });
 
   it("invalidates inherited tokens when a base member changes", async () => {
-    const compiler = new IncrementalCompiler();
-    await compiler.initialize([inheritedSource(1)]);
-    const update = await compiler.update(inheritedSource(2));
-    expect(update.affected).toEqual(new Set(["base.small", "derived.small"]));
-    expect(update.result.compilation.resolveToken(parseTokenId("derived.small"))?.value).toBe(2);
+    const compiler = createCompilerSession();
+    await compiler.apply({
+      documents: [
+        {
+          kind: "add",
+          document: { identity: inheritedSource(1).file, content: inheritedSource(1).content },
+        },
+      ],
+    });
+    const update = await compiler.apply({
+      documents: [
+        {
+          kind: "update",
+          document: { identity: inheritedSource(2).file, content: inheritedSource(2).content },
+        },
+      ],
+    });
+    if (update.status !== "valid") throw new Error("Expected a valid snapshot");
+    expect(update.query.resolve(parseTokenId("derived.small"))?.value).toBe(2);
   });
 
   it("patches an inheritance edge even when the replacement base has the same value", async () => {
-    const compiler = new IncrementalCompiler();
-    await compiler.initialize([inheritanceEdgeSource("first")]);
-    const update = await compiler.update(inheritanceEdgeSource("second"));
-    expect(update.changed).toContain("derived.value");
-    expect(update.result.graph.getDependencies(parseTokenId("derived.value"))).toEqual([
-      "second.value",
-    ]);
+    const compiler = createCompilerSession();
+    await compiler.apply({
+      documents: [
+        {
+          kind: "add",
+          document: {
+            identity: inheritanceEdgeSource("first").file,
+            content: inheritanceEdgeSource("first").content,
+          },
+        },
+      ],
+    });
+    const update = await compiler.apply({
+      documents: [
+        {
+          kind: "update",
+          document: {
+            identity: inheritanceEdgeSource("second").file,
+            content: inheritanceEdgeSource("second").content,
+          },
+        },
+      ],
+    });
+    expect(update.query.dependencies(parseTokenId("derived.value")).map((edge) => edge.to)).toEqual(
+      ["second.value"],
+    );
   });
 });

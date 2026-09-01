@@ -50,9 +50,9 @@ both paths become mandatory release evidence rather than an ad hoc operator chec
 Source verification and the synthetic benchmark can be rerun from the accepted commit with:
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm verify
-pnpm bench
+vp install --frozen-lockfile
+vp run verify
+vp run bench
 ```
 
 The linked CI run is the retained source-verification record. Registry provenance, tarball digest,

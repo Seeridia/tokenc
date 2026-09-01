@@ -86,6 +86,57 @@ describe("benchmark runner", () => {
     expect(() => assertFiniteNumbers(parsed)).not.toThrow();
   });
 
+  it("emits M2-00 change-intelligence stages and semantic counters", async () => {
+    const { stdout } = await executeFile(
+      process.execPath,
+      [
+        "--import",
+        "tsx",
+        entry,
+        "--case",
+        "m2/report-serialization/10000",
+        "--warmups",
+        "0",
+        "--samples",
+        "1",
+        "--memory-samples",
+        "0",
+      ],
+      { cwd: resolve(fileURLToPath(new URL("../..", import.meta.url))), encoding: "utf8" },
+    );
+    const parsed: unknown = JSON.parse(stdout);
+    if (!isRecord(parsed) || !Array.isArray(parsed.cases))
+      throw new TypeError("Expected benchmark report cases");
+    expect(parsed.cases).toEqual([
+      expect.objectContaining({
+        id: "m2/report-serialization/10000",
+        timeSamples: [
+          expect.objectContaining({
+            changeIntelligence: {
+              stagesMs: {
+                snapshotConstruction: expect.any(Number),
+                impactTraversal: expect.any(Number),
+                backendPreparation: expect.any(Number),
+                reportSerialization: expect.any(Number),
+              },
+              counters: expect.objectContaining({
+                backendPlans: 2,
+                reportEntries: 10_000,
+                reportBytes: expect.any(Number),
+              }),
+            },
+          }),
+        ],
+        summary: expect.objectContaining({
+          changeIntelligence: expect.objectContaining({
+            counters: expect.objectContaining({ reportEntries: 10_000 }),
+          }),
+        }),
+      }),
+    ]);
+    expect(() => assertFiniteNumbers(parsed)).not.toThrow();
+  });
+
   it("ships a strict v1 JSON Schema", async () => {
     const schema: unknown = JSON.parse(await readFile(schemaPath, "utf8"));
     expect(schema).toMatchObject({

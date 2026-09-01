@@ -88,8 +88,8 @@ is therefore retained and protected by regression tests.
 ## 5. Reproduction and comparison
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm verify
+vp install --frozen-lockfile
+vp run verify
 vp run bench -- --profile baseline --output artifacts/benchmark-baseline.json
 ```
 

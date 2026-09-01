@@ -1,3 +1,4 @@
+import { DiagnosticBag } from "./diagnostic.js";
 import type {
   CompilationContext,
   ContextOverride,
@@ -8,8 +9,9 @@ import type {
 } from "./model.js";
 
 export interface SelectedTokenExpression {
+  readonly candidate: TokenNode["baseCandidate"];
   readonly expression: TokenExpression;
-  readonly dependencies: TokenNode["dependencies"];
+  readonly dependencyOccurrences: TokenNode["dependencyOccurrences"];
   readonly source: TokenNode["source"];
   readonly selector?: CompilationContext;
   readonly precedence?: number;
@@ -101,8 +103,11 @@ export function selectTokenCandidate(
   resolutionOrder: readonly string[] = Object.keys(context),
 ): SelectedTokenExpression {
   let selected: SelectedTokenExpression = {
+    candidate: token.baseCandidate,
     expression: token.value,
-    dependencies: token.baseDependencies ?? token.dependencies,
+    dependencyOccurrences: token.dependencyOccurrences.filter(
+      (occurrence) => occurrence.candidate === token.baseCandidate,
+    ),
     source: token.source,
   };
   let selectedSelector: CompilationContext = {};
@@ -116,8 +121,9 @@ export function selectTokenCandidate(
         compareSelectors(override.selector, selectedSelector, resolutionOrder) > 0)
     ) {
       selected = {
+        candidate: override.candidate,
         expression: override.expression,
-        dependencies: override.dependencies ?? token.dependencies,
+        dependencyOccurrences: override.dependencyOccurrences,
         source: override.source,
         selector: override.selector,
         ...(override.precedence === undefined ? {} : { precedence: override.precedence }),
@@ -135,7 +141,7 @@ export function checkContexts(
   tokens: readonly TokenNode[],
   definition: ContextDefinition = {},
 ): readonly Diagnostic[] {
-  const diagnostics: Diagnostic[] = [];
+  const diagnostics = new DiagnosticBag();
   for (const [name, dimension] of Object.entries(definition)) {
     if (!dimension.values.includes(dimension.default)) {
       diagnostics.push({
@@ -156,6 +162,7 @@ export function checkContexts(
           severity: "error",
           message: `Token \`${token.id}\` declares context selector \`${selectorKey}\` more than once`,
           source: override.source,
+          anchor: { kind: "candidate", token: token.id, candidate: override.candidate },
           related: [{ message: "First declared here", source: previous.source }],
         });
       } else selectors.set(selectorKey, override);
@@ -167,6 +174,7 @@ export function checkContexts(
             severity: "error",
             message: `Unknown context dimension \`${name}\``,
             source: override.source,
+            anchor: { kind: "candidate", token: token.id, candidate: override.candidate },
           });
         } else if (!dimension.values.includes(value)) {
           diagnostics.push({
@@ -174,7 +182,10 @@ export function checkContexts(
             severity: "error",
             message: `Unknown value \`${value}\` for context \`${name}\``,
             source: override.source,
-            suggestions: dimension.values,
+            anchor: { kind: "candidate", token: token.id, candidate: override.candidate },
+            related: dimension.values.map((candidate) => ({
+              message: `Valid value: \`${candidate}\``,
+            })),
           });
         }
       }

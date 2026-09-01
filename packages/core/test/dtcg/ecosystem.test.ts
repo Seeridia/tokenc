@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vite-plus/test";
 
+import { compileDocumentsInternal as compileDocuments } from "../../src/compiler.js";
 import {
-  compileDocuments,
   parseResolverDocument,
   resolverSourceFiles,
   type CompilationContext,

@@ -1,13 +1,14 @@
-import { readFile } from "node:fs/promises";
-import { resolve as resolvePath } from "node:path";
+import { createHash } from "node:crypto";
+import { isAbsolute, relative, sep } from "node:path";
 import { performance } from "node:perf_hooks";
 
+import { CompilationIR, type TokenBackend } from "./backend.js";
 import { checkTokenGraphDetailed } from "./checker.js";
-import { checkContexts, contextKey, defaultContext, selectTokenCandidate } from "./context.js";
+import { checkContexts, contextKey, defaultContext } from "./context.js";
+import { DiagnosticBag } from "./diagnostic.js";
 import {
   parseResolverDocument,
   resolveResolverDocument,
-  resolverSourceFiles,
   type ResolverDocument,
   type ResolverResolution,
 } from "./dtcg/resolver-document.js";
@@ -17,68 +18,28 @@ import {
   relinkParsedTokenDocuments,
 } from "./frontend.js";
 import { TokenGraph } from "./graph.js";
-import { loadTokenFiles, type TokenSourceInput } from "./loader.js";
+import { FileSystemDocumentLoader, loadTokenFiles, type TokenSourceInput } from "./loader.js";
 import type {
   CompilationContext,
   CompilationStats,
   CompiledToken,
   ContextDefinition,
   Diagnostic,
-  OutputFile,
   ParsedTokenDocument,
   ResolvedToken,
-  ResolutionTrace,
   TokenId,
   TokenNode,
 } from "./model.js";
+import { InternalCompilationQuery, type CompilationQuery } from "./query.js";
 import { TokenResolver } from "./resolver.js";
-
-export interface TokenBackend {
-  readonly name: string;
-  /** Validate backend-specific names and value capabilities before any artifact is emitted. */
-  validate?(compilation: Compilation): Promise<readonly Diagnostic[]> | readonly Diagnostic[];
-  emit(compilation: Compilation): Promise<readonly OutputFile[]> | readonly OutputFile[];
-}
-
-export interface BackendOutputName {
-  readonly name: string;
-  readonly token: TokenNode;
-  /** Namespaces with independent symbol tables do not collide with each other. */
-  readonly namespace?: string;
-}
-
-/** Produce source-located diagnostics for two tokens allocated to the same backend name. */
-export function backendNameCollisionDiagnostics(
-  backend: string,
-  names: readonly BackendOutputName[],
-): readonly Diagnostic[] {
-  const owners = new Map<string, BackendOutputName>();
-  const reported = new Set<string>();
-  const diagnostics: Diagnostic[] = [];
-  for (const outputName of names) {
-    const key = `${outputName.namespace ?? "default"}\u0000${outputName.name}`;
-    const previous = owners.get(key);
-    if (!previous) {
-      owners.set(key, outputName);
-      continue;
-    }
-    if (previous.token.id === outputName.token.id) continue;
-    const reportKey = `${key}\u0000${previous.token.id}\u0000${outputName.token.id}`;
-    if (reported.has(reportKey)) continue;
-    reported.add(reportKey);
-    diagnostics.push({
-      code: "BACKEND_NAME_COLLISION",
-      severity: "error",
-      message: `Backend \`${backend}\` maps both \`${previous.token.id}\` and \`${outputName.token.id}\` to output name \`${outputName.name}\``,
-      source: outputName.token.source,
-      related: [
-        { message: `First allocated to \`${previous.token.id}\``, source: previous.token.source },
-      ],
-      suggestions: ["Rename one token or configure a naming policy that produces unique names."],
-    });
-  }
-  return diagnostics;
-}
+import { createCompilerSession } from "./session.js";
+import {
+  InvalidCompilationQuery,
+  InvalidCompilationSnapshot,
+  ValidCompilationSnapshot,
+  type CompilationSnapshot,
+  type SnapshotDocument,
+} from "./snapshot.js";
 
 export interface CompilerConfig {
   readonly source: readonly string[];
@@ -89,8 +50,7 @@ export interface CompilerConfig {
 }
 
 export interface CompileOptions {
-  /** Run backend validation but skip artifact generation when false. */
-  readonly emit?: boolean;
+  readonly signal?: AbortSignal;
 }
 
 export interface ResolverFileConfig {
@@ -98,19 +58,18 @@ export interface ResolverFileConfig {
   readonly input?: CompilationContext;
 }
 
-export interface CompileDocumentsOptions {
+export interface CompilationOptions {
   readonly contexts?: ContextDefinition;
-  readonly outputs?: readonly TokenBackend[];
-  /** Run backend validation but skip artifact generation when false. */
-  readonly emit?: boolean;
-  /** Base directory used to compare relative and absolute backend output paths. */
-  readonly outputRoot?: string;
-  readonly affectedTokens?: ReadonlySet<TokenId>;
-  readonly resolverSeed?: Iterable<ResolvedToken>;
   readonly resolver?: ResolverDocument;
   readonly resolverInput?: CompilationContext;
   /** Diagnostics produced while an IO layer loaded the resolver document. */
   readonly resolverDiagnostics?: readonly Diagnostic[];
+}
+
+/** @internal Builder controls used by the compilation pipeline and differential oracle. */
+export interface CompileDocumentsOptions extends CompilationOptions {
+  readonly affectedTokens?: ReadonlySet<TokenId>;
+  readonly resolverSeed?: Iterable<ResolvedToken>;
   readonly resolution?: ResolverResolution;
   readonly allowTokenOverrides?: boolean;
   /** Reused by incremental sessions; cold compilation creates a fresh graph. */
@@ -119,50 +78,19 @@ export interface CompileDocumentsOptions {
   readonly checkTokens?: ReadonlySet<TokenId>;
   readonly skipDuplicateCheck?: boolean;
   readonly additionalDiagnostics?: readonly Diagnostic[];
+  /** Documents were linked together by the Session's component cache. */
+  readonly linkedDocuments?: boolean;
 }
 
-interface BackendEmission {
-  readonly backend: string;
-  readonly output: OutputFile;
-}
-
-function outputPathCollisionKey(outputRoot: string, outputPath: string): string {
-  // Use the strictest common filesystem behavior so builds are safe to move between platforms.
-  return resolvePath(outputRoot, outputPath).normalize("NFC").toLowerCase().normalize("NFC");
-}
-
-function outputPathCollisionDiagnostics(
-  emissions: readonly BackendEmission[],
-  outputRoot: string,
-): readonly Diagnostic[] {
-  const owners = new Map<string, BackendEmission>();
-  const diagnostics: Diagnostic[] = [];
-  for (const emission of emissions) {
-    const collisionKey = outputPathCollisionKey(outputRoot, emission.output.path);
-    const previous = owners.get(collisionKey);
-    if (!previous) {
-      owners.set(collisionKey, emission);
-      continue;
-    }
-    diagnostics.push({
-      code: "BACKEND_OUTPUT_PATH_COLLISION",
-      severity: "error",
-      message: `Backend \`${emission.backend}\` output \`${emission.output.path}\` collides with backend \`${previous.backend}\` output \`${previous.output.path}\``,
-      related: [{ message: `First emitted by backend \`${previous.backend}\`` }],
-      suggestions: ["Configure every backend artifact with a unique output path."],
-    });
-  }
-  return diagnostics;
-}
-
-/** Public, backend-facing IR. Backends never parse or validate source documents. */
-export class Compilation {
+/** @internal Mutable build state; public callers receive an immutable CompilationSnapshot. */
+class CompilationState {
   readonly graph: TokenGraph;
   readonly diagnostics: readonly Diagnostic[];
   readonly tokens: readonly CompiledToken[];
   readonly contexts: ContextDefinition;
   readonly availableContexts: readonly CompilationContext[];
   readonly resolver: TokenResolver;
+  readonly query: CompilationQuery;
   readonly resolution?: ResolverResolution;
 
   constructor(args: {
@@ -177,6 +105,7 @@ export class Compilation {
     this.contexts = args.contexts;
     this.resolver = args.resolver;
     if (args.resolution) this.resolution = args.resolution;
+    this.query = new InternalCompilationQuery(args.graph, args.resolver, args.resolution);
     const defaults = defaultContext(args.contexts);
     const seenContexts = new Map<string, CompilationContext>([[contextKey(defaults), defaults]]);
     for (const token of args.graph.tokens) {
@@ -186,24 +115,10 @@ export class Compilation {
       }
     }
     this.availableContexts = [...seenContexts.values()];
-    const resolutionOrder = Object.keys(args.contexts);
-    const orderingGraph = args.graph.tokens.some((token) => token.overrides.length > 0)
-      ? new TokenGraph(
-          args.graph.tokens.map((token) => ({
-            ...token,
-            dependencies: [
-              ...new Set([
-                ...selectTokenCandidate(token, defaults, resolutionOrder).dependencies,
-                ...(token.inheritance ? [token.inheritance.token] : []),
-              ]),
-            ],
-          })),
-        )
-      : args.graph;
-    this.tokens = orderingGraph.topologicalSort().flatMap((id) => {
+    this.tokens = args.graph.topologicalSort(defaults).flatMap((id) => {
       const node = args.graph.getToken(id);
       const resolved = args.resolver.resolve(id);
-      return node && resolved ? [{ ...resolved, rawValue: node.value }] : [];
+      return node && resolved ? [deepFreeze({ ...resolved, rawValue: node.value })] : [];
     });
   }
 
@@ -211,7 +126,7 @@ export class Compilation {
     return !this.diagnostics.some((diagnostic) => diagnostic.severity === "error");
   }
   getToken(id: TokenId): TokenNode | undefined {
-    return this.graph.getToken(id);
+    return this.query.token(id);
   }
   getTokenAtSourcePosition(file: string, offset: number): TokenNode | undefined {
     return this.graph.tokens
@@ -224,43 +139,27 @@ export class Compilation {
       .toSorted((left, right) => left.source.length - right.source.length)[0];
   }
   getDefinition(id: TokenId): TokenNode["source"] | undefined {
-    return this.graph.getToken(id)?.source;
+    return this.query.definition(id);
   }
   getCompletionCandidates(prefix = ""): readonly TokenId[] {
-    return this.graph.tokens
-      .map((token) => token.id)
-      .filter((id) => String(id).startsWith(prefix))
-      .toSorted((left, right) => String(left).localeCompare(String(right)));
+    return this.query.completions(prefix);
   }
   resolveToken(id: TokenId, context: CompilationContext = {}): ResolvedToken | undefined {
-    return this.resolver.resolve(id, context);
+    return this.query.resolve(id, context);
   }
   tokensOfType<T extends TokenNode["type"]>(type: T): readonly CompiledToken<T>[] {
     return this.tokens.filter((token): token is CompiledToken<T> => token.type === type);
   }
-  explainToken(id: TokenId, context: CompilationContext = {}): ResolutionTrace | undefined {
-    const trace = this.resolver.trace(id, context);
-    if (!trace) return undefined;
-    return {
-      ...trace,
-      resolverSteps:
-        this.resolution?.steps.map((step) => ({
-          kind: step.kind,
-          name: step.name,
-          source: step.source,
-          ...(step.context ? { context: step.context } : {}),
-        })) ?? [],
-    };
-  }
 }
 
-export interface CompilationResult {
+/** @internal Data retained only while building a published Snapshot. */
+export interface CompilationBuildResult {
   readonly success: boolean;
   readonly diagnostics: readonly Diagnostic[];
   readonly graph: TokenGraph;
-  readonly compilation: Compilation;
-  readonly outputs: readonly OutputFile[];
+  readonly compilation: CompilationState;
   readonly stats: CompilationStats;
+  readonly documents: readonly ParsedTokenDocument[];
 }
 
 interface PriorStageTimings {
@@ -270,6 +169,135 @@ interface PriorStageTimings {
   readonly resolve?: number;
 }
 
+function deepFreeze<T>(value: T): T {
+  if (value === null || typeof value !== "object" || Object.isFrozen(value)) return value;
+  for (const entry of Object.values(value)) deepFreeze(entry);
+  return Object.freeze(value);
+}
+
+function cloneAndFreeze(value: TokenNode): TokenNode;
+function cloneAndFreeze(value: unknown): unknown;
+function cloneAndFreeze(value: unknown): unknown {
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) return Object.freeze(value.map((entry) => cloneAndFreeze(entry)));
+  return Object.freeze(
+    Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, cloneAndFreeze(entry)])),
+  );
+}
+
+/** @internal Build a Graph safe to share across immutable snapshots and Session cache entries. */
+export function createImmutableTokenGraph(
+  documents: readonly ParsedTokenDocument[],
+  contexts: ContextDefinition = {},
+): TokenGraph {
+  return new TokenGraph(
+    documents.flatMap((document) => document.tokens.map((token) => cloneAndFreeze(token))),
+    contexts,
+  );
+}
+
+function stableJson(value: unknown): string {
+  if (value === undefined) return "null";
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  return `{${Object.entries(value)
+    .toSorted(([left], [right]) => left.localeCompare(right))
+    .map(([key, entry]) => `${JSON.stringify(key)}:${stableJson(entry)}`)
+    .join(",")}}`;
+}
+
+function digest(value: unknown): string {
+  return createHash("sha256").update(stableJson(value)).digest("base64url");
+}
+
+function canonicalDocumentIdentity(identity: string): string {
+  const normalized = identity.split(sep).join("/");
+  if (!isAbsolute(identity)) return normalized.replace(/^\.\//u, "");
+  return relative(process.cwd(), identity).split(sep).join("/");
+}
+
+function graphIdentity(graph: TokenGraph): string {
+  return digest({
+    tokens: graph.tokens.map((token) => ({
+      id: token.id,
+      type: token.type,
+      baseCandidate: token.baseCandidate,
+      value: token.value.kind === "literal" ? token.value : { ...token.value, source: undefined },
+      description: token.description,
+      deprecated: token.deprecated,
+      extensions: token.extensions,
+      overrides: token.overrides.map((override) => ({
+        candidate: override.candidate,
+        selector: override.selector,
+        expression:
+          override.expression.kind === "literal"
+            ? override.expression
+            : { ...override.expression, source: undefined },
+        precedence: override.precedence,
+        origin: override.origin,
+      })),
+      inheritance: token.inheritance
+        ? { token: token.inheritance.token, group: token.inheritance.group }
+        : undefined,
+    })),
+    edges: graph.edges.map((edge) => ({
+      from: edge.from,
+      to: edge.to,
+      candidate: edge.occurrence.candidate,
+      kind: edge.occurrence.kind,
+      fieldPath: edge.occurrence.fieldPath,
+      sourceOrder: edge.occurrence.sourceOrder,
+      condition: edge.condition.key,
+    })),
+  });
+}
+
+function compareDiagnostics(left: Diagnostic, right: Diagnostic): number {
+  const severity = { error: 0, warning: 1, info: 2 } as const;
+  return (
+    (left.source?.document ?? "").localeCompare(right.source?.document ?? "") ||
+    (left.source?.range.offset ?? -1) - (right.source?.range.offset ?? -1) ||
+    severity[left.severity] - severity[right.severity] ||
+    left.code.localeCompare(right.code) ||
+    left.fingerprint.localeCompare(right.fingerprint)
+  );
+}
+
+function snapshotDocuments(documents: readonly ParsedTokenDocument[]): readonly SnapshotDocument[] {
+  return Object.freeze(
+    documents.map((document) =>
+      Object.freeze({
+        identity: canonicalDocumentIdentity(document.source),
+        content: document.content,
+        tokenIds: Object.freeze(
+          document.tokens
+            .map((token) => token.id)
+            .toSorted((left, right) => String(left).localeCompare(String(right))),
+        ),
+      }),
+    ),
+  );
+}
+
+function configurationIdentity(options: CompileDocumentsOptions): string {
+  return digest({
+    contexts: options.contexts ?? {},
+    resolverInput: options.resolverInput ?? {},
+    resolver: options.resolver?.content ?? null,
+    allowTokenOverrides: options.allowTokenOverrides ?? false,
+  });
+}
+
+function sourceRevision(documents: readonly SnapshotDocument[], configuration: string): string {
+  return digest({
+    configuration,
+    documents: documents.map((document) => ({
+      identity: document.identity,
+      content: document.content,
+    })),
+  });
+}
+
 /** Preserve config inference while keeping configuration data declarative. */
 export function defineConfig(config: CompilerConfig): CompilerConfig {
   return config;
@@ -277,7 +305,7 @@ export function defineConfig(config: CompilerConfig): CompilerConfig {
 
 function duplicateDiagnostics(documents: readonly ParsedTokenDocument[]): readonly Diagnostic[] {
   const owners = new Map<TokenId, TokenNode>();
-  const diagnostics: Diagnostic[] = [];
+  const diagnostics = new DiagnosticBag();
   for (const document of documents) {
     for (const token of document.tokens) {
       const previous = owners.get(token.id);
@@ -287,6 +315,8 @@ function duplicateDiagnostics(documents: readonly ParsedTokenDocument[]): readon
           severity: "error",
           message: `Duplicate token \`${token.id}\``,
           source: token.source,
+          anchor: { kind: "token", token: token.id },
+          parameters: { token: token.id },
           related: [{ message: "First defined here", source: previous.source }],
         });
       } else owners.set(token.id, token);
@@ -295,11 +325,11 @@ function duplicateDiagnostics(documents: readonly ParsedTokenDocument[]): readon
   return diagnostics;
 }
 
-/** Compile already-loaded documents through parse, graph, check, resolve, and emit. */
-export async function compileDocuments(
+/** @internal Unpublished build state for incremental compilation. */
+export async function compileDocumentsInternal(
   sources: readonly TokenSourceInput[],
   options: CompileDocumentsOptions = {},
-): Promise<CompilationResult> {
+): Promise<CompilationBuildResult> {
   const totalStart = performance.now();
   const resolverStart = performance.now();
   const resolution = options.resolver
@@ -344,16 +374,21 @@ export async function compileParsedDocuments(
   parseTime = 0,
   totalStart = performance.now(),
   priorTimings: PriorStageTimings = {},
-): Promise<CompilationResult> {
+): Promise<CompilationBuildResult> {
   const linkStart = performance.now();
-  const semanticDocuments = relinkParsedTokenDocuments(documents);
+  const semanticDocuments = options.linkedDocuments
+    ? documents
+    : relinkParsedTokenDocuments(documents);
   const linkTime = (priorTimings.link ?? 0) + performance.now() - linkStart;
   const canReuseIncrementalState = semanticDocuments === documents;
   const graphStart = performance.now();
   const graph =
     canReuseIncrementalState && options.graph !== undefined
       ? options.graph
-      : new TokenGraph(semanticDocuments.flatMap((document) => document.tokens));
+      : new TokenGraph(
+          semanticDocuments.flatMap((document) => document.tokens),
+          options.contexts ?? {},
+        );
   const graphTime = (priorTimings.graph ?? 0) + performance.now() - graphStart;
   const checkStart = performance.now();
   const contextTokens = options.checkTokens
@@ -371,73 +406,30 @@ export async function compileParsedDocuments(
     ...(options.allowTokenOverrides || options.skipDuplicateCheck
       ? []
       : duplicateDiagnostics(semanticDocuments)),
+    ...graph.diagnostics,
     ...graphCheck.diagnostics,
     ...checkContexts(contextTokens, options.contexts ?? {}),
   ];
   const checkTime = (priorTimings.check ?? 0) + performance.now() - checkStart;
   const resolveStart = performance.now();
+  const snapshotGraph =
+    canReuseIncrementalState && options.graph
+      ? options.graph
+      : createImmutableTokenGraph(semanticDocuments, options.contexts ?? {});
   const resolver = new TokenResolver(
-    graph,
+    snapshotGraph,
     options.contexts ?? {},
     canReuseIncrementalState ? options.resolverSeed : undefined,
   );
-  const compilation = new Compilation({
-    graph,
+  const compilation = new CompilationState({
+    graph: snapshotGraph,
     diagnostics: frontendDiagnostics,
     contexts: options.contexts ?? {},
     resolver,
     ...(options.resolution ? { resolution: options.resolution } : {}),
   });
   const resolveTime = (priorTimings.resolve ?? 0) + performance.now() - resolveStart;
-  const emitStart = performance.now();
-  const backendDiagnostics = compilation.success
-    ? (
-        await Promise.all(
-          (options.outputs ?? []).map(async (backend) =>
-            backend.validate ? backend.validate(compilation) : [],
-          ),
-        )
-      ).flat()
-    : [];
-  const diagnostics = [...frontendDiagnostics, ...backendDiagnostics];
-  const validatedCompilation =
-    backendDiagnostics.length === 0
-      ? compilation
-      : new Compilation({
-          graph,
-          diagnostics,
-          contexts: options.contexts ?? {},
-          resolver,
-          ...(options.resolution ? { resolution: options.resolution } : {}),
-        });
-  const backends = options.outputs ?? [];
-  const outputGroups =
-    validatedCompilation.success && options.emit !== false
-      ? await Promise.all(
-          backends.map((backend) => Promise.resolve(backend.emit(validatedCompilation))),
-        )
-      : [];
-  const emissions = outputGroups.flatMap((outputs, index) =>
-    outputs.map((output) => ({ backend: backends[index]!.name, output })),
-  );
-  const outputDiagnostics = outputPathCollisionDiagnostics(
-    emissions,
-    options.outputRoot ?? process.cwd(),
-  );
-  const finalDiagnostics = [...diagnostics, ...outputDiagnostics];
-  const finalCompilation =
-    outputDiagnostics.length === 0
-      ? validatedCompilation
-      : new Compilation({
-          graph,
-          diagnostics: finalDiagnostics,
-          contexts: options.contexts ?? {},
-          resolver,
-          ...(options.resolution ? { resolution: options.resolution } : {}),
-        });
-  const outputs = finalCompilation.success ? emissions.map((emission) => emission.output) : [];
-  const emitTime = performance.now() - emitStart;
-  const references = graph.tokens.reduce((count, token) => count + token.dependencies.length, 0);
+  const references = graph.edges.length;
   const stats: CompilationStats = {
     tokens: graph.size,
     references,
@@ -451,58 +443,151 @@ export async function compileParsedDocuments(
       graph: graphTime,
       check: checkTime,
       resolve: resolveTime,
-      emit: emitTime,
+      emit: 0,
       total: performance.now() - totalStart,
     },
   };
   return {
-    success: finalCompilation.success,
-    diagnostics: finalDiagnostics,
-    graph,
-    compilation: finalCompilation,
-    outputs,
+    success: compilation.success,
+    diagnostics: frontendDiagnostics,
+    graph: snapshotGraph,
+    compilation,
     stats,
+    documents: semanticDocuments,
   };
+}
+
+function createSnapshot(
+  build: CompilationBuildResult,
+  options: CompilationOptions,
+  revision: number,
+  graphRevision: number,
+): CompilationSnapshot {
+  const diagnostics = Object.freeze([...build.diagnostics].toSorted(compareDiagnostics));
+  const documents = snapshotDocuments(build.documents);
+  const configuration = configurationIdentity(options);
+  const base = {
+    revision,
+    graphRevision,
+    sourceRevision: sourceRevision(documents, configuration),
+    configurationIdentity: configuration,
+    documents,
+    diagnostics,
+    stats: deepFreeze(structuredClone(build.stats)),
+  };
+  const resolver = build.compilation.resolver;
+  const query = new InternalCompilationQuery(build.graph, resolver, build.compilation.resolution);
+  Object.freeze(query);
+  if (!build.compilation.success)
+    return new InvalidCompilationSnapshot({
+      ...base,
+      query: new InvalidCompilationQuery(query, diagnostics),
+    });
+  const ir = new CompilationIR({
+    tokens: build.compilation.tokens,
+    sourceTokens: build.graph.tokens,
+    contexts: build.compilation.contexts,
+    availableContexts: build.compilation.availableContexts,
+    ...(build.compilation.resolution
+      ? { resolutionContext: build.compilation.resolution.context }
+      : {}),
+    getToken: (id) => build.graph.getToken(id),
+    resolveToken: (id, context) => resolver.resolve(id, context),
+  });
+  return new ValidCompilationSnapshot({ ...base, query, ir });
+}
+
+/** @internal Publishes build results with a monotonic snapshot revision sequence. */
+export class CompilationSnapshotBuilder {
+  #revision = 0;
+  #graphRevision = 0;
+  #graphIdentity: string | undefined;
+
+  async build(
+    sources: readonly TokenSourceInput[],
+    options: CompilationOptions = {},
+  ): Promise<CompilationSnapshot> {
+    const build = await compileDocumentsInternal(sources, options);
+    return this.publish(build, options);
+  }
+
+  /** @internal Publish an already-built result while preserving this builder's revision sequence. */
+  publish(build: CompilationBuildResult, options: CompilationOptions = {}): CompilationSnapshot {
+    const nextGraphIdentity = graphIdentity(build.graph);
+    this.#revision += 1;
+    if (this.#graphIdentity !== nextGraphIdentity) this.#graphRevision += 1;
+    this.#graphIdentity = nextGraphIdentity;
+    return createSnapshot(build, options, this.#revision, this.#graphRevision);
+  }
+}
+
+/** Compile already-loaded documents into one immutable semantic Snapshot. */
+export async function compileDocuments(
+  sources: readonly TokenSourceInput[],
+  options: CompilationOptions = {},
+): Promise<CompilationSnapshot> {
+  const session = createCompilerSession({
+    config: {
+      ...(options.contexts ? { contexts: options.contexts } : {}),
+      ...(options.resolver ? { resolver: options.resolver } : {}),
+      ...(options.resolverInput ? { resolverInput: options.resolverInput } : {}),
+      ...(options.resolverDiagnostics ? { resolverDiagnostics: options.resolverDiagnostics } : {}),
+    },
+  });
+  try {
+    return await session.apply({
+      documents: sources.map((source) => ({
+        kind: "add",
+        document: {
+          identity: source.file,
+          content: source.content,
+          ...(source.origin ? { origin: source.origin } : {}),
+        },
+      })),
+    });
+  } finally {
+    await session.close();
+  }
 }
 
 /** High-level programmatic compiler API using configured source globs. */
 export async function compile(
   config: CompilerConfig,
   options: CompileOptions = {},
-): Promise<CompilationResult> {
-  const loadedSources = await loadTokenFiles(config.source, config.cwd);
-  let sources = loadedSources;
+): Promise<CompilationSnapshot> {
+  options.signal?.throwIfAborted();
+  const cwd = config.cwd ?? process.cwd();
+  const loader = new FileSystemDocumentLoader(cwd);
+  const loadedSources = await loadTokenFiles(config.source, cwd, options.signal);
   let resolver: ResolverDocument | undefined;
   let resolverDiagnostics: readonly Diagnostic[] = [];
   if (config.resolver) {
-    const resolverFile = resolvePath(config.cwd ?? process.cwd(), config.resolver.source);
-    const parsed = parseResolverDocument(await readFile(resolverFile, "utf8"), resolverFile);
+    const loadedResolver = await loader.load({ specifier: config.resolver.source }, options.signal);
+    const parsed = parseResolverDocument(loadedResolver.content, loadedResolver.identity);
     resolver = parsed.document;
     resolverDiagnostics = parsed.diagnostics;
-    if (resolver) {
-      const loadedByFile = new Map(
-        loadedSources.map((source) => [resolvePath(source.file), source]),
-      );
-      for (const file of resolverSourceFiles(resolver)) {
-        if (loadedByFile.has(resolvePath(file))) continue;
-        try {
-          // oxlint-disable-next-line eslint/no-await-in-loop -- Resolver references are loaded once before compilation.
-          const content = await readFile(file, "utf8");
-          loadedByFile.set(resolvePath(file), { file: resolvePath(file), content });
-        } catch {
-          // Semantic resolution emits a source-located missing-file diagnostic.
-        }
-      }
-      sources = [...loadedByFile.values()];
-    }
   }
-  return compileDocuments(sources, {
-    ...(config.contexts ? { contexts: config.contexts } : {}),
-    ...(config.outputs ? { outputs: config.outputs } : {}),
-    ...(options.emit === undefined ? {} : { emit: options.emit }),
-    outputRoot: resolvePath(config.cwd ?? process.cwd()),
-    ...(resolver ? { resolver } : {}),
-    ...(config.resolver?.input ? { resolverInput: config.resolver.input } : {}),
-    ...(resolverDiagnostics.length > 0 ? { resolverDiagnostics } : {}),
+  const session = createCompilerSession({
+    loader,
+    config: {
+      ...(config.contexts ? { contexts: config.contexts } : {}),
+      ...(config.outputs ? { backends: config.outputs } : {}),
+      ...(resolver ? { resolver } : {}),
+      ...(config.resolver?.input ? { resolverInput: config.resolver.input } : {}),
+      ...(resolverDiagnostics.length > 0 ? { resolverDiagnostics } : {}),
+    },
   });
+  try {
+    return await session.apply(
+      {
+        documents: loadedSources.map((source) => ({
+          kind: "add",
+          document: { identity: source.file, content: source.content },
+        })),
+      },
+      options,
+    );
+  } finally {
+    await session.close();
+  }
 }

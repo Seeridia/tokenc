@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tokenc.dev/schemas/explain-trace-v1.schema.json",
+  "title": "tokenc ExplainTraceV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "token", "context", "steps", "resolverSteps"],
+  "properties": {
+    "schemaVersion": { "const": "1" },
+    "token": { "type": "string" },
+    "context": { "$ref": "#/$defs/context" },
+    "steps": { "type": "array", "items": { "$ref": "#/$defs/traceStep" } },
+    "resolverSteps": { "type": "array", "items": { "$ref": "#/$defs/resolverStep" } },
+    "finalValue": {}
+  },
+  "$defs": {
+    "context": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "line", "column", "offset", "length"],
+      "properties": {
+        "file": { "type": "string" },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 },
+        "offset": { "type": "integer", "minimum": 0 },
+        "length": { "type": "integer", "minimum": 0 },
+        "excerpt": { "type": "string" }
+      }
+    },
+    "dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "candidate", "kind", "fieldPath", "source"],
+      "properties": {
+        "target": { "type": "string" },
+        "candidate": { "type": "string" },
+        "kind": { "enum": ["alias", "composite-field", "json-pointer", "inheritance"] },
+        "fieldPath": { "type": "array", "items": { "type": ["string", "integer"] } },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    },
+    "expression": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": { "kind": { "const": "literal" }, "value": {} }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "target", "source"],
+          "properties": {
+            "kind": { "const": "reference" },
+            "target": { "type": "string" },
+            "source": { "$ref": "#/$defs/source" },
+            "pointer": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "pointer", "target", "value", "source"],
+          "properties": {
+            "kind": { "const": "json-pointer-reference" },
+            "pointer": { "type": "string" },
+            "target": { "type": "string" },
+            "value": {},
+            "source": { "$ref": "#/$defs/source" }
+          }
+        }
+      ]
+    },
+    "traceStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["token", "candidate", "selection", "expression", "source", "dependencies"],
+      "properties": {
+        "token": { "type": "string" },
+        "candidate": { "type": "string" },
+        "selection": { "enum": ["base", "override"] },
+        "expression": { "$ref": "#/$defs/expression" },
+        "source": { "$ref": "#/$defs/source" },
+        "dependencies": { "type": "array", "items": { "$ref": "#/$defs/dependency" } },
+        "selector": { "$ref": "#/$defs/context" },
+        "origin": { "enum": ["resolver", "extension-context"] },
+        "precedence": { "type": "number" }
+      }
+    },
+    "resolverStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "name", "source"],
+      "properties": {
+        "kind": { "enum": ["set", "modifier"] },
+        "name": { "type": "string" },
+        "context": { "type": "string" },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    }
+  }
+}

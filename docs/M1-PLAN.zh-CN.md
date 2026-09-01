@@ -2,10 +2,17 @@
 
 [English](M1-PLAN.md)
 
-> 状态：执行中。M1-00 与 M1-01 已完成，下一项为 M1-02。更新时间：2026-08-25。
+> 状态：实现已完成。M1-00 至 M1-10 均已完成，五个公开包已统一生成 `0.4.0` release candidate。
+> 剩余操作性收尾仅为发布与发布后 registry 验证。更新时间：2026-08-31。
 >
 > 入口基线：M0 已按 [M0 验收记录](M0-ACCEPTANCE.zh-CN.md)完成，npm `latest` 为
 > `0.3.0`。
+
+> Release candidate 证据：[M1 验收记录](M1-ACCEPTANCE.zh-CN.md)。
+
+> M1 兼容策略：项目仍处于 `0.x`，本阶段不为现有 TypeScript API、CLI machine-readable schema 或
+> 内部模型提供向后兼容保证。被新事实模型替代的接口直接删除或更改，不增加 deprecated alias、兼容
+> facade 或双写路径；每项破坏性变化仍需在 RFC、Changeset 和 release notes 中明确记录。
 
 ## 1. 阶段结果
 
@@ -118,25 +125,28 @@ API 实现。
 
 #### M1-02 — 三份短 RFC（P0）
 
+状态：已完成。三份 RFC 已接受，M1 采用直接破坏式升级策略。
+
 在改动公共类型前完成并审查：
 
-1. **Conditional Graph RFC**：dependency occurrence 与 source、edge kind、raw selector 与有效条件、
+1. **[Conditional Graph RFC](rfcs/0001-conditional-graph.zh-CN.md)**：dependency occurrence 与 source、edge kind、raw selector 与有效条件、
    优先级覆盖、Predicate union/complement/empty/canonical DNF 或 edge splitting、
-   `matches/intersect/subtract/isSatisfiable`、复杂度上限及兼容策略。
-2. **Snapshot and Session RFC**：不可变 Graph revision、snapshot revision、更新事务、invalid snapshot 与
+   `matches/intersect/subtract/isSatisfiable`、复杂度上限及直接替代策略。
+2. **[Snapshot and Session RFC](rfcs/0002-snapshot-session.zh-CN.md)**：不可变 Graph revision、snapshot revision、更新事务、invalid snapshot 与
    last successful snapshot 的关系、并发读取、取消、loader 边界、cache ownership 与配置变化。
-3. **Backend and Diagnostic RFC**：capability negotiation、symbol namespace、名称规范化、
+3. **[Backend and Diagnostic RFC](rfcs/0003-backend-diagnostic.zh-CN.md)**：capability negotiation、symbol namespace、名称规范化、
    `prepare/preflight → BackendPlan → emit`、artifact path planning、Diagnostic v1、fingerprint、fix edit、
-   序列化和弃用策略。
+   序列化和 breaking-change 策略。
 
 验收：
 
-- 每份 RFC 都包含用户问题、失败模式、增量失效、诊断、兼容、测试和明确不做的方案。
+- 每份 RFC 都包含用户问题、失败模式、增量失效、诊断、直接替代关系、测试和明确不做的方案。
 - 解释 override 优先级如何从 raw selector 得到“该依赖真正生效的区域”；不能把 selector 简单等同于
   effective condition。
 - Predicate 表示必须对“减去更高优先级获胜区域”产生的非凸并集闭合，不能把它近似成一个 conjunction。
 - RFC 必须决定重复 dependency occurrence 是保留为多条 edge，还是聚合为一条带有序 source 列表的 edge。
-- 明确旧 `compile`、`Compilation`、`IncrementalCompiler` 和 `TokenGraph` API 的迁移窗口。
+- 明确旧 `compile`、`Compilation`、`IncrementalCompiler` 和 `TokenGraph` API 的直接替代或删除关系；
+  不设置迁移窗口。
 
 依赖：Conditional Graph RFC 必须等待 M1-01 数据才能通过；Snapshot/Session 与 Backend/Diagnostic
 RFC 可以并行起草。Gate 1 未通过前，不合并新的公共 API。
@@ -144,6 +154,8 @@ RFC 可以并行起草。Gate 1 未通过前，不合并新的公共 API。
 ### Wave 1：条件语义与稳定事实模型
 
 #### M1-03 — Dependency occurrence、Context Predicate 与条件边（P0）
+
+状态：已完成。实现以条件边作为唯一 Graph 事实，并使用符号 Predicate 进行循环与影响分析。
 
 交付：
 
@@ -154,7 +166,7 @@ RFC 可以并行起草。Gate 1 未通过前，不合并新的公共 API。
 - 带 `from`、`to`、`kind`、`condition`、`source` 的 `DependencyEdge`。
 - Alias、JSON Pointer、inheritance 和 composite-field 边统一进入条件 Graph。
 - Cycle checker 改为消费同一套边和 Predicate，不再维护独立的依赖选择逻辑。
-- 保留旧的 ID-only adjacency 作为兼容视图，而不是第二份事实源。
+- 删除旧的 ID-only adjacency 公共视图；所有依赖查询直接消费条件边这一唯一事实源。
 
 验收：
 
@@ -168,6 +180,9 @@ RFC 可以并行起草。Gate 1 未通过前，不合并新的公共 API。
 
 #### M1-04 — 公共 Query API 与 Explain Trace v1（P0）
 
+状态：已完成。`Compilation.query` 现在提供只读、支持 Predicate 的统一查询边界；CLI 查询命令只通过
+该 facade 访问语义数据，并具有确定性的 v1 JSON golden 覆盖。
+
 交付：
 
 - 只读 Query facade，提供 token、definition、dependencies、usages、impact、resolve 和 explain。
@@ -179,28 +194,34 @@ RFC 可以并行起草。Gate 1 未通过前，不合并新的公共 API。
 
 - 同一只读 facade、同一查询的字节级 JSON 序列化确定。
 - 互斥 Context 下 usages/impact 不产生假阳性；不指定 Context 时明确返回条件，而不是丢失条件。
-- CLI `explain`、`usages`、`graph` 的现有结果有兼容 fixture。
+- CLI `explain`、`usages`、`graph` 的新结果有确定性 golden fixture；不保留旧输出形状。
 
 依赖：M1-03。
 
 #### M1-05 — Diagnostic schema v1（P0）
+
+状态：已完成。Core 与内置 Backend 现在统一构造经注册表校验的 Diagnostic v1；CLI 只输出带版本的
+v1 envelope。已加入 golden/schema、fingerprint、冷编译/增量身份一致性和结构化 edit 测试。
 
 交付：
 
 - 版本化、可 JSON 序列化的 Diagnostic contract。
 - 稳定 fingerprint、primary location、related locations、documentation URL、可选结构化 fixes。
 - Diagnostic code registry，记录所属阶段、严重级别和是否允许 policy suppression。
-- 旧 `suggestions: string[]` 的兼容或弃用路径。
+- 删除旧 `suggestions: string[]`，可机械应用的建议改为 fix，其余写入文档或 related information。
 
 验收：
 
 - 相同行为在冷编译与增量编译中得到相同 fingerprint。
 - 仅移动行号时，语义身份不变的 Diagnostic 不被误判为全新问题；内容真正变化时可区分。
-- Schema 有 golden JSON、版本字段和兼容性测试；Core 不输出终端文本。
+- Schema 有 golden JSON、版本字段和 schema conformance 测试；Core 不输出终端文本。
 
 依赖：M1-02 Backend and Diagnostic RFC。可以与 M1-03 并行。
 
 #### M1-06 — Backend Plan、共享 Symbol Allocator 与 Capabilities（P0）
+
+状态：已完成。内置与自定义 Backend 现在统一使用不可变 `CompilationIR`、共享 capability/symbol
+契约、权威 plan、全局 preflight 与经过契约校验的 emit。
 
 交付：
 
@@ -231,6 +252,10 @@ RFC 可以并行起草。Gate 1 未通过前，不合并新的公共 API。
 
 #### M1-07 — 不可变 CompilationSnapshot（P0）
 
+状态：已完成。一次性与增量发布现在都返回带 revision 的不可变 snapshot；valid snapshot 拥有 Query/IR
+与显式 Backend 操作，invalid snapshot 只保留安全 Graph 查询。隔离、并发、无效状态、Diagnostic 分离
+和全局碰撞 zero-emit 测试覆盖该契约。
+
 交付：
 
 - Snapshot 固定 revision、documents、diagnostics、不可变 Compilation IR、query facade 和 semantic
@@ -241,7 +266,7 @@ RFC 可以并行起草。Gate 1 未通过前，不合并新的公共 API。
 - `emit(backends)` 针对一个 snapshot 运行 preflight，在任何 emit 前拒绝跨 Backend path collision，
   随后只原子生成已规划产物。
 - Backend 操作 Diagnostic 与 snapshot 固定的语义 Diagnostic 分离。
-- 现有 `Compilation` 通过适配层迁移，避免一次性破坏用户代码。
+- 删除现有 `Compilation`；Snapshot/Query/IR 直接成为唯一公共读取边界。
 
 验收：
 
@@ -255,6 +280,9 @@ RFC 可以并行起草。Gate 1 未通过前，不合并新的公共 API。
 
 #### M1-08a — 无缓存 CompilerSession 与 differential oracle（P0）
 
+状态：已完成。无缓存 FIFO Session、可注入 Loader、原子 Snapshot 发布、取消语义、确定性 mutation
+corpus 与可复用全量编译 oracle 均已落地；旧增量 facade 和 Graph patch 路径已删除。
+
 交付：
 
 - 以正确性优先、不启用阶段 cache 的 `CompilerSession`，支持原子的 add/update/remove/reconfigure
@@ -262,7 +290,7 @@ RFC 可以并行起草。Gate 1 未通过前，不合并新的公共 API。
 - 可注入 `DocumentLoader`，支持文件、虚拟或宿主提供的内容；Core 不直接增加网络 IO。
 - 失败更新为最新 source 发布 current diagnostic snapshot；可选 `lastSuccessfulSnapshot` 必须显式访问，
   不得混入当前 Query 或 emit。
-- 现有 `IncrementalCompiler` 成为无缓存 Session 上的兼容 facade。
+- 删除现有 `IncrementalCompiler`；不在无缓存 Session 上保留兼容 facade。
 - 驱动该 Session 的可复用 full-vs-incremental oracle。
 - 比较 normalized diagnostics、conditional edges、有限 fixture 中每个已枚举 Context 的 resolved values、
   trace 与 output bytes；timing/cache counter 不参与比较。
@@ -281,6 +309,10 @@ RFC 可以并行起草。Gate 1 未通过前，不合并新的公共 API。
 依赖：M1-04、M1-05、M1-06 与 M1-07。
 
 #### M1-08b — 阶段 cache 与指标（P0）
+
+状态：已完成。Session-owned Parse entry 与跨文档 Link component 使用显式内容派生 key；未变化 Graph
+直接复用，Resolver entry 按 Token ID 与 canonical Context 在 affected conditional closure 外保留；不可变
+`SessionMetrics` 暴露 hit、miss、reuse、recomputation 与 invalidation reason。Backend plan cache 保持禁用。
 
 交付：
 
@@ -301,6 +333,10 @@ RFC 可以并行起草。Gate 1 未通过前，不合并新的公共 API。
 
 #### M1-09 — CLI 迁移与公共消费者边界锁定（P0）
 
+状态：已完成。所有命令都显式通过 `CompilerSession` 编译；dev 在 Token、配置与 Resolver 编辑之间复用
+同一个 Session，并采用 latest-wins cancellation。查询命令通过 `snapshot.query.context()` 获得有效
+Context；architecture test 将 CLI 与内置 Backend 锁定在 `@tokenc/core` 根入口。
+
 交付：
 
 - `build`、`check`、`dev` 使用 `CompilerSession` 与 snapshot emit。
@@ -319,6 +355,12 @@ RFC 可以并行起草。Gate 1 未通过前，不合并新的公共 API。
 
 #### M1-10 — Differential proof、性能门槛与 API 稳定文档（P0）
 
+状态：`0.4.0` release candidate 已完成。Differential corpus 已扩展到 48 步 Document/配置序列、四组
+可复现的 32 步 seeded property sequence 与 Resolver Context mutation；Snapshot 压力测试覆盖并发
+high-fan-out 读取和受限 Context 枚举。公共 declaration、Diagnostic/Trace schema 已用 hash 锁定，CI
+执行从 M1-01 推导出的确定性 point-edit 工作量门槛。Package dry-run、packed consumer smoke 与隔离
+clean-checkout 门禁已在本地通过；发布和 registry 复验仍属于发布操作。
+
 交付：
 
 - 扩展 M1-08a 已建立的 incremental-vs-full oracle，覆盖更大的 add/update/remove、invalid/recover、
@@ -326,15 +368,15 @@ RFC 可以并行起草。Gate 1 未通过前，不合并新的公共 API。
 - 比较 normalized diagnostics、Graph edges、有限 fixture 中每个已枚举 Context 的 resolved values、
   trace 和输出字节；只忽略 timings/cache counters。
 - 加入 snapshot 并发、determinism、high fan-out 和 Context explosion 测试。
-- 发布 API stability/deprecation 文档、M1 migration notes 和公开示例。
+- 发布 M1 最终 API 稳定性边界、breaking-change notes 和公开示例；不建立旧 API deprecation 周期。
 - 根据 M1-01 基线制定有依据的 regression threshold，并在 CI 中运行稳定的非噪声子集。
 
 验收：
 
 - differential mismatch 为零。
 - M1 路线图五项退出条件全部有自动化证据。
-- 公共 API 类型和 machine-readable schema 通过 API snapshot 或兼容检查锁定。
-- release candidate 批准前，`pnpm verify`、package dry-run、packed-tarball smoke test 与
+- 公共 API 类型和 machine-readable schema 通过 API snapshot 或 schema conformance 检查锁定。
+- release candidate 批准前，`vp run verify`、package dry-run、packed-tarball smoke test 与
   clean-worktree gate 全部通过。
 - 发布后，registry-installed smoke test 与 M1-00 post-publish 完整性检查通过，才关闭 M1 里程碑。
 
@@ -376,7 +418,7 @@ M1-01 measurements → M1-02 RFCs ──┘          │                        
 | ---- | --------------------- | -------------------------------------------------------------------- | ---------------------------------------- |
 | 1    | Release integrity     | ref/environment guard、幂等验证、post-publish checks、Action pinning | registry fixture 与 workflow 静态验证    |
 | 2    | Measurement baseline  | benchmark JSON、Context projection metrics、代表性 fixture           | 可重复报告与无语义变化证明               |
-| 3    | RFC bundle            | 三份 RFC 与 migration policy                                         | 关键开放问题全部有决定或显式延期         |
+| 3    | RFC bundle            | 三份 RFC 与 breaking-change policy                                   | 关键开放问题全部有决定或显式延期         |
 | 4    | Occurrences/predicate | occurrence provenance 与 union/complement 闭合的 Predicate algebra   | source 保留断言与 property tests         |
 | 5    | Conditional edges     | edge model、索引、cycle 迁移                                         | M0 fixture 与精确 source assertions      |
 | 6    | Query and trace       | Query facade、Context usages/impact、Trace v1                        | deterministic JSON fixtures              |
@@ -386,7 +428,7 @@ M1-01 measurements → M1-02 RFCs ──┘          │                        
 | 10   | Uncached Session      | transaction、loader、失败语义与 differential oracle                  | 完整 mutation corpus 为零 mismatch       |
 | 11   | Caches and metrics    | 阶段 ownership、指标与精确失效                                       | oracle-backed cache assertions           |
 | 12   | CLI/boundary lock     | CLI 切换到公共 API；锁定 CLI 与内置 Backend import boundary          | parity 与 internal-import boundary tests |
-| 13   | M1 release gate       | API docs、deprecation、bench threshold、changeset                    | 全部退出条件通过                         |
+| 13   | M1 release gate       | API docs、breaking notes、bench threshold、changeset                 | 全部退出条件通过                         |
 
 每个 PR 至多引入一个内聚的公共 API 层，并同时包含测试和文档。不得先公开类型名称、再在后续 PR 中反复
 改变其语义。
@@ -401,18 +443,24 @@ M1-01 measurements → M1-02 RFCs ──┘          │                        
 | Backend 在 emit 前发现全部 planning error | 内置/custom conformance 覆盖 symbol、value、capability、path 与 plan-to-emit 完全一致       |
 | 公共消费者不使用私有旁路                  | CLI/Core parity + internal-import boundary check，覆盖 CLI 与内置 Backend                   |
 
+`vp run verify` 可执行全部证据，其中包含公共 contract snapshot 与稳定性能门槛。
+`vp run publish-packages --dry-run --tag next` 验证五个 package dry-run；
+`vp run verify-release --phase packed ...` 执行 packed-tarball consumer smoke。详见
+[M1 API 稳定边界](M1-API-STABILITY.zh-CN.md)与[M1 性能门槛](M1-PERFORMANCE-GATES.zh-CN.md)。
+
 除上述条件外，M1 release candidate 还必须满足：
 
 - 没有未解释的 M0 fixture 回归。
-- Diagnostic 和 trace JSON 有 schema version 与兼容说明。
+- Diagnostic 和 trace JSON 有 schema version 与行为说明。
 - 性能报告同时给出 p50、p95、峰值内存和实际重算数量。
 - 没有以增加新 Backend、LSP 或 adapter 来替代 Core API 收口。
 
-## 8. 立即开始的三项工作
+## 8. 完成状态与发布交接
 
-1. M1-00 已完成：发布完整性已由自动化与仓库设置共同保障。
-2. M1-01 已完成：保留的基线已明确 Context projection 与全量 relink 的成本。
-3. 基于测量结果提交 M1-02 RFC；RFC 合并后再开始条件边公共模型。
+1. M1-00 至 M1-10 的实现全部完成。
+2. 五个公开 package 已统一为 `0.4.0`；源码验证、package dry-run 与 packed consumer smoke 均通过。
+3. 提交并评审 release source 后，通过已授权的发布工作流完成 npm 发布、provenance、registry-installed
+   smoke 与远端 annotated tag 验证。
 
-后续实施状态只在本文件维护；总体产品方向与里程碑退出条件继续由
-[路线图](ROADMAP.zh-CN.md)维护。
+[M1 验收记录](M1-ACCEPTANCE.zh-CN.md)维护 release candidate 证据与剩余操作性收尾；总体产品方向与
+里程碑退出条件继续由[路线图](ROADMAP.zh-CN.md)维护。

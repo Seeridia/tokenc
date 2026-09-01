@@ -5,6 +5,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import { TokenGraph } from "../src/graph.js";
 import { parseTokenDocument } from "../src/parser.js";
+import { trueContextPredicate } from "../src/predicate.js";
 import { parseTokenId } from "../src/token-id.js";
 
 const fixture = (name: string): string =>
@@ -13,10 +14,14 @@ const graphFrom = (name: string): TokenGraph =>
   new TokenGraph(parseTokenDocument(fixture(name), name).tokens);
 
 describe("TokenGraph", () => {
-  it("indexes forward and reverse dependencies", () => {
+  it("indexes forward and reverse dependency occurrences", () => {
     const graph = graphFrom("aliases/tokens.json");
-    expect(graph.getDependencies(parseTokenId("color.brand"))).toEqual(["color.blue.600"]);
-    expect(graph.getDependents(parseTokenId("color.blue.600"))).toEqual(["color.brand"]);
+    expect(graph.getOutgoingEdges(parseTokenId("color.brand")).map((edge) => edge.to)).toEqual([
+      "color.blue.600",
+    ]);
+    expect(graph.getIncomingEdges(parseTokenId("color.blue.600")).map((edge) => edge.from)).toEqual(
+      ["color.brand"],
+    );
     expect(graph.hasToken(parseTokenId("color.button"))).toBe(true);
   });
 
@@ -31,79 +36,38 @@ describe("TokenGraph", () => {
   });
 
   it("detects and reports a closed cycle path", () => {
-    expect(graphFrom("cycles/tokens.json").detectCycles()).toEqual([["a", "b", "c", "a"]]);
+    expect(
+      graphFrom("cycles/tokens.json")
+        .detectConditionalCycles()
+        .map((cycle) => [cycle.edges[0]?.from].concat(cycle.edges.map((edge) => edge.to))),
+    ).toEqual([["a", "b", "c", "a"]]);
   });
 
   it("computes affected nodes from reverse edges", () => {
-    const affected = graphFrom("aliases/tokens.json").getAffectedTokens([
-      parseTokenId("color.blue.600"),
-    ]);
-    expect([...affected]).toEqual(["color.blue.600", "color.brand", "color.button"]);
+    const graph = graphFrom("aliases/tokens.json");
+    const affected = graph.getAffected(
+      new Map([[parseTokenId("color.blue.600"), trueContextPredicate(graph.domain)]]),
+    );
+    expect([...affected.keys()]).toEqual(["color.blue.600", "color.brand", "color.button"]);
   });
 
   it("computes a forward dependency closure", () => {
-    const closure = graphFrom("aliases/tokens.json").getDependencyClosure([
-      parseTokenId("color.button"),
-    ]);
-    expect([...closure]).toEqual(["color.button", "color.brand", "color.blue.600"]);
-  });
-
-  it("separates direct and indirect impact", () => {
-    const impact = graphFrom("aliases/tokens.json").analyzeImpact([parseTokenId("color.blue.600")]);
-    expect(impact.directlyAffected).toEqual(["color.brand"]);
-    expect(impact.indirectlyAffected).toEqual(["color.button"]);
-  });
-
-  it("patches changed alias edges in both directions", () => {
-    const document = parseTokenDocument(
-      '{"a":{"$type":"number","$value":1},"b":{"$type":"number","$value":2},"alias":{"$type":"number","$value":"{a}"},"consumer":{"$type":"number","$value":"{alias}"}}',
-      "patch.json",
+    const graph = graphFrom("aliases/tokens.json");
+    const closure = graph.getDependencyClosure(
+      new Map([[parseTokenId("color.button"), trueContextPredicate(graph.domain)]]),
     );
-    const graph = new TokenGraph(document.tokens);
-    const replacement = parseTokenDocument(
-      '{"alias":{"$type":"number","$value":"{b}"}}',
-      "replacement.json",
-    ).tokens[0]!;
-    const delta = graph.patch({ changed: [replacement] });
-    expect(graph.getDependents(parseTokenId("a"))).toEqual([]);
-    expect(graph.getDependents(parseTokenId("b"))).toEqual(["alias"]);
-    expect(graph.getDependencies(parseTokenId("alias"))).toEqual(["b"]);
-    expect([...delta.affected]).toEqual(["alias", "consumer"]);
-    expect(delta).toMatchObject({ touchedNodes: 1, touchedEdges: 2 });
+    expect([...closure.keys()]).toEqual(["color.button", "color.brand", "color.blue.600"]);
   });
 
-  it("handles unknown references becoming valid and valid references becoming unknown", () => {
-    const alias = parseTokenDocument(
-      '{"alias":{"$type":"number","$value":"{target}"}}',
-      "alias.json",
-    ).tokens[0]!;
-    const target = parseTokenDocument('{"target":{"$type":"number","$value":1}}', "target.json")
-      .tokens[0]!;
-    const graph = new TokenGraph([alias]);
-    expect(graph.getDependents(parseTokenId("target"))).toEqual(["alias"]);
-    graph.patch({ added: [target] });
-    expect(graph.hasToken(parseTokenId("target"))).toBe(true);
-    expect([...graph.patch({ removed: [parseTokenId("target")] }).affected]).toEqual([
-      "target",
-      "alias",
-    ]);
-    expect(graph.getDependents(parseTokenId("target"))).toEqual(["alias"]);
-  });
-
-  it("detects cycles created by a patch and recovers when the edge is removed", () => {
-    const tokens = parseTokenDocument(
-      '{"a":{"$type":"number","$value":"{b}"},"b":{"$type":"number","$value":1}}',
-      "cycle-patch.json",
-    ).tokens;
-    const graph = new TokenGraph(tokens);
-    const cyclic = parseTokenDocument('{"b":{"$type":"number","$value":"{a}"}}', "cyclic.json")
-      .tokens[0]!;
-    graph.patch({ changed: [cyclic] });
-    expect(graph.detectCycles()).toEqual([["a", "b", "a"]]);
-    const literal = parseTokenDocument('{"b":{"$type":"number","$value":2}}', "literal.json")
-      .tokens[0]!;
-    graph.patch({ changed: [literal] });
-    expect(graph.detectCycles()).toEqual([]);
+  it("retains the condition and source on every edge", () => {
+    const graph = graphFrom("aliases/tokens.json");
+    const edge = graph.getOutgoingEdges(parseTokenId("color.brand"))[0];
+    expect(edge).toMatchObject({
+      from: "color.brand",
+      to: "color.blue.600",
+      occurrence: { kind: "alias", source: { file: "aliases/tokens.json" } },
+    });
+    expect(edge?.condition.key).toBe("[{}]");
   });
 
   it("orders a large alias chain without recursive depth sorting", () => {

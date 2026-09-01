@@ -2,10 +2,20 @@
 
 [简体中文](M1-PLAN.zh-CN.md)
 
-> Status: in progress. M1-00 and M1-01 are complete; M1-02 is next. Updated 2026-08-25.
+> Status: implementation complete. M1-00 through M1-10 are complete and the five packages are
+> versioned as the `0.4.0` release candidate. Publication and post-publish registry verification are
+> the remaining operational closure steps. Updated 2026-08-31.
 >
 > Entry baseline: M0 is complete according to the [M0 acceptance record](M0-ACCEPTANCE.md), and npm
 > `latest` is `0.3.0`.
+
+> Release-candidate evidence: [M1 acceptance record](M1-ACCEPTANCE.md).
+
+> M1 compatibility policy: the project remains in `0.x`. This milestone does not preserve
+> backward compatibility for the existing TypeScript API, machine-readable CLI schemas, or
+> internal model. Superseded interfaces are removed or changed directly, without deprecated
+> aliases, compatibility facades, or dual-write paths. Every breaking change must still be
+> recorded in its RFC, Changeset, and release notes.
 
 ## 1. Intended outcome
 
@@ -138,30 +148,32 @@ Dependencies: none; it may run in parallel with M1-00.
 
 #### M1-02 — Three focused RFCs (P0)
 
+Status: complete. All three RFCs are accepted, with direct breaking replacement as the M1 policy.
+
 Complete and review these before changing public types:
 
-1. **Conditional Graph RFC:** dependency occurrences and sources, edge kinds, raw selectors versus
+1. **[Conditional Graph RFC](rfcs/0001-conditional-graph.md):** dependency occurrences and sources, edge kinds, raw selectors versus
    effective conditions, precedence, predicate union/complement/empty/canonical DNF or edge
-   splitting, `matches/intersect/subtract/isSatisfiable`, complexity limits, and compatibility.
-2. **Snapshot and Session RFC:** immutable Graph revisions, snapshot revision, update transactions,
+   splitting, `matches/intersect/subtract/isSatisfiable`, complexity limits, and direct replacement.
+2. **[Snapshot and Session RFC](rfcs/0002-snapshot-session.md):** immutable Graph revisions, snapshot revision, update transactions,
    invalid-snapshot versus last-successful-snapshot behavior, concurrent reads, cancellation, loader
    boundary, cache ownership, and configuration changes.
-3. **Backend and Diagnostic RFC:** capability negotiation, symbol namespaces, name normalization,
+3. **[Backend and Diagnostic RFC](rfcs/0003-backend-diagnostic.md):** capability negotiation, symbol namespaces, name normalization,
    `prepare/preflight → BackendPlan → emit`, artifact-path planning, Diagnostic v1, fingerprints, fix
-   edits, serialization, and deprecation.
+   edits, serialization, and breaking-change policy.
 
 Acceptance:
 
-- Every RFC covers the user problem, failure modes, invalidation, diagnostics, compatibility, tests,
-  and explicitly rejected alternatives.
+- Every RFC covers the user problem, failure modes, invalidation, diagnostics, direct replacements,
+  tests, and explicitly rejected alternatives.
 - Override precedence explains how raw selectors become the region where a dependency actually wins;
   a selector cannot simply be equated with its effective condition.
 - The predicate representation closes over non-convex unions produced by subtracting higher-priority
   winner regions. It must not approximate them as one conjunction.
 - The RFC decides whether repeated dependency occurrences remain separate edges or one edge with
   ordered source occurrences.
-- Migration windows are defined for `compile`, `Compilation`, `IncrementalCompiler`, and
-  `TokenGraph`.
+- The direct replacement or removal of `compile`, `Compilation`, `IncrementalCompiler`, and
+  `TokenGraph` is defined; there is no migration window.
 
 Dependencies: the Conditional Graph RFC cannot be approved before M1-01 evidence exists. Drafting
 of the Snapshot/Session and Backend/Diagnostic RFCs may proceed in parallel. No new public API merges
@@ -170,6 +182,9 @@ before Gate 1 passes.
 ### Wave 1: conditional semantics and stable facts
 
 #### M1-03 — Dependency occurrences, Context predicates, and conditional edges (P0)
+
+Status: complete. Conditional edges are the sole Graph fact, with symbolic Predicate analysis for
+cycles and impact.
 
 Deliver:
 
@@ -180,7 +195,8 @@ Deliver:
 - `DependencyEdge` with `from`, `to`, `kind`, `condition`, and `source`.
 - Conditional Graph edges for aliases, JSON Pointers, inheritance, and composite fields.
 - A cycle checker using the same edges and predicates instead of its own dependency-selection logic.
-- ID-only adjacency retained as a compatibility view, not a second source of truth.
+- The old public ID-only adjacency view is removed; every dependency query consumes conditional
+  edges as the single source of truth.
 
 Acceptance:
 
@@ -194,6 +210,9 @@ Acceptance:
 Dependencies: the M1-02 Conditional Graph RFC.
 
 #### M1-04 — Public Query API and Explain Trace v1 (P0)
+
+Status: complete. `Compilation.query` now provides the read-only, predicate-aware query boundary;
+CLI query commands use it exclusively and have deterministic v1 JSON golden coverage.
 
 Deliver:
 
@@ -209,11 +228,16 @@ Acceptance:
 - Repeating a query against one read-only facade yields byte-identical JSON.
 - Usages and impact do not produce false positives across mutually exclusive Contexts. A query without
   a concrete Context returns conditions instead of discarding them.
-- Existing CLI `explain`, `usages`, and `graph` output has compatibility fixtures.
+- New CLI `explain`, `usages`, and `graph` output has deterministic golden fixtures; the old output
+  shape is not retained.
 
 Dependencies: M1-03.
 
 #### M1-05 — Diagnostic schema v1 (P0)
+
+Status: complete. Core and bundled backends now construct registry-validated Diagnostic v1 values;
+the CLI emits only the versioned v1 envelope. Golden/schema, fingerprint, cold/incremental identity,
+and structured-edit tests are included.
 
 Deliver:
 
@@ -221,18 +245,22 @@ Deliver:
 - Stable fingerprints, primary and related locations, documentation URLs, and optional structured
   fixes.
 - A diagnostic-code registry recording stage, default severity, and policy-suppression eligibility.
-- A compatibility or deprecation path for `suggestions: string[]`.
+- Remove `suggestions: string[]`; mechanically applicable guidance becomes a fix and other guidance
+  moves to documentation or related information.
 
 Acceptance:
 
 - The same behavior receives the same fingerprint in cold and incremental compilation.
 - Moving source lines does not create a new issue identity when semantic identity is unchanged, while
   a real semantic change remains distinguishable.
-- Golden JSON contains a schema version and compatibility tests; Core emits no terminal text.
+- Golden JSON contains a schema version and schema-conformance tests; Core emits no terminal text.
 
 Dependencies: the M1-02 Backend and Diagnostic RFC. It may run in parallel with M1-03.
 
 #### M1-06 — Backend planning, Symbol Allocator, and Capabilities (P0)
+
+Status: complete. Bundled and custom Backends now use immutable `CompilationIR`, shared capability
+and symbol contracts, authoritative plans, global preflight, and contract-checked emission.
 
 Deliver:
 
@@ -268,6 +296,11 @@ in parallel with M1-04.
 
 #### M1-07 — Immutable CompilationSnapshot (P0)
 
+Status: complete. One-shot and incremental publication now return immutable, revisioned snapshots;
+valid snapshots own Query/IR and explicit Backend operations, while invalid snapshots retain only
+safe Graph queries. Isolation, concurrency, invalid-state, diagnostic-separation, and global
+zero-emit collision tests cover the contract.
+
 Deliver:
 
 - A snapshot with fixed revision, documents, diagnostics, immutable Compilation IR, query facade,
@@ -278,7 +311,7 @@ Deliver:
 - `emit(backends)` running preflight against exactly one snapshot, rejecting any cross-backend path
   collision before emit, and then atomically materializing only the planned artifacts.
 - Backend operation diagnostics remain separate from the snapshot's fixed semantic diagnostics.
-- An adapter migration for the existing `Compilation` API instead of a one-release break.
+- Remove the existing `Compilation`; Snapshot, Query, and IR become the only public read boundaries.
 
 Acceptance:
 
@@ -294,6 +327,10 @@ Dependencies: M1-03, M1-04, M1-05, and M1-06.
 
 #### M1-08a — Uncached CompilerSession and differential oracle (P0)
 
+Status: complete. The uncached FIFO Session, injectable loader, atomic snapshot publication,
+cancellation behavior, deterministic mutation corpus, and reusable full-compilation oracle are in
+place. The legacy incremental facade and Graph patch path have been removed.
+
 Deliver:
 
 - A correctness-first `CompilerSession` with uncached atomic add/update/remove/reconfigure
@@ -302,7 +339,8 @@ Deliver:
   network IO.
 - Failed updates publish a current diagnostic snapshot for the latest sources. An optional
   `lastSuccessfulSnapshot` is explicit and never mixed into current queries or emit.
-- The existing `IncrementalCompiler` becomes a compatibility facade over the uncached Session.
+- The existing `IncrementalCompiler` is removed; no compatibility facade is retained over the
+  uncached Session.
 - A reusable full-versus-incremental oracle that drives that Session.
 - Normalized comparison of diagnostics, conditional edges, resolved values for every enumerated
   Context in bounded fixtures, traces, and output bytes. Timings and cache counters are excluded.
@@ -322,6 +360,11 @@ Acceptance:
 Dependencies: M1-04, M1-05, M1-06, and M1-07.
 
 #### M1-08b — Stage caches and metrics (P0)
+
+Status: complete. Session-owned parse entries and cross-document Link components use explicit
+content-derived keys; unchanged Graphs are reused, Resolver entries are retained by Token ID and
+canonical Context outside the affected conditional closure, and immutable `SessionMetrics` expose
+hits, misses, reuse, recomputation, and invalidation reasons. Backend plan caching remains disabled.
 
 Deliver:
 
@@ -343,6 +386,11 @@ Dependencies: M1-08a. Every cache optimization remains gated by the oracle.
 
 #### M1-09 — Migrate the CLI and lock public consumer boundaries (P0)
 
+Status: complete. Every command compiles through an explicit `CompilerSession`; dev keeps one
+Session across token, configuration, and Resolver edits and uses latest-wins cancellation. Query
+commands derive effective Context through `snapshot.query.context()`, and an architecture test locks
+the CLI and bundled backends to the `@tokenc/core` root API.
+
 Deliver:
 
 - `build`, `check`, and `dev` use `CompilerSession` and snapshot emission.
@@ -362,6 +410,14 @@ Dependencies: M1-04, M1-06, M1-07, and M1-08b.
 
 #### M1-10 — Differential proof, performance gates, and API stability docs (P0)
 
+Status: complete for the `0.4.0` release candidate. The differential corpus now includes 48-step
+document/configuration sequences, four reproducible 32-step seeded property sequences, and Resolver
+Context mutations; Snapshot stress tests cover concurrent high fan-out reads and bounded Context
+enumeration. Public declarations and Diagnostic/Trace schemas are hash-locked, and CI enforces
+deterministic point-edit work budgets derived from M1-01. Package dry-run, packed consumer smoke, and
+an isolated clean-checkout gate pass locally; publication and registry verification remain release
+operations.
+
 Deliver:
 
 - Expansion of the M1-08a incremental-versus-full oracle across larger add/update/remove,
@@ -369,15 +425,17 @@ Deliver:
 - Comparison of normalized diagnostics, Graph edges, resolved values for every enumerated Context in
   bounded fixtures, traces, and output bytes; only timings and cache counters are ignored.
 - Snapshot concurrency, determinism, high-fan-out, and Context-explosion tests.
-- API stability/deprecation documentation, M1 migration notes, and public examples.
+- The final M1 API stability boundary, breaking-change notes, and public examples, without a
+  deprecation period for the old API.
 - Evidence-based regression thresholds derived from M1-01, with a stable low-noise subset in CI.
 
 Acceptance:
 
 - Differential mismatch is zero.
 - Every official M1 exit criterion has automated evidence.
-- Public API types and machine-readable schemas are locked by API snapshots or compatibility checks.
-- `pnpm verify`, package dry-run, packed-tarball smoke test, and clean-worktree gate pass before the
+- Public API types and machine-readable schemas are locked by API snapshots or schema-conformance
+  checks.
+- `vp run verify`, package dry-run, packed-tarball smoke test, and clean-worktree gate pass before the
   release candidate is approved.
 - After publication, the registry-installed smoke test and M1-00 post-publish integrity checks pass
   before the M1 milestone is closed.
@@ -422,7 +480,7 @@ M1-01 measurements → M1-02 RFCs ──┘          │                        
 | ----- | --------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------- |
 | 1     | Release integrity     | ref/environment guard, idempotent verification, post-publish checks, action pinning | registry fixtures and workflow static validation   |
 | 2     | Measurement baseline  | benchmark JSON, Context projection metrics, representative fixtures                 | repeatable report and proof of no semantic change  |
-| 3     | RFC bundle            | three RFCs and migration policy                                                     | every open question decided or explicitly deferred |
+| 3     | RFC bundle            | three RFCs and breaking-change policy                                               | every open question decided or explicitly deferred |
 | 4     | Occurrences/predicate | occurrence provenance plus union/complement-safe predicate algebra                  | source-preservation and property tests             |
 | 5     | Conditional edges     | edge model, indexes, and cycle migration                                            | M0 fixtures and exact source assertions            |
 | 6     | Query and trace       | query facade, Context usages/impact, Trace v1                                       | deterministic JSON fixtures                        |
@@ -432,7 +490,7 @@ M1-01 measurements → M1-02 RFCs ──┘          │                        
 | 10    | Uncached Session      | transactions, loader, failure semantics, and differential oracle                    | full mutation corpus has zero mismatch             |
 | 11    | Caches and metrics    | stage ownership, metrics, and exact invalidation                                    | oracle-backed cache assertions                     |
 | 12    | CLI/boundary lock     | move CLI to public APIs; enforce CLI and bundled-backend import boundaries          | parity and internal-import boundary tests          |
-| 13    | M1 release gate       | API docs, deprecation, benchmark thresholds, and changeset                          | every exit criterion passes                        |
+| 13    | M1 release gate       | API docs, breaking notes, benchmark thresholds, and changeset                       | every exit criterion passes                        |
 
 Each pull request introduces at most one cohesive public API layer and includes its tests and
 documentation. Do not publish a type name first and repeatedly redefine its semantics in later pull
@@ -448,19 +506,26 @@ requests.
 | Backends find all planning errors before emit        | Bundled/custom conformance for symbol, value, capability, path, and exact plan-to-emit equality                 |
 | Public consumers have no private bypass              | CLI/Core parity plus internal-import boundary checks covering CLI and bundled backends                          |
 
+The evidence is executable through `vp run verify`, which includes public-contract snapshots and the
+stable performance gate. `vp run publish-packages --dry-run --tag next` verifies all five package dry
+runs, while `vp run verify-release --phase packed ...` performs the packed-tarball consumer smoke.
+See [M1 API stability](M1-API-STABILITY.md) and [M1 performance gates](M1-PERFORMANCE-GATES.md).
+
 An M1 release candidate must additionally satisfy:
 
 - No unexplained M0 fixture regression.
-- Versioned Diagnostic and trace JSON with compatibility notes.
+- Versioned Diagnostic and trace JSON with behavioral documentation.
 - Performance reports containing p50, p95, peak memory, and actual recomputation counts.
 - No attempt to substitute new backends, an LSP, or an adapter for closure of the Core API.
 
-## 8. Start here
+## 8. Completion and release handoff
 
-1. M1-00 is complete: release integrity is now enforced in automation and repository settings.
-2. M1-01 is complete: the retained baseline identifies Context projection and full relinking costs.
-3. Submit the M1-02 RFCs using that evidence; begin the public conditional-edge model only after RFC
-   approval.
+1. M1-00 through M1-10 are implementation-complete.
+2. The five public packages are synchronized at `0.4.0`; source verification, package dry-run, and
+   packed consumer smoke pass.
+3. Commit and review the release source, then use the authorized publish workflow for npm publication,
+   provenance, registry-installed smoke, and remote annotated-tag verification.
 
-Implementation status belongs in this document. The overall product direction and milestone exit
-criteria remain in the [roadmap](ROADMAP.md).
+The [M1 acceptance record](M1-ACCEPTANCE.md) owns the release-candidate evidence and the remaining
+operational closure. The overall product direction and milestone exit criteria remain in the
+[roadmap](ROADMAP.md).
