@@ -2,8 +2,8 @@
 
 [简体中文](M2-PLAN.zh-CN.md)
 
-> Status: implementation complete. M2-00 through M2-09 are accepted as the `0.5.0` release
-> candidate; authorized publication and post-publish verification remain before milestone closure.
+> Status: complete. M2-00 through M2-09 are accepted, the synchronized `0.5.0` packages are
+> published under the `next` dist-tag, and post-publish verification has closed the milestone.
 > Updated 2026-09-01.
 >
 > Entry baseline: M1 implementation and the local `0.4.0` release candidate are complete according
@@ -483,6 +483,6 @@ Additional release-candidate gates:
 
 ## 11. Immediate next step
 
-M2 implementation is complete. Keep the release candidate unchanged until an authorized operator
-publishes the exact five-package manifest and completes registry, provenance, dist-tag, and
-annotated-tag verification recorded in the [M2 acceptance record](M2-ACCEPTANCE.md).
+M2 is closed. Preserve the published `0.5.0` contract and use the registry, provenance, dist-tag,
+and annotated-tag evidence recorded in the [M2 acceptance record](M2-ACCEPTANCE.md) as the baseline
+for the next roadmap milestone.

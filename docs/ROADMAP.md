@@ -319,8 +319,7 @@ Exit criteria:
 
 **Goal:** make tokenc valuable as a safety layer for existing token pipelines.
 
-**Status (2026-09-01): implementation complete; M2-00 through M2-09 are accepted as the `0.5.0`
-release candidate.** The
+**Status (2026-09-01): complete; `0.5.0` is published under the `next` dist-tag and M2 is closed.** The
 change-intelligence contract, evidence baseline, public Snapshot Diff v1 and Impact Report v1 APIs,
 JSON Schemas, `tokenc impact`, the read-only Git-backed `tokenc diff`, and Breaking-change Policy v1
 are complete. Shared Report v1 text/JSON/SARIF rendering and lazy Resolver permutation planning,
@@ -328,8 +327,8 @@ Session compilation, Snapshot Diff comparison, and batch Backend preflight are a
 commit-pinned CI reference workflow, fork-safe artifact path, and executable four-outcome fixture
 are complete. The bounded, public-API-only Terrazzo handoff and explicit unsupported-extension
 classification, independent differential proof, semantic-work gates, public contract lock, and
-packed release evidence are complete. Publication and post-publish verification remain external
-operations; see the [M2 acceptance record](M2-ACCEPTANCE.md).
+packed release evidence are complete. Registry, provenance, dist-tag, and annotated-tag verification
+passed in the authorized release workflow; see the [M2 acceptance record](M2-ACCEPTANCE.md).
 
 Deliverables:
 

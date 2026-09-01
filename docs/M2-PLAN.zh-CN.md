@@ -2,8 +2,8 @@
 
 [English](M2-PLAN.md)
 
-> 状态：实现已完成。M2-00 至 M2-09 已通过 `0.5.0` release candidate 验收；最终关闭里程碑前仍需
-> 获得授权后执行发布与发布后验证。更新时间：2026-09-01。
+> 状态：已完成。M2-00 至 M2-09 已通过验收，五个同步版本的 `0.5.0` package 已通过 `next` dist-tag
+> 发布，发布后验证已关闭该里程碑。更新时间：2026-09-01。
 >
 > 入口基线：M1 实现与本地 `0.4.0` release candidate 已按
 > [M1 验收记录](M1-ACCEPTANCE.zh-CN.md)完成。M2 设计与 fixture 可以立即推进；公开 M2 API 的发布工作
@@ -445,6 +445,6 @@ M2-01 Snapshot Diff → M2-06 permutations ────────────�
 
 ## 11. 立即执行的下一步
 
-M2 实现已完成。保持 release candidate 不变，直到获得授权的操作人发布精确的五包 manifest，并完成
-registry、provenance、dist-tag 与 annotated-tag 验证；证据记录见
-[M2 验收记录](M2-ACCEPTANCE.zh-CN.md)。
+M2 已关闭。后续里程碑必须保持已发布的 `0.5.0` 契约，并以
+[M2 验收记录](M2-ACCEPTANCE.zh-CN.md)中的 registry、provenance、dist-tag 与 annotated-tag 证据作为
+基线。
