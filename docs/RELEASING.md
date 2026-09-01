@@ -43,9 +43,11 @@ requires npm to generate provenance for every public package from this public re
 
 ## Current package state
 
-All five public packages are published at npm `latest` version `0.3.0`. The M0 release was produced
-from commit `2939441` on 2026-08-25 with npm provenance; the five annotated package tags resolve to
-that commit. There are no pending release changesets on `main`.
+All five public packages are published at npm `next` version `0.5.0`; `latest` remains `0.3.0`. The
+M2 release was produced from commit `93b3380` on 2026-09-01 by
+[workflow run 33521149877](https://github.com/Seeridia/tokenc/actions/runs/33521149877). Independent
+registry checks confirmed SLSA provenance v1 for every package, and the five annotated `0.5.0`
+package tags resolve to that commit. There are no pending release changesets on `main`.
 
 Treat this paragraph as an observed state, not as permission to skip the checks below. Before every
 later release, compare the workspace, changeset plan, registry versions, requested dist-tag, and
@@ -64,8 +66,8 @@ Before preparing any release, compare the workspace versions with npm and inspec
 Changesets plan:
 
 ```bash
-npm view @tokenc/core version
-npm view @tokenc/cli version
+vp exec npm view @tokenc/core version
+vp exec npm view @tokenc/cli version
 vp exec changeset status
 ```
 
