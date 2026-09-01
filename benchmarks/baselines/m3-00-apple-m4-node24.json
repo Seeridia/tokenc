@@ -1,0 +1,4486 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Seeridia/tokenc/main/benchmarks/benchmark-report.v1.schema.json",
+  "schemaVersion": 1,
+  "suite": {
+    "name": "tokenc-compiler",
+    "version": 1
+  },
+  "generatedAt": "2026-09-01T15:31:16.782Z",
+  "source": {
+    "commit": "e5515bb30381fcc2d5628377b45b607231dfc7bc",
+    "dirty": false
+  },
+  "environment": {
+    "node": "v24.20.0",
+    "v8": "13.6.233.17-node.53",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpuModel": "Apple M4",
+    "logicalCores": 10,
+    "totalMemoryBytes": 17179869184
+  },
+  "methodology": {
+    "profile": "baseline",
+    "warmupRuns": 5,
+    "sampleRuns": 20,
+    "memorySampleRuns": 3,
+    "percentileMethod": "linear-r7",
+    "clock": "performance.now",
+    "concurrency": 1,
+    "fixturePreparationIncluded": false,
+    "ioIncluded": false,
+    "timingIsolation": "one-process-per-case",
+    "memoryIsolation": "one-process-per-sample"
+  },
+  "cases": [
+    {
+      "id": "m3/editor-cold-start/layered-1200",
+      "name": "M3 editor cold workspace start",
+      "group": "editor-loop",
+      "fixture": {
+        "kind": "synthetic",
+        "version": "m3-00-v1",
+        "sha256": "sha256:773217593f645fe4af169e2b3608f06e4d615aacbff88eddeea8a829feed8684",
+        "files": 3,
+        "bytes": 115736,
+        "description": "Cold Session startup and representative Query projection for 1,200 Tokens",
+        "parameters": {
+          "tokens": 1200,
+          "documents": 3,
+          "queryResults": 403
+        }
+      },
+      "operation": {
+        "kind": "editor-cold-start",
+        "cacheState": "compiler-cold-runtime-warm",
+        "outputTarget": "none",
+        "ioIncluded": false
+      },
+      "validation": {
+        "compilationSuccess": true,
+        "matchesExpected": true,
+        "semanticSha256": "sha256:be97181523730c9eab6fa4efb9cd32768c5d1a80ab7c43b3ee8e12eb7b0defc7",
+        "diagnostics": {}
+      },
+      "timeSamples": [
+        {
+          "index": 1,
+          "wallMs": 56.228875000000016,
+          "stagesMs": {
+            "parse": 9.709249999999997,
+            "link": 7.175749999999994,
+            "graph": 15.931875999999988,
+            "check": 0.8994579999999814,
+            "resolve": 10.767207999999982,
+            "emit": 0,
+            "total": 49.88804200000004
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 2,
+          "wallMs": 50.524917000000016,
+          "stagesMs": {
+            "parse": 9.323207999999966,
+            "link": 6.644875000000013,
+            "graph": 13.687584000000072,
+            "check": 0.9129169999999931,
+            "resolve": 9.826707999999996,
+            "emit": 0,
+            "total": 45.17833400000001
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 3,
+          "wallMs": 51.206541000000016,
+          "stagesMs": {
+            "parse": 10.941208000000074,
+            "link": 6.3723340000000235,
+            "graph": 13.210750000000075,
+            "check": 0.8600000000000136,
+            "resolve": 10.08962500000007,
+            "emit": 0,
+            "total": 46.032249999999976
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 4,
+          "wallMs": 50.43141600000001,
+          "stagesMs": {
+            "parse": 10.279333000000065,
+            "link": 6.630709000000024,
+            "graph": 13.282499999999914,
+            "check": 0.8815419999999676,
+            "resolve": 9.589790999999991,
+            "emit": 0,
+            "total": 45.06149999999991
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 5,
+          "wallMs": 50.504332999999974,
+          "stagesMs": {
+            "parse": 10.059124999999995,
+            "link": 6.799750000000017,
+            "graph": 13.367917000000034,
+            "check": 0.8785839999999325,
+            "resolve": 10.150541999999973,
+            "emit": 0,
+            "total": 45.306749999999965
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 6,
+          "wallMs": 52.174166000000014,
+          "stagesMs": {
+            "parse": 10.61099999999999,
+            "link": 6.183667000000014,
+            "graph": 14.199916999999914,
+            "check": 0.9402499999999918,
+            "resolve": 10.793541000000005,
+            "emit": 0,
+            "total": 47.21379200000001
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 7,
+          "wallMs": 53.68166700000006,
+          "stagesMs": {
+            "parse": 10.497749999999996,
+            "link": 7.93166599999995,
+            "graph": 14.307333999999969,
+            "check": 0.9632500000000164,
+            "resolve": 10.665208000000007,
+            "emit": 0,
+            "total": 48.450624999999945
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 8,
+          "wallMs": 52.56708400000002,
+          "stagesMs": {
+            "parse": 11.05174999999997,
+            "link": 6.580833000000098,
+            "graph": 13.812708000000043,
+            "check": 0.8719999999999573,
+            "resolve": 9.875082999999904,
+            "emit": 0,
+            "total": 47.04270800000006
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 9,
+          "wallMs": 50.21500000000003,
+          "stagesMs": {
+            "parse": 10.04525000000001,
+            "link": 6.9324170000001,
+            "graph": 13.274708000000032,
+            "check": 0.8209999999999127,
+            "resolve": 9.949624999999969,
+            "emit": 0,
+            "total": 45.11079199999995
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 10,
+          "wallMs": 48.77258299999994,
+          "stagesMs": {
+            "parse": 9.82562500000006,
+            "link": 6.287374999999997,
+            "graph": 12.813250000000039,
+            "check": 0.7656670000000076,
+            "resolve": 10.218416999999931,
+            "emit": 0,
+            "total": 44.069209
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 11,
+          "wallMs": 49.02495899999997,
+          "stagesMs": {
+            "parse": 9.544540999999981,
+            "link": 6.972582999999986,
+            "graph": 13.001416000000063,
+            "check": 0.7866249999999582,
+            "resolve": 9.499832999999967,
+            "emit": 0,
+            "total": 43.80570799999987
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 12,
+          "wallMs": 49.218458000000055,
+          "stagesMs": {
+            "parse": 10.850792000000183,
+            "link": 6.2920829999998205,
+            "graph": 12.716875999999957,
+            "check": 0.7869580000001406,
+            "resolve": 9.802415999999994,
+            "emit": 0,
+            "total": 44.34216599999991
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 13,
+          "wallMs": 49.924416000000065,
+          "stagesMs": {
+            "parse": 11.080791999999974,
+            "link": 6.19704200000001,
+            "graph": 12.926333999999997,
+            "check": 0.7732499999999618,
+            "resolve": 9.77537499999994,
+            "emit": 0,
+            "total": 44.88283299999989
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 14,
+          "wallMs": 49.69333299999994,
+          "stagesMs": {
+            "parse": 10.456625000000031,
+            "link": 6.953040999999757,
+            "graph": 12.84637500000008,
+            "check": 0.8094590000000608,
+            "resolve": 9.665666999999758,
+            "emit": 0,
+            "total": 44.84070799999995
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 15,
+          "wallMs": 50.072625000000016,
+          "stagesMs": {
+            "parse": 9.960916999999881,
+            "link": 6.4686249999999745,
+            "graph": 13.188084000000117,
+            "check": 0.8458329999998568,
+            "resolve": 10.266541000000188,
+            "emit": 0,
+            "total": 45.01983300000006
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 16,
+          "wallMs": 49.369666999999936,
+          "stagesMs": {
+            "parse": 10.458499999999958,
+            "link": 5.9278750000000855,
+            "graph": 13.24962400000004,
+            "check": 0.8377909999999247,
+            "resolve": 10.021750000000111,
+            "emit": 0,
+            "total": 44.915958000000046
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 17,
+          "wallMs": 51.192375000000084,
+          "stagesMs": {
+            "parse": 9.777707999999848,
+            "link": 6.714666999999736,
+            "graph": 14.202624999999898,
+            "check": 0.8495409999998174,
+            "resolve": 10.217834000000039,
+            "emit": 0,
+            "total": 45.889417000000094
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 18,
+          "wallMs": 48.49312500000019,
+          "stagesMs": {
+            "parse": 10.732250000000022,
+            "link": 6.235832999999957,
+            "graph": 13.015707999999904,
+            "check": 0.7889999999999873,
+            "resolve": 9.575959000000012,
+            "emit": 0,
+            "total": 43.981416999999965
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 19,
+          "wallMs": 48.34912499999996,
+          "stagesMs": {
+            "parse": 10.343916000000036,
+            "link": 5.927082999999811,
+            "graph": 12.656875000000127,
+            "check": 0.7905419999999594,
+            "resolve": 9.809124999999995,
+            "emit": 0,
+            "total": 43.30508299999997
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 20,
+          "wallMs": 48.51433300000008,
+          "stagesMs": {
+            "parse": 10.25604199999998,
+            "link": 6.135625000000118,
+            "graph": 13.194541999999956,
+            "check": 0.8409999999998945,
+            "resolve": 9.41033399999992,
+            "emit": 0,
+            "total": 43.87937499999998
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 1200,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        }
+      ],
+      "memorySamples": [
+        {
+          "index": 1,
+          "baselineRssBytes": 95535104,
+          "preMaxRssBytes": 95535104,
+          "peakRssBytes": 126566400,
+          "peakIncreaseBytes": 31031296
+        },
+        {
+          "index": 2,
+          "baselineRssBytes": 95305728,
+          "preMaxRssBytes": 95305728,
+          "peakRssBytes": 126681088,
+          "peakIncreaseBytes": 31375360
+        },
+        {
+          "index": 3,
+          "baselineRssBytes": 97042432,
+          "preMaxRssBytes": 97058816,
+          "peakRssBytes": 127401984,
+          "peakIncreaseBytes": 30343168
+        }
+      ],
+      "summary": {
+        "wallMs": {
+          "count": 20,
+          "min": 48.34912499999996,
+          "p50": 50.143812500000024,
+          "p95": 53.80902740000006,
+          "max": 56.228875000000016
+        },
+        "stagesMs": {
+          "parse": {
+            "count": 20,
+            "min": 9.323207999999966,
+            "p50": 10.31162450000005,
+            "p95": 11.05320209999997,
+            "max": 11.080791999999974
+          },
+          "link": {
+            "count": 20,
+            "min": 5.927082999999811,
+            "p50": 6.524729000000036,
+            "p95": 7.213545799999992,
+            "max": 7.93166599999995
+          },
+          "graph": {
+            "count": 20,
+            "min": 12.656875000000127,
+            "p50": 13.230187000000058,
+            "p95": 14.38856109999997,
+            "max": 15.931875999999988
+          },
+          "check": {
+            "count": 20,
+            "min": 0.7656670000000076,
+            "p50": 0.8434164999998757,
+            "p95": 0.941399999999993,
+            "max": 0.9632500000000164
+          },
+          "resolve": {
+            "count": 20,
+            "min": 9.41033399999992,
+            "p50": 9.912353999999937,
+            "p95": 10.768524649999984,
+            "max": 10.793541000000005
+          },
+          "emit": {
+            "count": 20,
+            "min": 0,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "total": {
+            "count": 20,
+            "min": 43.30508299999997,
+            "p50": 45.040666499999986,
+            "p95": 48.52249584999995,
+            "max": 49.88804200000004
+          }
+        },
+        "peakRssBytes": {
+          "count": 3,
+          "min": 126566400,
+          "p50": 126681088,
+          "p95": 127329894.4,
+          "max": 127401984
+        },
+        "peakIncreaseBytes": {
+          "count": 3,
+          "min": 30343168,
+          "p50": 31031296,
+          "p95": 31340953.6,
+          "max": 31375360
+        },
+        "changeIntelligence": null
+      }
+    },
+    {
+      "id": "m3/editor-one-file-update/layered-1200",
+      "name": "M3 editor one-file update",
+      "group": "editor-loop",
+      "fixture": {
+        "kind": "synthetic",
+        "version": "m3-00-v1",
+        "sha256": "sha256:c7a39659ea22c4291285f977ca5ebe9d06dd831a187d317a1723919660375047",
+        "files": 6,
+        "bytes": 231472,
+        "description": "Warm Session update of one primitive document in a 1,200-Token workspace",
+        "parameters": {
+          "tokens": 1200,
+          "documents": 3,
+          "changedFiles": 1
+        }
+      },
+      "operation": {
+        "kind": "editor-one-file-update",
+        "cacheState": "initialized-session",
+        "outputTarget": "none",
+        "ioIncluded": false
+      },
+      "validation": {
+        "compilationSuccess": true,
+        "matchesExpected": true,
+        "semanticSha256": "sha256:e5477b79c81fa3406af5a8f90ff1b8670477158d761a1ccf423852ac4d076990",
+        "diagnostics": {}
+      },
+      "timeSamples": [
+        {
+          "index": 1,
+          "wallMs": 46.169167000000016,
+          "stagesMs": {
+            "parse": 4.230041000000028,
+            "link": 5.989084000000048,
+            "graph": 12.513791999999967,
+            "check": 0.7582079999999678,
+            "resolve": 9.840249999999969,
+            "emit": 0,
+            "total": 41.558915999999954
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 2,
+          "wallMs": 45.359750000000076,
+          "stagesMs": {
+            "parse": 4.065207999999984,
+            "link": 5.554457999999954,
+            "graph": 12.431542000000036,
+            "check": 0.6880419999999958,
+            "resolve": 9.517750000000092,
+            "emit": 0,
+            "total": 40.70275000000004
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 3,
+          "wallMs": 45.55174999999997,
+          "stagesMs": {
+            "parse": 4.823499999999967,
+            "link": 5.341583000000128,
+            "graph": 12.318415999999957,
+            "check": 0.6634169999999813,
+            "resolve": 9.697499999999991,
+            "emit": 0,
+            "total": 41.11024999999995
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 4,
+          "wallMs": 45.8845,
+          "stagesMs": {
+            "parse": 4.6544999999999845,
+            "link": 5.618625000000179,
+            "graph": 12.305917000000022,
+            "check": 0.6843330000000378,
+            "resolve": 9.844291999999996,
+            "emit": 0,
+            "total": 41.38945799999999
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 5,
+          "wallMs": 46.159167000000025,
+          "stagesMs": {
+            "parse": 4.1684999999999945,
+            "link": 5.831584000000021,
+            "graph": 12.433207000000039,
+            "check": 0.6942090000000007,
+            "resolve": 9.92170800000008,
+            "emit": 0,
+            "total": 41.42033399999991
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 6,
+          "wallMs": 46.79899999999998,
+          "stagesMs": {
+            "parse": 3.8332499999999072,
+            "link": 5.354208999999855,
+            "graph": 13.098500999999942,
+            "check": 0.687458000000106,
+            "resolve": 10.20920799999999,
+            "emit": 0,
+            "total": 41.580000000000155
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 7,
+          "wallMs": 48.19258300000001,
+          "stagesMs": {
+            "parse": 4.496959000000061,
+            "link": 6.064083999999866,
+            "graph": 13.205707999999959,
+            "check": 0.6541250000000218,
+            "resolve": 9.910208000000011,
+            "emit": 0,
+            "total": 43.340625000000045
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 8,
+          "wallMs": 168.4787920000001,
+          "stagesMs": {
+            "parse": 4.005124999999907,
+            "link": 5.852459000000181,
+            "graph": 103.5462500000001,
+            "check": 2.485208000000057,
+            "resolve": 24.20704099999989,
+            "emit": 0,
+            "total": 157.57337499999994
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 9,
+          "wallMs": 139.84512500000005,
+          "stagesMs": {
+            "parse": 16.036832999999888,
+            "link": 13.964707999999973,
+            "graph": 39.89025000000015,
+            "check": 3.107917000000043,
+            "resolve": 30.492042000000083,
+            "emit": 0,
+            "total": 129.39970800000015
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 10,
+          "wallMs": 125.50549999999998,
+          "stagesMs": {
+            "parse": 15.18549999999982,
+            "link": 18.53079099999991,
+            "graph": 25.7025000000001,
+            "check": 2.089625000000069,
+            "resolve": 25.60337400000003,
+            "emit": 0,
+            "total": 110.91833299999985
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 11,
+          "wallMs": 135.28912500000024,
+          "stagesMs": {
+            "parse": 12.205500000000029,
+            "link": 15.147748999999294,
+            "graph": 41.17533300000014,
+            "check": 1.472834000000148,
+            "resolve": 34.62362500000063,
+            "emit": 0,
+            "total": 123.34670899999992
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 12,
+          "wallMs": 118.94958300000008,
+          "stagesMs": {
+            "parse": 9.475832999999966,
+            "link": 11.03537499999993,
+            "graph": 45.95316600000024,
+            "check": 2.248667000000296,
+            "resolve": 21.373584000000392,
+            "emit": 0,
+            "total": 110.53083300000026
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 13,
+          "wallMs": 121.11566599999969,
+          "stagesMs": {
+            "parse": 16.108042000000296,
+            "link": 13.66854099999955,
+            "graph": 30.323501000000306,
+            "check": 0.7933749999997417,
+            "resolve": 23.38787500000035,
+            "emit": 0,
+            "total": 106.03229199999987
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 14,
+          "wallMs": 117.56341699999984,
+          "stagesMs": {
+            "parse": 13.01712499999985,
+            "link": 19.337209000000257,
+            "graph": 28.330249999999978,
+            "check": 2.840791000000081,
+            "resolve": 24.80874999999969,
+            "emit": 0,
+            "total": 105.91295900000023
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 15,
+          "wallMs": 111.7016249999997,
+          "stagesMs": {
+            "parse": 14.67533400000002,
+            "link": 10.457833999999366,
+            "graph": 31.12466600000016,
+            "check": 0.7445829999996931,
+            "resolve": 21.761708,
+            "emit": 0,
+            "total": 94.96841699999959
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 16,
+          "wallMs": 55.780709000000115,
+          "stagesMs": {
+            "parse": 6.575124999999844,
+            "link": 8.41420799999969,
+            "graph": 15.023833000000195,
+            "check": 0.720332999999755,
+            "resolve": 10.134374000000207,
+            "emit": 0,
+            "total": 51.160457999999835
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 17,
+          "wallMs": 45.36474999999973,
+          "stagesMs": {
+            "parse": 4.100750000000062,
+            "link": 5.48212599999988,
+            "graph": 12.555083999999624,
+            "check": 0.6672090000001845,
+            "resolve": 9.71808400000009,
+            "emit": 0,
+            "total": 40.66983399999981
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 18,
+          "wallMs": 46.07795800000031,
+          "stagesMs": {
+            "parse": 3.890875000000051,
+            "link": 5.45274900000004,
+            "graph": 13.241833000000042,
+            "check": 0.7332080000001042,
+            "resolve": 9.766667000000325,
+            "emit": 0,
+            "total": 41.55899999999974
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 19,
+          "wallMs": 49.37933299999986,
+          "stagesMs": {
+            "parse": 4.46245799999997,
+            "link": 5.874832000000424,
+            "graph": 13.97545799999989,
+            "check": 0.67450000000008,
+            "resolve": 10.271000000000186,
+            "emit": 0,
+            "total": 44.445332999999664
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 20,
+          "wallMs": 48.43958399999974,
+          "stagesMs": {
+            "parse": 4.048249999999825,
+            "link": 6.214458000000832,
+            "graph": 13.214500000000044,
+            "check": 0.6872499999999491,
+            "resolve": 10.235125000000153,
+            "emit": 0,
+            "total": 43.49341699999968
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 3,
+            "checkedTokens": 3,
+            "resolverComputations": 1200,
+            "changedTokens": 1,
+            "recomputedTokens": 3,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        }
+      ],
+      "memorySamples": [
+        {
+          "index": 1,
+          "baselineRssBytes": 125927424,
+          "preMaxRssBytes": 127614976,
+          "peakRssBytes": 132907008,
+          "peakIncreaseBytes": 5292032
+        },
+        {
+          "index": 2,
+          "baselineRssBytes": 125190144,
+          "preMaxRssBytes": 127057920,
+          "peakRssBytes": 149389312,
+          "peakIncreaseBytes": 22331392
+        },
+        {
+          "index": 3,
+          "baselineRssBytes": 125091840,
+          "preMaxRssBytes": 126926848,
+          "peakRssBytes": 132218880,
+          "peakIncreaseBytes": 5292032
+        }
+      ],
+      "summary": {
+        "wallMs": {
+          "count": 20,
+          "min": 45.359750000000076,
+          "p50": 48.9094584999998,
+          "p95": 141.27680835000007,
+          "max": 168.4787920000001
+        },
+        "stagesMs": {
+          "parse": {
+            "count": 20,
+            "min": 3.8332499999999072,
+            "p50": 4.575729500000023,
+            "p95": 16.040393449999907,
+            "max": 16.108042000000296
+          },
+          "link": {
+            "count": 20,
+            "min": 5.341583000000128,
+            "p50": 6.026583999999957,
+            "p95": 18.571111899999927,
+            "max": 19.337209000000257
+          },
+          "graph": {
+            "count": 20,
+            "min": 12.305917000000022,
+            "p50": 13.608645499999966,
+            "p95": 48.83282020000027,
+            "max": 103.5462500000001
+          },
+          "check": {
+            "count": 20,
+            "min": 0.6541250000000218,
+            "p50": 0.7267704999999296,
+            "p95": 2.854147300000079,
+            "max": 3.107917000000043
+          },
+          "resolve": {
+            "count": 20,
+            "min": 9.517750000000092,
+            "p50": 10.222166500000071,
+            "p95": 30.698621150000115,
+            "max": 34.62362500000063
+          },
+          "emit": {
+            "count": 20,
+            "min": 0,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "total": {
+            "count": 20,
+            "min": 40.66983399999981,
+            "p50": 43.96937499999967,
+            "p95": 130.80839135000016,
+            "max": 157.57337499999994
+          }
+        },
+        "peakRssBytes": {
+          "count": 3,
+          "min": 132218880,
+          "p50": 132907008,
+          "p95": 147741081.6,
+          "max": 149389312
+        },
+        "peakIncreaseBytes": {
+          "count": 3,
+          "min": 5292032,
+          "p50": 5292032,
+          "p95": 20627456,
+          "max": 22331392
+        },
+        "changeIntelligence": null
+      }
+    },
+    {
+      "id": "m3/editor-invalid-recovery/layered-1200",
+      "name": "M3 editor invalid JSON recovery",
+      "group": "editor-loop",
+      "fixture": {
+        "kind": "synthetic",
+        "version": "m3-00-v1",
+        "sha256": "sha256:c7a39659ea22c4291285f977ca5ebe9d06dd831a187d317a1723919660375047",
+        "files": 6,
+        "bytes": 231472,
+        "description": "Invalid open-buffer transaction followed by recovery in one warm Session",
+        "parameters": {
+          "tokens": 1200,
+          "documents": 3,
+          "transactions": 2
+        }
+      },
+      "operation": {
+        "kind": "editor-invalid-recovery",
+        "cacheState": "initialized-session",
+        "outputTarget": "none",
+        "ioIncluded": false
+      },
+      "validation": {
+        "compilationSuccess": true,
+        "matchesExpected": true,
+        "semanticSha256": "sha256:e5477b79c81fa3406af5a8f90ff1b8670477158d761a1ccf423852ac4d076990",
+        "diagnostics": {}
+      },
+      "timeSamples": [
+        {
+          "index": 1,
+          "wallMs": 503.31595899999957,
+          "stagesMs": {
+            "parse": 4.014957999999751,
+            "link": 3.486293000000387,
+            "graph": 11.182666999999583,
+            "check": 0.8406249999998181,
+            "resolve": 8.943541000000096,
+            "emit": 0,
+            "total": 47.539792000000034
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 2,
+          "wallMs": 511.58216600000014,
+          "stagesMs": {
+            "parse": 3.676042000000052,
+            "link": 3.693833000000268,
+            "graph": 11.583750000000236,
+            "check": 0.9693750000001273,
+            "resolve": 9.881832999999915,
+            "emit": 0,
+            "total": 48.759000000000015
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 3,
+          "wallMs": 509.2689169999994,
+          "stagesMs": {
+            "parse": 3.966540999999779,
+            "link": 3.4526669999995647,
+            "graph": 11.275000000000546,
+            "check": 0.8897500000002765,
+            "resolve": 8.987458000000515,
+            "emit": 0,
+            "total": 47.550749999999425
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 4,
+          "wallMs": 505.0478749999993,
+          "stagesMs": {
+            "parse": 3.70220800000061,
+            "link": 3.5068320000009408,
+            "graph": 11.157207999999628,
+            "check": 1.038709000000381,
+            "resolve": 9.172873999999865,
+            "emit": 0,
+            "total": 47.398959000000104
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 5,
+          "wallMs": 508.6029589999998,
+          "stagesMs": {
+            "parse": 4.1160409999993135,
+            "link": 3.869707999999264,
+            "graph": 11.659332999999606,
+            "check": 0.9160000000001673,
+            "resolve": 8.934540999999626,
+            "emit": 0,
+            "total": 48.64458400000058
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 6,
+          "wallMs": 513.2757920000004,
+          "stagesMs": {
+            "parse": 3.861000000000786,
+            "link": 3.9224160000003394,
+            "graph": 11.159625000001142,
+            "check": 0.9338330000000497,
+            "resolve": 9.341917000000649,
+            "emit": 0,
+            "total": 48.69666599999982
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 7,
+          "wallMs": 510.0725419999999,
+          "stagesMs": {
+            "parse": 3.7795840000007956,
+            "link": 3.441748999999618,
+            "graph": 11.244833000000654,
+            "check": 0.8312089999999444,
+            "resolve": 9.73083299999962,
+            "emit": 0,
+            "total": 48.35699999999997
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 8,
+          "wallMs": 508.1602500000008,
+          "stagesMs": {
+            "parse": 3.523084000000381,
+            "link": 3.6139589999993404,
+            "graph": 11.042500000000473,
+            "check": 0.8957499999996799,
+            "resolve": 9.449749999999767,
+            "emit": 0,
+            "total": 47.59216699999979
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 9,
+          "wallMs": 542.7232080000003,
+          "stagesMs": {
+            "parse": 4.094250000000102,
+            "link": 3.4723740000008547,
+            "graph": 11.406750000000102,
+            "check": 0.8822909999998956,
+            "resolve": 9.260167000000365,
+            "emit": 0,
+            "total": 48.411417000000256
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 10,
+          "wallMs": 522.2178339999991,
+          "stagesMs": {
+            "parse": 3.7492919999986043,
+            "link": 3.6033750000005966,
+            "graph": 11.024541000000681,
+            "check": 0.9092500000006112,
+            "resolve": 9.733707999999751,
+            "emit": 0,
+            "total": 48.41270799999984
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 11,
+          "wallMs": 514.7652080000007,
+          "stagesMs": {
+            "parse": 3.788582999999562,
+            "link": 3.532293000002028,
+            "graph": 11.152458000000479,
+            "check": 0.8804170000003069,
+            "resolve": 10.145791999999346,
+            "emit": 0,
+            "total": 49.94391700000051
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 12,
+          "wallMs": 514.8341670000009,
+          "stagesMs": {
+            "parse": 4.020207999999911,
+            "link": 3.3884170000019367,
+            "graph": 11.291958000001614,
+            "check": 0.9773330000007263,
+            "resolve": 9.498332999999548,
+            "emit": 0,
+            "total": 48.89875000000029
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 13,
+          "wallMs": 511.0389579999992,
+          "stagesMs": {
+            "parse": 3.9136669999988953,
+            "link": 3.6346249999987776,
+            "graph": 11.721083999998882,
+            "check": 0.9189169999990554,
+            "resolve": 9.14916699999776,
+            "emit": 0,
+            "total": 48.68537499999911
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 14,
+          "wallMs": 505.7576250000002,
+          "stagesMs": {
+            "parse": 3.479750000000422,
+            "link": 3.6535840000015014,
+            "graph": 11.832000000000335,
+            "check": 0.9144159999996191,
+            "resolve": 9.51549999999952,
+            "emit": 0,
+            "total": 48.67133400000057
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 15,
+          "wallMs": 517.775916999999,
+          "stagesMs": {
+            "parse": 3.942416999998386,
+            "link": 3.812751000003118,
+            "graph": 11.273207999998704,
+            "check": 0.8881670000009763,
+            "resolve": 10.471416999998837,
+            "emit": 0,
+            "total": 50.17829200000051
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 16,
+          "wallMs": 508.05225000000064,
+          "stagesMs": {
+            "parse": 3.691333000000668,
+            "link": 3.962875000001077,
+            "graph": 11.34808399999929,
+            "check": 0.965541999999914,
+            "resolve": 9.295375000001513,
+            "emit": 0,
+            "total": 48.354167000001326
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 17,
+          "wallMs": 509.1569589999999,
+          "stagesMs": {
+            "parse": 3.5403750000004948,
+            "link": 3.6462909999991098,
+            "graph": 10.941750999998476,
+            "check": 0.8630410000005213,
+            "resolve": 9.587748999998439,
+            "emit": 0,
+            "total": 48.42783299999974
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 18,
+          "wallMs": 506.00783299999966,
+          "stagesMs": {
+            "parse": 3.963832999999795,
+            "link": 3.8920839999991586,
+            "graph": 11.58112600000095,
+            "check": 0.851582999999664,
+            "resolve": 9.727541000000201,
+            "emit": 0,
+            "total": 49.36579199999869
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 19,
+          "wallMs": 507.90250000000015,
+          "stagesMs": {
+            "parse": 3.8802080000004935,
+            "link": 3.757292000002053,
+            "graph": 11.170500000000175,
+            "check": 0.8551250000000437,
+            "resolve": 9.75604199999907,
+            "emit": 0,
+            "total": 49.11466699999983
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 20,
+          "wallMs": 510.20154100000036,
+          "stagesMs": {
+            "parse": 3.590833999998722,
+            "link": 3.9633750000011787,
+            "graph": 11.958832999998776,
+            "check": 0.8644999999996799,
+            "resolve": 9.125541999999768,
+            "emit": 0,
+            "total": 48.66925000000083
+          },
+          "counters": {
+            "tokens": 1200,
+            "references": 800,
+            "contexts": 3,
+            "affectedTokens": 1200,
+            "checkedTokens": null,
+            "resolverComputations": 1200,
+            "changedTokens": 400,
+            "recomputedTokens": 1200,
+            "graphTouchedNodes": 1200,
+            "graphTouchedEdges": 800,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        }
+      ],
+      "memorySamples": [
+        {
+          "index": 1,
+          "baselineRssBytes": 125534208,
+          "preMaxRssBytes": 127320064,
+          "peakRssBytes": 167247872,
+          "peakIncreaseBytes": 39927808
+        },
+        {
+          "index": 2,
+          "baselineRssBytes": 125288448,
+          "preMaxRssBytes": 127123456,
+          "peakRssBytes": 167133184,
+          "peakIncreaseBytes": 40009728
+        },
+        {
+          "index": 3,
+          "baselineRssBytes": 126009344,
+          "preMaxRssBytes": 127844352,
+          "peakRssBytes": 166772736,
+          "peakIncreaseBytes": 38928384
+        }
+      ],
+      "summary": {
+        "wallMs": {
+          "count": 20,
+          "min": 503.31595899999957,
+          "p50": 509.67072949999965,
+          "p95": 523.2431026999992,
+          "max": 542.7232080000003
+        },
+        "stagesMs": {
+          "parse": {
+            "count": 20,
+            "min": 3.479750000000422,
+            "p50": 3.824791500000174,
+            "p95": 4.0953395500000624,
+            "max": 4.1160409999993135
+          },
+          "link": {
+            "count": 20,
+            "min": 3.3884170000019367,
+            "p50": 3.6404579999989437,
+            "p95": 3.962900000001082,
+            "max": 3.9633750000011787
+          },
+          "graph": {
+            "count": 20,
+            "min": 10.941750999998476,
+            "p50": 11.274103999999625,
+            "p95": 11.838341650000256,
+            "max": 11.958832999998776
+          },
+          "check": {
+            "count": 20,
+            "min": 0.8312089999999444,
+            "p50": 0.8927499999999782,
+            "p95": 0.9804018000007091,
+            "max": 1.038709000000381
+          },
+          "resolve": {
+            "count": 20,
+            "min": 8.934540999999626,
+            "p50": 9.474041499999657,
+            "p95": 10.162073249999322,
+            "max": 10.471416999998837
+          },
+          "emit": {
+            "count": 20,
+            "min": 0,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "total": {
+            "count": 20,
+            "min": 47.398959000000104,
+            "p50": 48.6569170000007,
+            "p95": 49.95563575000051,
+            "max": 50.17829200000051
+          }
+        },
+        "peakRssBytes": {
+          "count": 3,
+          "min": 166772736,
+          "p50": 167133184,
+          "p95": 167236403.2,
+          "max": 167247872
+        },
+        "peakIncreaseBytes": {
+          "count": 3,
+          "min": 38928384,
+          "p50": 39927808,
+          "p95": 40001536,
+          "max": 40009728
+        },
+        "changeIntelligence": null
+      }
+    },
+    {
+      "id": "m3/editor-high-fan-out/2000",
+      "name": "M3 editor high-fan-out update",
+      "group": "editor-loop",
+      "fixture": {
+        "kind": "synthetic",
+        "version": "m3-00-v1",
+        "sha256": "sha256:4ae64c862ee9f0f14c780a9d5c3cc3098f2b1de774a79a280e5f77e391438652",
+        "files": 4,
+        "bytes": 205858,
+        "description": "Warm edit of one primitive with 2,000 direct consumers",
+        "parameters": {
+          "tokens": 2001,
+          "directConsumers": 2000,
+          "changedFiles": 1
+        }
+      },
+      "operation": {
+        "kind": "editor-high-fan-out",
+        "cacheState": "initialized-session",
+        "outputTarget": "none",
+        "ioIncluded": false
+      },
+      "validation": {
+        "compilationSuccess": true,
+        "matchesExpected": true,
+        "semanticSha256": "sha256:ce16eb794d5cecf0ea312e00c4cacb5f11f3472471aaccda2fe2e2a9b9d5b4ee",
+        "diagnostics": {}
+      },
+      "timeSamples": [
+        {
+          "index": 1,
+          "wallMs": 99.29187499999989,
+          "stagesMs": {
+            "parse": 0.2834580000001097,
+            "link": 10.419832999999699,
+            "graph": 12.471292000000176,
+            "check": 1.421041999999943,
+            "resolve": 43.57137499999999,
+            "emit": 0,
+            "total": 86.2941249999999
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 2,
+          "wallMs": 97.91799999999989,
+          "stagesMs": {
+            "parse": 0.5334999999997763,
+            "link": 10.235873999999967,
+            "graph": 12.642250000000104,
+            "check": 1.34637500000008,
+            "resolve": 43.40775099999996,
+            "emit": 0,
+            "total": 85.72312499999998
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 3,
+          "wallMs": 98.888375,
+          "stagesMs": {
+            "parse": 0.3013330000001133,
+            "link": 10.174207999999908,
+            "graph": 12.43337500000007,
+            "check": 1.4378750000000764,
+            "resolve": 43.64258399999994,
+            "emit": 0,
+            "total": 86.27483299999994
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 4,
+          "wallMs": 99.88037500000019,
+          "stagesMs": {
+            "parse": 0.2950419999999667,
+            "link": 10.62508200000002,
+            "graph": 13.532541999999921,
+            "check": 1.3979589999999007,
+            "resolve": 43.94649900000013,
+            "emit": 0,
+            "total": 87.76916699999992
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 5,
+          "wallMs": 101.42829200000006,
+          "stagesMs": {
+            "parse": 0.28062499999987267,
+            "link": 10.194416999999703,
+            "graph": 12.222957999999835,
+            "check": 1.5786250000001019,
+            "resolve": 46.08954100000028,
+            "emit": 0,
+            "total": 88.17300000000023
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 6,
+          "wallMs": 98.25704199999973,
+          "stagesMs": {
+            "parse": 0.6509580000001733,
+            "link": 10.389290999999503,
+            "graph": 12.397833999999875,
+            "check": 1.5047080000003916,
+            "resolve": 43.30708300000015,
+            "emit": 0,
+            "total": 85.92141700000002
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 7,
+          "wallMs": 98.14975000000004,
+          "stagesMs": {
+            "parse": 0.3081250000000182,
+            "link": 10.473749000000225,
+            "graph": 12.517541999999594,
+            "check": 1.441750000000411,
+            "resolve": 43.56595900000002,
+            "emit": 0,
+            "total": 85.85045799999989
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 8,
+          "wallMs": 101.26937499999985,
+          "stagesMs": {
+            "parse": 0.2677920000000995,
+            "link": 10.642417000000023,
+            "graph": 12.700916999999663,
+            "check": 1.758082999999715,
+            "resolve": 44.90937500000018,
+            "emit": 0,
+            "total": 88.34212500000012
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 9,
+          "wallMs": 98.80837499999961,
+          "stagesMs": {
+            "parse": 0.6976250000002437,
+            "link": 10.27395899999965,
+            "graph": 12.8220409999999,
+            "check": 1.4696250000001783,
+            "resolve": 43.50233199999957,
+            "emit": 0,
+            "total": 86.44595900000013
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 10,
+          "wallMs": 98.24358299999994,
+          "stagesMs": {
+            "parse": 0.297874999999749,
+            "link": 10.268249999999625,
+            "graph": 12.947501000000102,
+            "check": 1.4176659999998265,
+            "resolve": 43.58637500000032,
+            "emit": 0,
+            "total": 85.80324999999993
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 11,
+          "wallMs": 101.44012500000008,
+          "stagesMs": {
+            "parse": 0.29387499999984357,
+            "link": 10.388626000000386,
+            "graph": 14.170165999999881,
+            "check": 1.4592910000001211,
+            "resolve": 43.44866699999966,
+            "emit": 0,
+            "total": 89.09999999999991
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 12,
+          "wallMs": 97.86654099999987,
+          "stagesMs": {
+            "parse": 0.3132919999998194,
+            "link": 10.628960000000461,
+            "graph": 12.440667000000303,
+            "check": 1.4003340000003845,
+            "resolve": 43.239500000000135,
+            "emit": 0,
+            "total": 85.79016700000011
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 13,
+          "wallMs": 98.94749999999976,
+          "stagesMs": {
+            "parse": 0.30937500000027285,
+            "link": 10.391123999999763,
+            "graph": 12.443333000000166,
+            "check": 1.4980000000000473,
+            "resolve": 43.47962499999994,
+            "emit": 0,
+            "total": 86.22499999999991
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 14,
+          "wallMs": 99.7426660000001,
+          "stagesMs": {
+            "parse": 0.28387500000008004,
+            "link": 10.58808399999998,
+            "graph": 13.154292000000169,
+            "check": 1.4511250000000473,
+            "resolve": 43.73945800000001,
+            "emit": 0,
+            "total": 87.12729200000012
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 15,
+          "wallMs": 98.74804200000017,
+          "stagesMs": {
+            "parse": 0.37295799999992596,
+            "link": 10.884333000000879,
+            "graph": 12.281582999999046,
+            "check": 1.3765000000003056,
+            "resolve": 43.434957999999824,
+            "emit": 0,
+            "total": 85.78891699999986
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 16,
+          "wallMs": 97.4194580000003,
+          "stagesMs": {
+            "parse": 0.32375000000047294,
+            "link": 10.358333999999559,
+            "graph": 12.240584000000126,
+            "check": 1.412666999999601,
+            "resolve": 42.99695899999915,
+            "emit": 0,
+            "total": 84.69829199999913
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 17,
+          "wallMs": 98.76029199999994,
+          "stagesMs": {
+            "parse": 0.2975829999995767,
+            "link": 10.264917000000423,
+            "graph": 12.042916000000332,
+            "check": 1.4974590000001626,
+            "resolve": 43.75758399999995,
+            "emit": 0,
+            "total": 86.20775000000049
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 18,
+          "wallMs": 99.33429100000012,
+          "stagesMs": {
+            "parse": 0.304667000000336,
+            "link": 10.613584000000628,
+            "graph": 12.95587599999999,
+            "check": 1.3469169999998485,
+            "resolve": 43.188874000000396,
+            "emit": 0,
+            "total": 86.15745799999968
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 19,
+          "wallMs": 99.36120800000026,
+          "stagesMs": {
+            "parse": 0.2889999999997599,
+            "link": 10.390292000000954,
+            "graph": 13.302625000000262,
+            "check": 1.295959000000039,
+            "resolve": 43.43995800000084,
+            "emit": 0,
+            "total": 86.34220899999946
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 20,
+          "wallMs": 98.12829200000033,
+          "stagesMs": {
+            "parse": 0.2943749999994907,
+            "link": 10.577957999999853,
+            "graph": 12.413750000000618,
+            "check": 1.4517499999992651,
+            "resolve": 43.2806670000009,
+            "emit": 0,
+            "total": 85.61062500000025
+          },
+          "counters": {
+            "tokens": 2001,
+            "references": 2000,
+            "contexts": 1,
+            "affectedTokens": 2001,
+            "checkedTokens": 2001,
+            "resolverComputations": 2001,
+            "changedTokens": 1,
+            "recomputedTokens": 2001,
+            "graphTouchedNodes": 2001,
+            "graphTouchedEdges": 2000,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        }
+      ],
+      "memorySamples": [
+        {
+          "index": 1,
+          "baselineRssBytes": 138002432,
+          "preMaxRssBytes": 140115968,
+          "peakRssBytes": 172900352,
+          "peakIncreaseBytes": 32784384
+        },
+        {
+          "index": 2,
+          "baselineRssBytes": 138035200,
+          "preMaxRssBytes": 140197888,
+          "peakRssBytes": 173277184,
+          "peakIncreaseBytes": 33079296
+        },
+        {
+          "index": 3,
+          "baselineRssBytes": 137412608,
+          "preMaxRssBytes": 139575296,
+          "peakRssBytes": 173047808,
+          "peakIncreaseBytes": 33472512
+        }
+      ],
+      "summary": {
+        "wallMs": {
+          "count": 20,
+          "min": 97.4194580000003,
+          "p50": 98.8483749999998,
+          "p95": 101.42888365000006,
+          "max": 101.44012500000008
+        },
+        "stagesMs": {
+          "parse": {
+            "count": 20,
+            "min": 0.2677920000000995,
+            "p50": 0.29960399999993115,
+            "p95": 0.6532913500001769,
+            "max": 0.6976250000002437
+          },
+          "link": {
+            "count": 20,
+            "min": 10.174207999999908,
+            "p50": 10.390708000000359,
+            "p95": 10.654512800000067,
+            "max": 10.884333000000879
+          },
+          "graph": {
+            "count": 20,
+            "min": 12.042916000000332,
+            "p50": 12.494416999999885,
+            "p95": 13.56442319999992,
+            "max": 14.170165999999881
+          },
+          "check": {
+            "count": 20,
+            "min": 1.295959000000039,
+            "p50": 1.4398125000002437,
+            "p95": 1.5875979000000826,
+            "max": 1.758082999999715
+          },
+          "resolve": {
+            "count": 20,
+            "min": 42.99695899999915,
+            "p50": 43.490978499999756,
+            "p95": 44.96838330000019,
+            "max": 46.08954100000028
+          },
+          "emit": {
+            "count": 20,
+            "min": 0,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "total": {
+            "count": 20,
+            "min": 84.69829199999913,
+            "p50": 86.2163750000002,
+            "p95": 88.38001875000012,
+            "max": 89.09999999999991
+          }
+        },
+        "peakRssBytes": {
+          "count": 3,
+          "min": 172900352,
+          "p50": 173047808,
+          "p95": 173254246.4,
+          "max": 173277184
+        },
+        "peakIncreaseBytes": {
+          "count": 3,
+          "min": 32784384,
+          "p50": 33079296,
+          "p95": 33433190.4,
+          "max": 33472512
+        },
+        "changeIntelligence": null
+      }
+    },
+    {
+      "id": "m3/editor-cancellation/active-load",
+      "name": "M3 editor cancellation acknowledgement",
+      "group": "editor-loop",
+      "fixture": {
+        "kind": "synthetic",
+        "version": "m3-00-v1",
+        "sha256": "sha256:6173da53149435c93a93451559ee8b9fc02e7c94addba3f62040b9d704291048",
+        "files": 1,
+        "bytes": 40,
+        "description": "Abort one active loader-backed transaction without committing Session state",
+        "parameters": {
+          "committedRevisions": 1,
+          "cancelledTransactions": 1
+        }
+      },
+      "operation": {
+        "kind": "editor-cancellation",
+        "cacheState": "initialized-session",
+        "outputTarget": "none",
+        "ioIncluded": false
+      },
+      "validation": {
+        "compilationSuccess": true,
+        "matchesExpected": true,
+        "semanticSha256": "sha256:acd53bfcb4c7d7677f27e494c86e9ade75f4014f381141b94e653e59db3ee5dc",
+        "diagnostics": {}
+      },
+      "timeSamples": [
+        {
+          "index": 1,
+          "wallMs": 0.09041700000000219,
+          "stagesMs": {
+            "parse": 0.09929200000000549,
+            "link": 0.05804199999998616,
+            "graph": 0.024415999999988003,
+            "check": 0.014249999999989882,
+            "resolve": 0.03499999999999659,
+            "emit": 0,
+            "total": 0.26841699999999946
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 2,
+          "wallMs": 0.07399999999999807,
+          "stagesMs": {
+            "parse": 0.09933300000000145,
+            "link": 0.04837499999999295,
+            "graph": 0.024957999999998037,
+            "check": 0.012833000000000538,
+            "resolve": 0.026583000000002244,
+            "emit": 0,
+            "total": 0.2474160000000012
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 3,
+          "wallMs": 0.11941699999999855,
+          "stagesMs": {
+            "parse": 0.07766699999999105,
+            "link": 0.04358299999999815,
+            "graph": 0.018457999999995423,
+            "check": 0.011291999999997415,
+            "resolve": 0.017667000000002986,
+            "emit": 0,
+            "total": 0.21070899999999426
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 4,
+          "wallMs": 0.08020799999999895,
+          "stagesMs": {
+            "parse": 0.1039999999999992,
+            "link": 0.051250999999993496,
+            "graph": 0.02137500000000614,
+            "check": 0.017417000000008898,
+            "resolve": 0.02083399999997937,
+            "emit": 0,
+            "total": 0.2646249999999952
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 5,
+          "wallMs": 0.08483400000000074,
+          "stagesMs": {
+            "parse": 0.08804099999998982,
+            "link": 0.042375000000021146,
+            "graph": 0.01895800000001202,
+            "check": 0.01733400000000529,
+            "resolve": 0.02241700000001856,
+            "emit": 0,
+            "total": 0.22716699999999435
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 6,
+          "wallMs": 0.07158299999998974,
+          "stagesMs": {
+            "parse": 0.07408300000000168,
+            "link": 0.031791999999995824,
+            "graph": 0.014541000000008353,
+            "check": 0.012208999999998582,
+            "resolve": 0.01520800000000122,
+            "emit": 0,
+            "total": 0.17858400000000074
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 7,
+          "wallMs": 0.08075000000000898,
+          "stagesMs": {
+            "parse": 0.045167000000006396,
+            "link": 0.02375000000000682,
+            "graph": 0.012790999999992891,
+            "check": 0.008207999999996218,
+            "resolve": 0.010374999999996248,
+            "emit": 0,
+            "total": 0.12237499999999102
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 8,
+          "wallMs": 0.0645409999999913,
+          "stagesMs": {
+            "parse": 0.04649999999999466,
+            "link": 0.025209000000018023,
+            "graph": 0.013375000000010573,
+            "check": 0.008499999999997954,
+            "resolve": 0.010916000000008808,
+            "emit": 0,
+            "total": 0.12745799999999008
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 9,
+          "wallMs": 0.07766699999999105,
+          "stagesMs": {
+            "parse": 0.04112499999999386,
+            "link": 0.022167000000024473,
+            "graph": 0.012416000000001759,
+            "check": 0.007333999999985963,
+            "resolve": 0.009166999999990821,
+            "emit": 0,
+            "total": 0.11275000000000546
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 10,
+          "wallMs": 0.07833299999998644,
+          "stagesMs": {
+            "parse": 0.05937499999998863,
+            "link": 0.03124999999997158,
+            "graph": 0.06558200000000625,
+            "check": 0.012083999999987327,
+            "resolve": 0.014207999999996446,
+            "emit": 0,
+            "total": 0.2330830000000219
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 11,
+          "wallMs": 0.05699999999998795,
+          "stagesMs": {
+            "parse": 0.06887500000001978,
+            "link": 0.031165999999984706,
+            "graph": 0.016624999999976353,
+            "check": 0.010458999999997332,
+            "resolve": 0.018957999999969388,
+            "emit": 0,
+            "total": 0.17379100000002268
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 12,
+          "wallMs": 0.16120800000001623,
+          "stagesMs": {
+            "parse": 0.043082999999995764,
+            "link": 0.023374999999987267,
+            "graph": 0.01258300000000645,
+            "check": 0.007708000000008042,
+            "resolve": 0.009874999999993861,
+            "emit": 0,
+            "total": 0.11770900000001916
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 13,
+          "wallMs": 0.07933300000001964,
+          "stagesMs": {
+            "parse": 0.08395900000002143,
+            "link": 0.03941599999998857,
+            "graph": 0.019376000000022486,
+            "check": 0.059916999999984455,
+            "resolve": 0.05291599999998198,
+            "emit": 0,
+            "total": 0.29570800000001896
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 14,
+          "wallMs": 0.05833299999997621,
+          "stagesMs": {
+            "parse": 0.05850000000000932,
+            "link": 0.03966599999998266,
+            "graph": 0.015791000000007216,
+            "check": 0.010500000000007503,
+            "resolve": 0.013083000000023048,
+            "emit": 0,
+            "total": 0.16604200000000446
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 15,
+          "wallMs": 0.05649999999999977,
+          "stagesMs": {
+            "parse": 0.05054199999997877,
+            "link": 0.025999999999982037,
+            "graph": 0.013125000000002274,
+            "check": 0.008041999999989002,
+            "resolve": 0.01129299999999489,
+            "emit": 0,
+            "total": 0.13187500000000796
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 16,
+          "wallMs": 0.05008399999999824,
+          "stagesMs": {
+            "parse": 0.04270800000000463,
+            "link": 0.023749000000037768,
+            "graph": 0.01270900000000097,
+            "check": 0.007374999999996135,
+            "resolve": 0.00966700000000742,
+            "emit": 0,
+            "total": 0.12212499999998272
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 17,
+          "wallMs": 0.0704160000000229,
+          "stagesMs": {
+            "parse": 0.043082999999995764,
+            "link": 0.022124999999988404,
+            "graph": 0.011624000000011847,
+            "check": 0.006957999999997355,
+            "resolve": 0.009041999999993777,
+            "emit": 0,
+            "total": 0.11554100000000744
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 18,
+          "wallMs": 0.08054099999998243,
+          "stagesMs": {
+            "parse": 0.04087499999999977,
+            "link": 0.03054199999999696,
+            "graph": 0.012875000000008185,
+            "check": 0.007916000000022905,
+            "resolve": 0.011208000000038965,
+            "emit": 0,
+            "total": 0.12741700000000833
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 19,
+          "wallMs": 0.057332999999999856,
+          "stagesMs": {
+            "parse": 0.03591700000001197,
+            "link": 0.02208300000000918,
+            "graph": 0.011374999999986812,
+            "check": 0.006957999999997355,
+            "resolve": 0.008833999999978914,
+            "emit": 0,
+            "total": 0.10450000000000159
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        },
+        {
+          "index": 20,
+          "wallMs": 0.10566699999998264,
+          "stagesMs": {
+            "parse": 0.036333999999982325,
+            "link": 0.020248999999978423,
+            "graph": 0.011750000000006366,
+            "check": 0.006500000000016826,
+            "resolve": 0.009000000000014552,
+            "emit": 0,
+            "total": 0.10400000000001342
+          },
+          "counters": {
+            "tokens": 1,
+            "references": 0,
+            "contexts": 1,
+            "affectedTokens": null,
+            "checkedTokens": null,
+            "resolverComputations": 1,
+            "changedTokens": null,
+            "recomputedTokens": null,
+            "graphTouchedNodes": null,
+            "graphTouchedEdges": null,
+            "outputFiles": 0,
+            "outputBytes": 0,
+            "diagnostics": {},
+            "contextCycles": {
+              "candidateRegions": 0,
+              "relevantDimensions": 0,
+              "estimatedProjections": 0,
+              "estimateSaturated": false,
+              "enumeratedProjections": 0,
+              "earlyExits": 0,
+              "limitHits": 0
+            }
+          },
+          "changeIntelligence": null
+        }
+      ],
+      "memorySamples": [
+        {
+          "index": 1,
+          "baselineRssBytes": 96026624,
+          "preMaxRssBytes": 96026624,
+          "peakRssBytes": 96026624,
+          "peakIncreaseBytes": 0
+        },
+        {
+          "index": 2,
+          "baselineRssBytes": 97222656,
+          "preMaxRssBytes": 97222656,
+          "peakRssBytes": 97222656,
+          "peakIncreaseBytes": 0
+        },
+        {
+          "index": 3,
+          "baselineRssBytes": 96043008,
+          "preMaxRssBytes": 96043008,
+          "peakRssBytes": 96043008,
+          "peakIncreaseBytes": 0
+        }
+      ],
+      "summary": {
+        "wallMs": {
+          "count": 20,
+          "min": 0.05008399999999824,
+          "p50": 0.07799999999998875,
+          "p95": 0.12150654999999946,
+          "max": 0.16120800000001623
+        },
+        "stagesMs": {
+          "parse": {
+            "count": 20,
+            "min": 0.03591700000001197,
+            "p50": 0.054520999999994046,
+            "p95": 0.09956635000000134,
+            "max": 0.1039999999999992
+          },
+          "link": {
+            "count": 20,
+            "min": 0.020248999999978423,
+            "p50": 0.030853999999990833,
+            "p95": 0.051590549999993136,
+            "max": 0.05804199999998616
+          },
+          "graph": {
+            "count": 20,
+            "min": 0.011374999999986812,
+            "p50": 0.013958000000009463,
+            "p95": 0.02698919999999848,
+            "max": 0.06558200000000625
+          },
+          "check": {
+            "count": 20,
+            "min": 0.006500000000016826,
+            "p50": 0.009479499999997643,
+            "p95": 0.019542000000007706,
+            "max": 0.059916999999984455
+          },
+          "resolve": {
+            "count": 20,
+            "min": 0.008833999999978914,
+            "p50": 0.01218800000000897,
+            "p95": 0.03589579999999587,
+            "max": 0.05291599999998198
+          },
+          "emit": {
+            "count": 20,
+            "min": 0,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          },
+          "total": {
+            "count": 20,
+            "min": 0.10400000000001342,
+            "p50": 0.1489585000000062,
+            "p95": 0.2697815500000005,
+            "max": 0.29570800000001896
+          }
+        },
+        "peakRssBytes": {
+          "count": 3,
+          "min": 96026624,
+          "p50": 96043008,
+          "p95": 97104691.2,
+          "max": 97222656
+        },
+        "peakIncreaseBytes": {
+          "count": 3,
+          "min": 0,
+          "p50": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "changeIntelligence": null
+      }
+    }
+  ]
+}

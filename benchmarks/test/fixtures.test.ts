@@ -42,6 +42,7 @@ describe("benchmark fixtures", () => {
         "small",
         "wide",
         "deep",
+        "editor-loop",
         "fan-out",
         "sparse-context",
         "multidimensional-context",

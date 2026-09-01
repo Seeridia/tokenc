@@ -208,6 +208,9 @@ M3 不包含：
 
 #### M3-00 — IDE RFC、协议语料与基线（P0）
 
+状态：已完成。证据见 [RFC 0005](rfcs/0005-ide-language-server.zh-CN.md) 与
+[M3-00 编辑循环基线](M3-00-BASELINE.zh-CN.md)。Gate 0 已接受；下一步为 M3-01。
+
 交付：
 
 - 编写一份 RFC，覆盖 source-index role、URI/offset mapping、Workspace Trust、overlay、revision ordering、
@@ -447,6 +450,6 @@ M3-00 RFC/baseline → M3-01 source index ──────┬→ M3-02 rename 
 
 ## 12. 立即执行的下一步
 
-只启动 M3-00：编写 IDE RFC、冻结 protocol transcript corpus、添加 Unicode/invalid JSON fixture，并记录
-M3 前性能基线。在 Gate 0 接受 source-index、trust、revision、cancellation 与 rename contract 前，不创建
-公开 language-server package。
+M3-00 已完成。只启动 M3-01：在 Snapshot-owned immutable index 中保留 source span 与 role，公开与
+transport 无关的 editor Query operation，并把已接受的 Unicode/CRLF 与 invalid-input 语料转化为精确 Core
+证据。M3-01 source-index contract 接受前，不创建公开 language-server package。

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tokenc.dev/schemas/drafts/editor-symbol-v1.schema.json",
+  "title": "tokenc Editor Symbol v1 draft",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "role", "owner", "target", "source", "fieldPath"],
+  "properties": {
+    "schemaVersion": { "const": "1" },
+    "role": { "enum": ["declaration", "alias", "json-pointer", "inheritance"] },
+    "owner": { "type": "string", "minLength": 1 },
+    "target": { "type": "string", "minLength": 1 },
+    "source": { "$ref": "#/$defs/sourceLocation" },
+    "fieldPath": {
+      "type": "array",
+      "items": { "oneOf": [{ "type": "string" }, { "type": "integer", "minimum": 0 }] }
+    },
+    "condition": {
+      "type": "object",
+      "description": "Canonical ContextPredicate v1 when this occurrence is conditional"
+    }
+  },
+  "$defs": {
+    "sourceLocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "line", "column", "offset", "length"],
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 },
+        "offset": { "type": "integer", "minimum": 0 },
+        "length": { "type": "integer", "minimum": 1 },
+        "excerpt": { "type": "string" }
+      }
+    }
+  }
+}

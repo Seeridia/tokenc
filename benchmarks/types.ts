@@ -6,6 +6,7 @@ export type BenchmarkFixtureGroup =
   | "change-intelligence"
   | "deep"
   | "dtcg-examples"
+  | "editor-loop"
   | "fan-out"
   | "incremental"
   | "multidimensional-context"
@@ -21,6 +22,11 @@ export type BenchmarkOperationKind =
   | "change-intelligence-report-serialization"
   | "change-intelligence-unchanged"
   | "cold-compile"
+  | "editor-cancellation"
+  | "editor-cold-start"
+  | "editor-high-fan-out"
+  | "editor-invalid-recovery"
+  | "editor-one-file-update"
   | "incremental-update";
 
 export interface BenchmarkFixtureMetadata {
@@ -81,6 +87,7 @@ export interface BenchmarkExpectation {
   readonly references?: number;
   readonly contexts?: number;
   readonly affectedTokens?: number;
+  readonly changedTokens?: number;
   readonly recomputedTokens?: number;
   readonly outputFiles?: number;
   readonly diagnostics?: Readonly<Record<string, number>>;
