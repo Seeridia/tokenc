@@ -2,7 +2,7 @@
 
 [English](M3-PLAN.md)
 
-> 状态：推进中。M3-00 至 M3-07 已完成，下一步为 M3-08。M2 已关闭，五个同步版本的 `0.5.0`
+> 状态：推进中。M3-00 至 M3-08 已完成，下一步为 M3-09。M2 已关闭，五个同步版本的 `0.5.0`
 > package 已通过 `next` dist-tag 发布。更新时间：2026-09-02。
 >
 > 目标版本线：`0.6.0`。M3 新增公开 package `@tokenc/language-server`。薄 VS Code client 以可安装
@@ -381,6 +381,12 @@ M3-08。
 
 #### M3-08 — 薄 VS Code Extension 与 VSIX Smoke（P1）
 
+状态：已于 2026-09-02 完成。私有 `tokenc-vscode` extension 现在会启动 bundled server，以 Workspace
+Trust fail closed，转发 folder-scoped config/Context/Resolver input，并提供串行化的 restart、status 与
+命名 profile 选择命令且不写项目文件。确定性 packager 会比较两次构建的 VSIX hash。clean-profile
+smoke 在隔离 user-data/extensions 目录安装 VSIX，并在 VS Code 1.134.0 上证明 activation、definition、
+未保存编辑诊断与磁盘零写入；CI 会保留通过测试的 artifact。
+
 交付：
 
 - 增加私有 VS Code extension，负责 bundle/start server、遵守 Workspace Trust，并转发 config 与 active
@@ -487,5 +493,6 @@ M3-00 RFC/baseline → M3-01 source index ──────┬→ M3-02 rename 
 
 ## 12. 立即执行的下一步
 
-M3-07 已完成。启动 M3-08：增加薄的私有 VS Code extension，负责启动 bundled server、遵守 Workspace
-Trust、转发 Context 与 Resolver 配置，并产出确定性 VSIX，覆盖干净 profile 的安装与 activation smoke。
+M3-08 已完成。启动 M3-09：增加 deterministic/seeded CLI-LSP differential sequence，建立匹配环境的
+edit-loop 性能门槛，锁定最终 protocol/package/VSIX consumer 证据，并验证同步版本的 `0.6.0` release
+candidate。

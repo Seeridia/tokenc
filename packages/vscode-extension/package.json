@@ -1,0 +1,150 @@
+{
+  "name": "tokenc-vscode",
+  "displayName": "tokenc",
+  "version": "0.6.0",
+  "private": true,
+  "description": "VS Code language support for DTCG design tokens powered by tokenc",
+  "categories": [
+    "Linters",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "design-tokens",
+    "dtcg",
+    "language-server"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Seeridia/tokenc.git",
+    "directory": "packages/vscode-extension"
+  },
+  "publisher": "tokenc",
+  "files": [
+    "dist/babel.cjs",
+    "dist/extension.cjs",
+    "dist/rolldown-runtime.cjs",
+    "dist/server.cjs",
+    "LICENSE",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "type": "module",
+  "main": "./dist/extension.cjs",
+  "scripts": {
+    "build": "vp pack && vp exec node scripts/copy-runtime.mjs",
+    "build:smoke": "vp run build",
+    "package:vsix": "vp run build && vp exec node scripts/package-vsix.mjs",
+    "smoke:vsix": "vp run package:vsix && vp exec node scripts/smoke-vsix.mjs"
+  },
+  "dependencies": {
+    "@tokenc/language-server": "workspace:*",
+    "vscode-languageclient": "10.1.1",
+    "vscode-languageserver": "9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/vscode": "1.134.0",
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "3.9.2",
+    "typescript": "^7.0.2"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "tokenc.restartLanguageServer",
+        "title": "tokenc: Restart Language Server"
+      },
+      {
+        "command": "tokenc.selectContext",
+        "title": "tokenc: Select Context Profile"
+      },
+      {
+        "command": "tokenc.selectResolverInput",
+        "title": "tokenc: Select Resolver Input Profile"
+      },
+      {
+        "command": "tokenc.showLanguageServerStatus",
+        "title": "tokenc: Show Language Server Status"
+      }
+    ],
+    "configuration": {
+      "title": "tokenc",
+      "properties": {
+        "tokenc.configPath": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "description": "Optional config path relative to each workspace folder. Executed only in trusted workspaces."
+        },
+        "tokenc.context": {
+          "type": "object",
+          "default": {},
+          "scope": "resource",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Default ordinary Context selection forwarded to the language server."
+        },
+        "tokenc.resolverInput": {
+          "type": "object",
+          "default": {},
+          "scope": "resource",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Default Resolver input forwarded independently from ordinary Context."
+        },
+        "tokenc.contextProfiles": {
+          "type": "object",
+          "default": {},
+          "scope": "resource",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "description": "Named Context maps offered by the Select Context Profile command."
+        },
+        "tokenc.resolverInputProfiles": {
+          "type": "object",
+          "default": {},
+          "scope": "resource",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "description": "Named Resolver input maps offered by the Select Resolver Input Profile command."
+        }
+      }
+    }
+  },
+  "activationEvents": [
+    "onCommand:tokenc.restartLanguageServer",
+    "onCommand:tokenc.selectContext",
+    "onCommand:tokenc.selectResolverInput",
+    "onCommand:tokenc.showLanguageServerStatus",
+    "workspaceContains:**/tokenc.config.js",
+    "workspaceContains:**/tokenc.config.mjs",
+    "workspaceContains:**/tokenc.config.mts",
+    "workspaceContains:**/tokenc.config.ts"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "engines": {
+    "vscode": "^1.134.0"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "tokenc starts without loading executable configuration until the workspace is trusted.",
+      "restrictedConfigurations": [
+        "tokenc.configPath"
+      ]
+    }
+  }
+}

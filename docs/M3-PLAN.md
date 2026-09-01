@@ -2,7 +2,7 @@
 
 [简体中文](M3-PLAN.zh-CN.md)
 
-> Status: in progress. M3-00 through M3-07 are complete; M3-08 is next. M2 is closed with the
+> Status: in progress. M3-00 through M3-08 are complete; M3-09 is next. M2 is closed with the
 > synchronized `0.5.0` packages published under the `next` dist-tag. Updated 2026-09-02.
 >
 > Intended release line: `0.6.0`. M3 adds the public `@tokenc/language-server` package. The thin VS
@@ -415,6 +415,13 @@ Acceptance:
 
 #### M3-08 — Thin VS Code extension and VSIX smoke (P1)
 
+Status: complete on 2026-09-02. The private `tokenc-vscode` extension now launches a bundled server,
+fails closed with Workspace Trust, forwards folder-scoped config/Context/Resolver input, and offers
+serialized restart, status, and named profile selection commands without writing project files. A
+deterministic packager verifies identical VSIX hashes across two builds. The clean-profile smoke
+installs the VSIX into isolated user-data/extensions directories and proves activation, definition,
+unsaved-edit diagnostics, and no disk write on VS Code 1.134.0. CI retains the tested artifact.
+
 Deliver:
 
 - Add a private VS Code extension that bundles/starts the server, respects Workspace Trust, and
@@ -524,6 +531,6 @@ Additional release gates:
 
 ## 12. Immediate next step
 
-M3-07 is complete. Start M3-08: add the thin private VS Code extension that launches the bundled
-server, respects Workspace Trust, forwards Context and Resolver configuration, and produces a
-deterministic VSIX with clean-profile install and activation smoke coverage.
+M3-08 is complete. Start M3-09: add deterministic and seeded CLI/LSP differential sequences,
+establish matched-environment edit-loop performance gates, lock the final protocol/package/VSIX
+consumer evidence, and verify the synchronized `0.6.0` release candidate.

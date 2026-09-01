@@ -1,0 +1,9 @@
+{
+  "name": "tokenc-vsix-smoke-harness",
+  "version": "0.0.0",
+  "private": true,
+  "publisher": "tokenc-tests",
+  "engines": {
+    "vscode": "^1.134.0"
+  }
+}

@@ -237,6 +237,7 @@ vp test --run
 
 ## 文档
 
+- [VS Code 扩展安装与故障排查](packages/vscode-extension/README.zh-CN.md) · [English](packages/vscode-extension/README.md)
 - [M2 release candidate 验收](docs/M2-ACCEPTANCE.zh-CN.md) · [English](docs/M2-ACCEPTANCE.md)
 
 - [架构文档](docs/ARCHITECTURE.zh-CN.md) · [English](docs/ARCHITECTURE.md)

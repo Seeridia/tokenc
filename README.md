@@ -253,6 +253,7 @@ This is a library monorepo: packages are built with `vp pack`, orchestrated by `
 
 ## Documentation
 
+- [VS Code extension setup and troubleshooting](packages/vscode-extension/README.md) · [简体中文](packages/vscode-extension/README.zh-CN.md)
 - [M2 acceptance record](docs/M2-ACCEPTANCE.md) · [简体中文](docs/M2-ACCEPTANCE.zh-CN.md)
 - [M3 execution plan](docs/M3-PLAN.md) · [简体中文](docs/M3-PLAN.zh-CN.md)
 
