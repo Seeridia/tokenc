@@ -1,5 +1,13 @@
 # @tokenc/backend-typescript
 
+## 0.6.0
+
+### Patch Changes
+
+- Updated dependencies [5d7fadc]
+- Updated dependencies [b4a18f6]
+  - @tokenc/core@0.6.0
+
 ## 0.5.0
 
 ### Patch Changes
