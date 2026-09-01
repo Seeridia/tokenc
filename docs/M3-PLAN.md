@@ -2,7 +2,7 @@
 
 [简体中文](M3-PLAN.zh-CN.md)
 
-> Status: in progress. M3-00 through M3-05 are complete; M3-06 is next. M2 is closed with the
+> Status: in progress. M3-00 through M3-06 are complete; M3-07 is next. M2 is closed with the
 > synchronized `0.5.0` packages published under the `next` dist-tag. Updated 2026-09-02.
 >
 > Intended release line: `0.6.0`. M3 adds the public `@tokenc/language-server` package. The thin VS
@@ -367,6 +367,12 @@ Acceptance:
 
 #### M3-06 — Alias completion and Context-aware hover (P0)
 
+Status: complete. Completion is limited to Core-proven alias spans and returns deterministic
+canonical candidates with exact replacement ranges. Hover projects type, expression, resolved
+value, effective Context, explain provenance, and current diagnostics from one settled snapshot.
+Ordinary Context changes remain query-only, Resolver input changes use atomic Session transactions,
+and per-workspace state plus superseded configuration events are covered. M3-07 is next.
+
 Deliver:
 
 - Implement completion only for recognized reference positions with stable sort/filter behavior.
@@ -510,6 +516,7 @@ Additional release gates:
 
 ## 12. Immediate next step
 
-M3-05 is complete. Start M3-06: implement alias completion only at Core-proven reference positions,
-then add Context-aware hover from the same current Snapshot Query. Keep ordinary Context overrides
-and Resolver input distinct, with deterministic completion filtering and no stale resolved preview.
+M3-06 is complete. Start M3-07: transport Core rename plans through `prepareRename` and versioned
+multi-document `WorkspaceEdit`, then expose only registry-approved Diagnostic fixes as preferred
+quick fixes. Revalidate snapshot revision, document versions, and source digests before returning
+any edit.

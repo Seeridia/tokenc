@@ -152,7 +152,7 @@ export class NavigationProvider {
       ...(params.context.includeDeclaration
         ? snapshot.sourceIndex.declarations().filter((entry) => entry.target === target)
         : []),
-      ...snapshot.query.occurrences(target),
+      ...snapshot.query.occurrences(target, { context: workspace.effectiveContext(snapshot) }),
     ].toSorted(compareSymbols);
     if (!workspace.canQuery(snapshot, workspace.publishedRevision)) return [];
     const documents = navigationDocuments(snapshot.documents, workspace.root!);

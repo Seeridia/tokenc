@@ -8,6 +8,7 @@ import {
   FileSystemDocumentLoader,
   loadTokenFiles,
   type CompilationSnapshot,
+  type CompilationContext,
   type CompilerSessionConfiguration,
   type DocumentChange,
   type DocumentLoader,
@@ -83,6 +84,8 @@ export interface WorkspaceCoordinatorOptions {
   readonly folder: WorkspaceFolderIdentity;
   readonly trusted: boolean;
   readonly explicitConfigPath?: string;
+  readonly context?: CompilationContext;
+  readonly resolverInput?: CompilationContext;
   readonly projectLoader?: WorkspaceProjectLoader;
   readonly createSession?: typeof createCompilerSession;
   readonly onError?: (error: unknown, workspace: WorkspaceCoordinator) => void;
@@ -96,6 +99,23 @@ export interface WorkspaceCoordinatorOptions {
 interface OpenDocument {
   readonly content: string;
   readonly version: number;
+}
+
+export interface WorkspaceQuerySettings {
+  readonly context?: CompilationContext;
+  readonly resolverInput?: CompilationContext;
+}
+
+function immutableContext(context: CompilationContext = {}): CompilationContext {
+  return Object.freeze(
+    Object.fromEntries(
+      Object.entries(context).toSorted(([left], [right]) => left.localeCompare(right)),
+    ),
+  );
+}
+
+function sameContext(left: CompilationContext, right: CompilationContext): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 /** One isolated compiler lifecycle for one LSP workspace folder. */
@@ -116,6 +136,9 @@ export class WorkspaceCoordinator {
   #session: CompilerSession | undefined;
   #configPath: string | undefined;
   #includesDocument: ((identity: string) => boolean) | undefined;
+  #activeContext: CompilationContext;
+  #resolverInput: CompilationContext | undefined;
+  #appliedResolverInput: CompilationContext | undefined;
   #status: WorkspaceStatus;
 
   constructor(options: WorkspaceCoordinatorOptions) {
@@ -127,6 +150,11 @@ export class WorkspaceCoordinator {
     this.#createSession = options.createSession ?? createCompilerSession;
     this.#onError = options.onError ?? (() => undefined);
     this.#onSnapshot = options.onSnapshot ?? (() => undefined);
+    this.#activeContext = immutableContext(options.context);
+    this.#resolverInput = options.resolverInput
+      ? immutableContext(options.resolverInput)
+      : undefined;
+    this.#appliedResolverInput = undefined;
     this.#status = options.trusted && this.root ? "loading" : "untrusted";
     this.#scheduler = new LatestWorkScheduler((error) => {
       this.#status = "configuration-error";
@@ -158,6 +186,18 @@ export class WorkspaceCoordinator {
     return this.#configPath;
   }
 
+  get activeContext(): CompilationContext {
+    return this.#activeContext;
+  }
+
+  get resolverInput(): CompilationContext | undefined {
+    return this.#resolverInput;
+  }
+
+  effectiveContext(snapshot: CompilationSnapshot | undefined = this.snapshot): CompilationContext {
+    return snapshot?.query.context(this.#activeContext) ?? this.#activeContext;
+  }
+
   canPublish(snapshot: CompilationSnapshot, workspaceRevision: number): boolean {
     return (
       this.#status !== "closed" &&
@@ -181,16 +221,46 @@ export class WorkspaceCoordinator {
     await this.idle();
   }
 
+  configure(settings: WorkspaceQuerySettings): number {
+    if (this.#status === "closed") return this.requestedRevision;
+    const context = settings.context ? immutableContext(settings.context) : this.#activeContext;
+    const resolverInput = settings.resolverInput
+      ? immutableContext(settings.resolverInput)
+      : this.#resolverInput;
+    const contextChanged = !sameContext(context, this.#activeContext);
+    const resolverChanged =
+      resolverInput !== undefined &&
+      !sameContext(resolverInput, this.#appliedResolverInput ?? immutableContext());
+    if (!contextChanged && !resolverChanged) return this.requestedRevision;
+    this.#activeContext = context;
+    this.#resolverInput = resolverInput;
+    const session = this.#session;
+    if (!session) return this.requestedRevision;
+    return this.#scheduler.schedule(async (signal, workspaceRevision) => {
+      let snapshot = session.currentSnapshot;
+      if (resolverChanged) {
+        snapshot = await session.apply({ resolverInput }, { signal });
+        signal.throwIfAborted();
+        this.#appliedResolverInput = resolverInput;
+      }
+      if (snapshot && workspaceRevision === this.#scheduler.requestedRevision)
+        this.#onSnapshot(snapshot, this, workspaceRevision);
+    });
+  }
+
   reload(): number {
     if (!this.trusted || !this.root || this.#status === "closed") return this.requestedRevision;
     this.#status = "loading";
     return this.#scheduler.schedule(async (signal, workspaceRevision) => {
       const project = await this.#projectLoader.load(this.root!, this.#explicitConfigPath, signal);
       signal.throwIfAborted();
+      const config = this.#resolverInput
+        ? { ...project.config, resolverInput: this.#resolverInput }
+        : project.config;
       if (!this.#session)
         this.#session = this.#createSession({
           loader: project.documentLoader,
-          config: project.config,
+          config,
         });
       const diskDocuments = new Map(
         project.documents.map((document) => [document.identity, document]),
@@ -198,14 +268,11 @@ export class WorkspaceCoordinator {
       const sourceIdentities = new Set(diskDocuments.keys());
       for (const identity of this.#overlays.keys())
         if (project.includesDocument(identity)) sourceIdentities.add(identity);
-      await this.#applyDesired(
-        diskDocuments,
-        sourceIdentities,
-        project.config,
-        signal,
-        workspaceRevision,
-      );
+      await this.#applyDesired(diskDocuments, sourceIdentities, config, signal, workspaceRevision);
       signal.throwIfAborted();
+      this.#appliedResolverInput = config.resolverInput
+        ? immutableContext(config.resolverInput)
+        : undefined;
       this.#diskDocuments = diskDocuments;
       this.#sourceIdentities = sourceIdentities;
       this.#configPath = project.configPath;
@@ -371,6 +438,8 @@ export interface WorkspaceManagerOptions {
 export interface AddWorkspaceOptions {
   readonly trusted: boolean;
   readonly explicitConfigPath?: string;
+  readonly context?: CompilationContext;
+  readonly resolverInput?: CompilationContext;
 }
 
 /** Routes protocol events to the most specific workspace root. */
@@ -404,6 +473,8 @@ export class WorkspaceManager {
       folder,
       trusted: options.trusted,
       ...(options.explicitConfigPath ? { explicitConfigPath: options.explicitConfigPath } : {}),
+      ...(options.context ? { context: options.context } : {}),
+      ...(options.resolverInput ? { resolverInput: options.resolverInput } : {}),
       ...(this.#options.projectLoader ? { projectLoader: this.#options.projectLoader } : {}),
       ...(this.#options.createSession ? { createSession: this.#options.createSession } : {}),
       ...(this.#options.onError ? { onError: this.#options.onError } : {}),

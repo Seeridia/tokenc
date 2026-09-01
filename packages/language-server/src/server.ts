@@ -1,3 +1,4 @@
+import type { CompilationContext } from "@tokenc/core";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
   FileChangeType,
@@ -11,6 +12,7 @@ import {
 
 import packageManifest from "../package.json" with { type: "json" };
 import { DiagnosticPublisher } from "./diagnostics.js";
+import { InsightProvider } from "./insight.js";
 import { NavigationProvider } from "./navigation.js";
 import {
   WorkspaceManager,
@@ -27,6 +29,17 @@ export interface LanguageServerInitializationOptions {
   readonly configPath?: string;
   /** Optional per-workspace config paths keyed by the exact workspace-folder URI. */
   readonly configPaths?: Readonly<Record<string, string>>;
+  /** Active ordinary Context overrides shared by workspace folders without an override. */
+  readonly context?: CompilationContext;
+  /** Active Resolver input shared by workspace folders without an override. */
+  readonly resolverInput?: CompilationContext;
+  /** Per-folder query settings keyed by the exact workspace-folder URI. */
+  readonly workspaceSettings?: Readonly<Record<string, LanguageServerWorkspaceSettings>>;
+}
+
+export interface LanguageServerWorkspaceSettings {
+  readonly context?: CompilationContext;
+  readonly resolverInput?: CompilationContext;
 }
 
 export interface LanguageServerOptions extends WorkspaceManagerOptions {
@@ -35,6 +48,26 @@ export interface LanguageServerOptions extends WorkspaceManagerOptions {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function context(value: unknown): CompilationContext | undefined {
+  if (!isRecord(value)) return undefined;
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    ),
+  );
+}
+
+function workspaceSettings(value: unknown): LanguageServerWorkspaceSettings | undefined {
+  if (!isRecord(value)) return undefined;
+  const activeContext = context(value.context);
+  const resolverInput = context(value.resolverInput);
+  if (!activeContext && !resolverInput) return undefined;
+  return {
+    ...(activeContext ? { context: activeContext } : {}),
+    ...(resolverInput ? { resolverInput } : {}),
+  };
 }
 
 function initializationOptions(value: unknown): LanguageServerInitializationOptions {
@@ -53,12 +86,43 @@ function initializationOptions(value: unknown): LanguageServerInitializationOpti
         ),
       )
     : undefined;
+  const activeContext = context(value.context);
+  const resolverInput = context(value.resolverInput);
+  const perWorkspaceSettings = isRecord(value.workspaceSettings)
+    ? Object.fromEntries(
+        Object.entries(value.workspaceSettings).flatMap(([uri, settings]) => {
+          const parsed = workspaceSettings(settings);
+          return parsed ? [[uri, parsed]] : [];
+        }),
+      )
+    : undefined;
   return {
     ...(typeof value.trusted === "boolean" ? { trusted: value.trusted } : {}),
     ...(trustedWorkspaces ? { trustedWorkspaces } : {}),
     ...(typeof value.configPath === "string" ? { configPath: value.configPath } : {}),
     ...(configPaths ? { configPaths } : {}),
+    ...(activeContext ? { context: activeContext } : {}),
+    ...(resolverInput ? { resolverInput } : {}),
+    ...(perWorkspaceSettings ? { workspaceSettings: perWorkspaceSettings } : {}),
   };
+}
+
+function configurationSettings(value: unknown): {
+  readonly defaults: LanguageServerWorkspaceSettings;
+  readonly workspaces: Readonly<Record<string, LanguageServerWorkspaceSettings>>;
+} {
+  const root = isRecord(value) && isRecord(value.tokenc) ? value.tokenc : value;
+  if (!isRecord(root)) return { defaults: {}, workspaces: {} };
+  const defaults = workspaceSettings(root) ?? {};
+  const workspaces = isRecord(root.workspaces)
+    ? Object.fromEntries(
+        Object.entries(root.workspaces).flatMap(([uri, settings]) => {
+          const parsed = workspaceSettings(settings);
+          return parsed ? [[uri, parsed]] : [];
+        }),
+      )
+    : {};
+  return { defaults, workspaces };
 }
 
 function foldersFromInitialize(params: InitializeParams): readonly WorkspaceFolder[] {
@@ -78,6 +142,7 @@ export class TokencLanguageServer {
   readonly #connection: Connection;
   readonly #documents = new TextDocuments(TextDocument);
   readonly #diagnostics: DiagnosticPublisher;
+  readonly #insight: InsightProvider;
   readonly #navigation: NavigationProvider;
   readonly #onExit: (code: number) => void;
   #initialization: LanguageServerInitializationOptions = {};
@@ -114,6 +179,7 @@ export class TokencLanguageServer {
         options.onSnapshot?.(snapshot, workspace, workspaceRevision);
       },
     });
+    this.#insight = new InsightProvider(this.workspaces);
     this.#navigation = new NavigationProvider(this.workspaces);
     this.#registerHandlers();
   }
@@ -134,6 +200,8 @@ export class TokencLanguageServer {
           change: TextDocumentSyncKind.Incremental,
         },
         definitionProvider: true,
+        completionProvider: { triggerCharacters: ["{"] },
+        hoverProvider: true,
         referencesProvider: true,
         documentSymbolProvider: true,
         workspaceSymbolProvider: true,
@@ -186,6 +254,15 @@ export class TokencLanguageServer {
       for (const change of event.changes)
         this.workspaces.watchedFile(change.uri, fileChange(change.type));
     });
+    this.#connection.onDidChangeConfiguration(({ settings }) => {
+      const configuration = configurationSettings(settings);
+      for (const workspace of this.workspaces.all) {
+        const scoped = configuration.workspaces[workspace.folder.uri];
+        workspace.configure({ ...configuration.defaults, ...scoped });
+      }
+    });
+    this.#connection.onCompletion((params) => this.#insight.completion(params));
+    this.#connection.onHover((params) => this.#insight.hover(params));
     this.#connection.onDefinition((params) => this.#navigation.definition(params));
     this.#connection.onReferences((params) => this.#navigation.references(params));
     this.#connection.onDocumentSymbol((params) => this.#navigation.documentSymbols(params));
@@ -206,9 +283,16 @@ export class TokencLanguageServer {
       this.#initialization.trustedWorkspaces?.[folder.uri] ?? this.#initialization.trusted === true;
     const explicitConfigPath =
       this.#initialization.configPaths?.[folder.uri] ?? this.#initialization.configPath;
+    const settings = this.#initialization.workspaceSettings?.[folder.uri];
     await this.workspaces.add(folder, {
       trusted,
       ...(explicitConfigPath ? { explicitConfigPath } : {}),
+      ...((settings?.context ?? this.#initialization.context)
+        ? { context: settings?.context ?? this.#initialization.context }
+        : {}),
+      ...((settings?.resolverInput ?? this.#initialization.resolverInput)
+        ? { resolverInput: settings?.resolverInput ?? this.#initialization.resolverInput }
+        : {}),
     });
   }
 

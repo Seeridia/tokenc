@@ -130,11 +130,11 @@ describe("stdio language server", () => {
     temporaryDirectories.push(project);
     const token = join(project, "tokens.json");
     const content =
-      '{\r\n  "base😀": { "$type": "number", "$value": 1 },\r\n  "alias": { "$type": "number", "$value": "{base😀}" }\r\n}\r\n';
+      '{\r\n  "base😀": { "$type": "number", "$value": 1, "$extensions": { "org.token-compiler.contexts": { "theme=dark": 2 } } },\r\n  "alias": { "$type": "number", "$value": "{base😀}" }\r\n}\r\n';
     await Promise.all([
       writeFile(
         join(project, "tokenc.config.mjs"),
-        'export default { source: ["tokens.json"] };\n',
+        'export default { source: ["tokens.json"], contexts: { theme: { default: "light", values: ["light", "dark"] } } };\n',
         "utf8",
       ),
       writeFile(token, content, "utf8"),
@@ -151,11 +151,13 @@ describe("stdio language server", () => {
       processId: process.pid,
       capabilities: { workspace: { workspaceFolders: true } },
       workspaceFolders: [{ name: "fixture", uri: pathToFileURL(project).href }],
-      initializationOptions: { trusted: true },
+      initializationOptions: { trusted: true, context: { theme: "dark" } },
     });
     expect(initialize.result).toMatchObject({
       capabilities: {
         textDocumentSync: { change: 2, openClose: true },
+        completionProvider: { triggerCharacters: ["{"] },
+        hoverProvider: true,
         definitionProvider: true,
         referencesProvider: true,
         documentSymbolProvider: true,
@@ -191,6 +193,29 @@ describe("stdio language server", () => {
     expect(workspaceSymbols.result).toMatchObject([
       { name: "base😀", location: { uri: tokenUri } },
     ]);
+    const completion = await client.request("textDocument/completion", {
+      textDocument: { uri: tokenUri },
+      position: position(content, "{base😀}", 2),
+    });
+    expect(completion.result).toMatchObject({
+      isIncomplete: false,
+      items: [{ label: "base😀", detail: "number", textEdit: { newText: "base😀" } }],
+    });
+    const darkHover = await client.request("textDocument/hover", {
+      textDocument: { uri: tokenUri },
+      position: position(content, "{base😀}"),
+    });
+    expect(JSON.stringify(darkHover.result)).toContain('\\"theme\\": \\"dark\\"');
+    expect(JSON.stringify(darkHover.result)).toContain('\\"resolvedValue\\": 2');
+    client.notify("workspace/didChangeConfiguration", {
+      settings: { tokenc: { context: { theme: "light" } } },
+    });
+    const lightHover = await client.request("textDocument/hover", {
+      textDocument: { uri: tokenUri },
+      position: position(content, "{base😀}"),
+    });
+    expect(JSON.stringify(lightHover.result)).toContain('\\"theme\\": \\"light\\"');
+    expect(JSON.stringify(lightHover.result)).toContain('\\"resolvedValue\\": 1');
 
     const openContent = content.replace('"$value": 1', '"$value": 2');
     let marker = client.messageCount;

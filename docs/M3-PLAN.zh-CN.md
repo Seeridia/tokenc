@@ -2,7 +2,7 @@
 
 [English](M3-PLAN.md)
 
-> 状态：推进中。M3-00 至 M3-05 已完成，下一步为 M3-06。M2 已关闭，五个同步版本的 `0.5.0`
+> 状态：推进中。M3-00 至 M3-06 已完成，下一步为 M3-07。M2 已关闭，五个同步版本的 `0.5.0`
 > package 已通过 `next` dist-tag 发布。更新时间：2026-09-02。
 >
 > 目标版本线：`0.6.0`。M3 新增公开 package `@tokenc/language-server`。薄 VS Code client 以可安装
@@ -338,6 +338,11 @@ canonical hierarchy，并在 library 与 stdio process 层覆盖无效/已删除
 
 #### M3-06 — Alias Completion 与 Context-aware Hover（P0）
 
+状态：已完成。Completion 仅在 Core 能证明的 alias span 内提供，并返回带精确替换 range、确定排序的
+canonical candidate。Hover 从同一个已稳定 snapshot 投影 type、expression、resolved value、有效 Context、
+explain provenance 与当前 diagnostics。普通 Context 变更保持 query-only，Resolver input 通过原子 Session
+transaction 更新；per-workspace 隔离与连续配置事件 supersession 均已有覆盖。下一步为 M3-07。
+
 交付：
 
 - 只在已识别 reference position 实现 completion，并保持稳定 sort/filter 行为。
@@ -475,6 +480,6 @@ M3-00 RFC/baseline → M3-01 source index ──────┬→ M3-02 rename 
 
 ## 12. 立即执行的下一步
 
-M3-05 已完成。启动 M3-06：只在 Core 能证明的 reference position 提供 alias completion，并从同一当前
-Snapshot Query 提供 Context-aware hover。普通 Context override 与 Resolver input 必须继续分离，completion
-filtering 保持确定性，resolved preview 不得读取陈旧 snapshot。
+M3-06 已完成。启动 M3-07：通过 `prepareRename` 与带版本的 multi-document `WorkspaceEdit` 传输 Core
+rename plan，并只把 diagnostic registry 允许的 fix 暴露为 preferred quick fix。返回任何 edit 前都要重新
+校验 snapshot revision、document version 与 source digest。

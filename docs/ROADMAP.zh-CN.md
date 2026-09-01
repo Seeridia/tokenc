@@ -417,12 +417,13 @@ annotated-tag 验证；详见
 
 **目标：** 把编译器事实源带入编辑循环。
 
-**状态（2026-09-02）：M3-05 navigation 已完成；下一步为 M3-06。** 公开且 transport-neutral 的
+**状态（2026-09-02）：M3-06 completion 与 hover 已完成；下一步为 M3-07。** 公开且 transport-neutral 的
 `EditorSymbolV1` 与 atomic `RenamePlanV1` contract 已接入固定 LSP 3.17 版本的 server package，并完成
 fail-closed trust、multi-root 隔离、overlay、watched-file routing、latest-wins scheduling，以及带
 document version 与 invalid-input recovery 的 Diagnostic v1 发布。Definition、references 与
-document/workspace symbols 均只投影 Core source-index 和 Query 的当前 snapshot fact，并覆盖 canonical
-group-inheritance 导航。
+document/workspace symbols、alias completion 与 Context-aware hover 均只投影 Core source-index 和 Query
+的当前 snapshot fact。普通 Context override 保持 query-only，Resolver input 则通过隔离的原子 Session
+transaction 更新。
 本里程碑目标版本线为 `0.6.0`，交付公开 `@tokenc/language-server` 与薄、可安装的 VS Code client。
 契约、workspace、trust、cancellation、功能、benchmark 与发布顺序已在
 [M3 执行计划](M3-PLAN.zh-CN.md)中固定。
