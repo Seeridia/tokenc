@@ -1,0 +1,29 @@
+{
+  "name": "@tokenc/example-react-counter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A minimal React counter driven by tokenc-generated CSS and TypeScript",
+  "type": "module",
+  "scripts": {
+    "build": "vp run tokens && vp build",
+    "check:tokens": "vp exec tsx ../../packages/cli/src/bin.ts check",
+    "dev": "vp run tokens && vp dev",
+    "tokens": "vp exec tsx ../../packages/cli/src/bin.ts build",
+    "tokens:watch": "vp exec tsx ../../packages/cli/src/bin.ts dev"
+  },
+  "dependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tokenc/backend-css": "workspace:*",
+    "@tokenc/backend-typescript": "workspace:*",
+    "@tokenc/core": "workspace:*",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "@vitejs/plugin-react": "6.1.1",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2",
+    "vite": "catalog:"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "app": {
+    "background": { "$type": "color", "$value": "{canvas.background}" },
+    "foreground": { "$type": "color", "$value": "{canvas.foreground}" },
+    "gap": { "$type": "dimension", "$value": "{space.6}" }
+  },
+  "counter-panel": {
+    "background": { "$type": "color", "$value": "{surface.default}" },
+    "border": { "$type": "color", "$value": "{surface.border}" },
+    "radius": { "$type": "dimension", "$value": "{radius.panel}" },
+    "padding": { "$type": "dimension", "$value": "{space.8}" },
+    "value": { "$type": "color", "$value": "{accent.default}" }
+  },
+  "control": {
+    "gap": { "$type": "dimension", "$value": "{space.3}" },
+    "padding-inline": { "$type": "dimension", "$value": "{space.4}" },
+    "radius": { "$type": "dimension", "$value": "{radius.control}" },
+    "transition": { "$type": "duration", "$value": "{motion.fast}" },
+    "primary": {
+      "$type": "color",
+      "background": { "$value": "{accent.default}" },
+      "foreground": { "$value": "{accent.contrast}" },
+      "hover": { "$value": "{accent.hover}" }
+    },
+    "secondary": {
+      "$type": "color",
+      "background": { "$value": "{surface.muted}" },
+      "foreground": { "$value": "{canvas.foreground}" },
+      "border": { "$value": "{surface.border}" }
+    }
+  }
+}

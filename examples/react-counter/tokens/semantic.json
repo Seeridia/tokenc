@@ -1,0 +1,69 @@
+{
+  "canvas": {
+    "background": {
+      "$type": "color",
+      "$value": "{palette.slate.50}",
+      "$extensions": {
+        "org.token-compiler.contexts": {
+          "theme=dark": "{palette.slate.950}"
+        }
+      }
+    },
+    "foreground": {
+      "$type": "color",
+      "$value": "{palette.slate.900}",
+      "$extensions": {
+        "org.token-compiler.contexts": {
+          "theme=dark": "{palette.slate.50}"
+        }
+      }
+    }
+  },
+  "surface": {
+    "$type": "color",
+    "default": {
+      "$value": "{palette.white}",
+      "$extensions": {
+        "org.token-compiler.contexts": {
+          "theme=dark": "{palette.slate.900}"
+        }
+      }
+    },
+    "muted": {
+      "$value": "{palette.slate.100}",
+      "$extensions": {
+        "org.token-compiler.contexts": {
+          "theme=dark": "{palette.slate.700}"
+        }
+      }
+    },
+    "border": {
+      "$value": "{palette.slate.200}",
+      "$extensions": {
+        "org.token-compiler.contexts": {
+          "theme=dark": "{palette.slate.700}"
+        }
+      }
+    }
+  },
+  "accent": {
+    "$type": "color",
+    "default": {
+      "$value": "{palette.indigo.600}",
+      "$extensions": {
+        "org.token-compiler.contexts": {
+          "theme=dark": "{palette.indigo.400}"
+        }
+      }
+    },
+    "hover": {
+      "$value": "{palette.indigo.700}",
+      "$extensions": {
+        "org.token-compiler.contexts": {
+          "theme=dark": "{palette.indigo.400}"
+        }
+      }
+    },
+    "contrast": { "$value": "{palette.white}" }
+  }
+}

@@ -6,6 +6,10 @@ Thin VS Code client for the tokenc Design Token Compiler. The extension starts t
 `@tokenc/language-server`; compiler parsing, graph, resolution, diagnostics, and rename semantics
 remain in the shared tokenc packages.
 
+For a feature-by-feature walkthrough, settings reference, multi-root behavior, and troubleshooting,
+see the [complete guide](../../docs/VS-CODE-GUIDE.md). The runnable
+[React counter](../../examples/react-counter/README.md) provides a ready-made extension playground.
+
 ## Install from this repository
 
 From the repository root:

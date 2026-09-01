@@ -96,6 +96,8 @@ npx tokenc build
 [Resolver 示例](examples/dtcg-resolver)展示结构化 DTCG Color、Set、Modifier 与显式 Resolution Order。
 [Terrazzo Adapter 示例](examples/terrazzo-adapter)展示如何只读接收已经 bundle 的标准 DTCG 文档，而不导入
 或模拟 Terrazzo。
+[React 计数器](examples/react-counter)是一个实际可运行的 Vite 应用，同时消费生成的 CSS 变量与
+TypeScript 常量，也可作为完整的 VS Code Extension 体验项目。
 
 ## CLI
 
@@ -237,7 +239,9 @@ vp test --run
 
 ## 文档
 
-- [VS Code 扩展安装与故障排查](packages/vscode-extension/README.zh-CN.md) · [English](packages/vscode-extension/README.md)
+- [VS Code Extension 完整指南](docs/VS-CODE-GUIDE.zh-CN.md) · [English](docs/VS-CODE-GUIDE.md)
+- [React 计数器示例](examples/react-counter/README.zh-CN.md) · [English](examples/react-counter/README.md)
+- [VS Code Extension Package](packages/vscode-extension/README.zh-CN.md) · [English](packages/vscode-extension/README.md)
 - [M2 release candidate 验收](docs/M2-ACCEPTANCE.zh-CN.md) · [English](docs/M2-ACCEPTANCE.md)
 
 - [架构文档](docs/ARCHITECTURE.zh-CN.md) · [English](docs/ARCHITECTURE.md)

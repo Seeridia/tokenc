@@ -103,6 +103,8 @@ tokens. The [Resolver example](examples/dtcg-resolver) demonstrates structured D
 modifiers, and explicit resolution order.
 The [Terrazzo adapter example](examples/terrazzo-adapter) demonstrates a read-only handoff of an
 already-bundled standard DTCG document without importing or emulating Terrazzo.
+The [React counter](examples/react-counter) is a runnable Vite application that consumes generated
+CSS variables and TypeScript constants, and doubles as a complete VS Code extension playground.
 
 ## CLI
 
@@ -253,7 +255,9 @@ This is a library monorepo: packages are built with `vp pack`, orchestrated by `
 
 ## Documentation
 
-- [VS Code extension setup and troubleshooting](packages/vscode-extension/README.md) · [简体中文](packages/vscode-extension/README.zh-CN.md)
+- [Complete VS Code extension guide](docs/VS-CODE-GUIDE.md) · [简体中文](docs/VS-CODE-GUIDE.zh-CN.md)
+- [React counter example](examples/react-counter/README.md) · [简体中文](examples/react-counter/README.zh-CN.md)
+- [VS Code extension package](packages/vscode-extension/README.md) · [简体中文](packages/vscode-extension/README.zh-CN.md)
 - [M2 acceptance record](docs/M2-ACCEPTANCE.md) · [简体中文](docs/M2-ACCEPTANCE.zh-CN.md)
 - [M3 execution plan](docs/M3-PLAN.md) · [简体中文](docs/M3-PLAN.zh-CN.md)
 

@@ -6,6 +6,9 @@
 `@tokenc/language-server`；编译器解析、Graph、解析值、诊断与 rename 语义仍由共享 tokenc package
 提供。
 
+逐项功能操作、完整设置、multi-root 行为与排障见[完整指南](../../docs/VS-CODE-GUIDE.zh-CN.md)。实际可
+运行的 [React 计数器](../../examples/react-counter/README.zh-CN.md)可直接作为 Extension 体验项目。
+
 ## 从本仓库安装
 
 在仓库根目录运行：

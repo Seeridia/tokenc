@@ -1,0 +1,61 @@
+:root {
+  --counter-maximum: 9;
+  --counter-minimum: -9;
+  --counter-step: 1;
+  --motion-fast: 160ms;
+  --control-transition: var(--motion-fast);
+  --palette-indigo-400: #818cf8;
+  --palette-indigo-600: #4f46e5;
+  --accent-default: var(--palette-indigo-600);
+  --control-primary-background: var(--accent-default);
+  --counter-panel-value: var(--accent-default);
+  --palette-indigo-700: #4338ca;
+  --accent-hover: var(--palette-indigo-700);
+  --control-primary-hover: var(--accent-hover);
+  --palette-slate-100: #f1f5f9;
+  --palette-slate-200: #e2e8f0;
+  --palette-slate-50: #f8fafc;
+  --canvas-background: var(--palette-slate-50);
+  --app-background: var(--canvas-background);
+  --palette-slate-700: #334155;
+  --palette-slate-900: #0f172a;
+  --canvas-foreground: var(--palette-slate-900);
+  --app-foreground: var(--canvas-foreground);
+  --control-secondary-foreground: var(--canvas-foreground);
+  --palette-slate-950: #020617;
+  --palette-white: #ffffff;
+  --accent-contrast: var(--palette-white);
+  --control-primary-foreground: var(--accent-contrast);
+  --radius-control: 12px;
+  --control-radius: var(--radius-control);
+  --radius-panel: 24px;
+  --counter-panel-radius: var(--radius-panel);
+  --radius-pill: 999px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --control-gap: var(--space-3);
+  --space-4: 16px;
+  --control-padding-inline: var(--space-4);
+  --space-6: 24px;
+  --app-gap: var(--space-6);
+  --space-8: 32px;
+  --counter-panel-padding: var(--space-8);
+  --surface-border: var(--palette-slate-200);
+  --control-secondary-border: var(--surface-border);
+  --counter-panel-border: var(--surface-border);
+  --surface-default: var(--palette-white);
+  --counter-panel-background: var(--surface-default);
+  --surface-muted: var(--palette-slate-100);
+  --control-secondary-background: var(--surface-muted);
+}
+
+[data-theme="dark"] {
+  --accent-default: var(--palette-indigo-400);
+  --accent-hover: var(--palette-indigo-400);
+  --canvas-background: var(--palette-slate-950);
+  --canvas-foreground: var(--palette-slate-50);
+  --surface-border: var(--palette-slate-700);
+  --surface-default: var(--palette-slate-900);
+  --surface-muted: var(--palette-slate-700);
+}

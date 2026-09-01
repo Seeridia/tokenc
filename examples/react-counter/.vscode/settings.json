@@ -1,0 +1,14 @@
+{
+  "tokenc.configPath": "tokenc.config.ts",
+  "tokenc.context": {
+    "theme": "light"
+  },
+  "tokenc.contextProfiles": {
+    "Light": {
+      "theme": "light"
+    },
+    "Dark": {
+      "theme": "dark"
+    }
+  }
+}
