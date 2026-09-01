@@ -9,7 +9,7 @@
   JSON Schema. Add `tokenc impact <source...> --context name=value --format text|json` with explicit
   empty/unknown source results and fail-closed exit behavior.
 - eb7e068: Add the read-only Git revision/worktree provider and `tokenc diff --base <ref>
-  [--head <ref|worktree>] --format text|json`. Diff compilation uses one explicitly trusted current
+[--head <ref|worktree>] --format text|json`. Diff compilation uses one explicitly trusted current
   configuration, preserves staged, unstaged, untracked, added, renamed, and deleted source state, and
   fails closed without mutating checkout, branch, index, or repository configuration.
 - eb7e068: Add Breaking-change Policy v1 with documented severity defaults, Context-scoped rules, auditable
@@ -17,7 +17,7 @@
   JSON Schema. Add `tokenc diff --policy <path>` with shared text/JSON finding identity and exit codes
   for pass, policy failure, and incomplete decisions.
 - eb7e068: Add the immutable Report v1 model and public JSON Schema, and render `tokenc check` and `tokenc
-  diff` as text, JSON, or SARIF 2.1.0 from the same normalized diagnostics. SARIF includes rule
+diff` as text, JSON, or SARIF 2.1.0 from the same normalized diagnostics. SARIF includes rule
   metadata, relative artifact URIs, regions, related locations, validated fixes, policy suppressions,
   and Diagnostic fingerprints.
 
