@@ -195,6 +195,7 @@ function assertExpected(
     ["references", expected.references, measured.references],
     ["contexts", expected.contexts, measured.contexts],
     ["affectedTokens", expected.affectedTokens, measured.affectedTokens ?? -1],
+    ["changedTokens", expected.changedTokens, measured.changedTokens ?? -1],
     ["recomputedTokens", expected.recomputedTokens, measured.recomputedTokens ?? -1],
     ["outputFiles", expected.outputFiles, measured.outputFiles],
   ];

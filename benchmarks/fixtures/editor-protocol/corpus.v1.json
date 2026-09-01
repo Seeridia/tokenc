@@ -1,0 +1,481 @@
+{
+  "schemaVersion": "1",
+  "description": "Authored M3-00 LSP 3.17 transcript corpus. Expectations are reviewed contract inputs, not captured implementation output.",
+  "positionEncoding": "utf-16",
+  "categoryFieldMap": {
+    "initialize-shutdown": "transcripts[].steps[].method=initialize|shutdown|exit",
+    "trusted-config": "workspaces[].trusted=true",
+    "untrusted-config": "expected.configExecuted=false",
+    "open-valid": "steps[].method=textDocument/didOpen",
+    "change-invalid": "expected.diagnostics[].code=TOKEN_INVALID_JSON",
+    "recover-valid": "expected.publishedDocumentVersion",
+    "close-overlay": "steps[].method=textDocument/didClose",
+    "diagnostics": "steps[].method=textDocument/publishDiagnostics",
+    "completion": "steps[].method=textDocument/completion",
+    "definition": "steps[].method=textDocument/definition",
+    "references": "steps[].method=textDocument/references",
+    "hover-context": "steps[].method=textDocument/hover",
+    "document-symbols": "steps[].method=textDocument/documentSymbol",
+    "workspace-symbols": "steps[].method=workspace/symbol",
+    "rename-ready": "expected.rename.status=ready",
+    "rename-canonical-collision": "expected.rename.reason=canonical-collision",
+    "rename-backend-collision": "expected.rename.reason=backend-collision",
+    "code-action": "steps[].method=textDocument/codeAction",
+    "stale-edit": "expected.editsPublished=0",
+    "cancellation": "expected.ignoredDocumentVersions",
+    "multi-root": "expected.workspaceIsolation=true",
+    "utf16-crlf": "positionFixtures[].anchors"
+  },
+  "workspaces": [
+    {
+      "id": "alpha",
+      "rootUri": "file:///workspace/alpha",
+      "trusted": true,
+      "configPath": "tokenc.config.ts",
+      "context": { "theme": "dark" },
+      "documents": {
+        "file:///workspace/alpha/tokens.tokens.json": "{\r\n  \"emoji😀\": { \"$type\": \"number\", \"$value\": 1 },\r\n  \"alias\": { \"$type\": \"number\", \"$value\": \"{emoji😀}\" }\r\n}\r\n"
+      }
+    },
+    {
+      "id": "beta",
+      "rootUri": "file:///workspace/beta",
+      "trusted": true,
+      "configPath": "tokenc.config.ts",
+      "context": { "theme": "light" },
+      "documents": {
+        "file:///workspace/beta/tokens.tokens.json": "{\n  \"base\": { \"$type\": \"number\", \"$value\": 2 },\n  \"alias\": { \"$type\": \"number\", \"$value\": \"{base}\" }\n}\n"
+      }
+    },
+    {
+      "id": "untrusted",
+      "rootUri": "file:///workspace/untrusted",
+      "trusted": false,
+      "configPath": "tokenc.config.ts",
+      "context": {},
+      "documents": {}
+    }
+  ],
+  "positionFixtures": [
+    {
+      "id": "unicode-crlf",
+      "workspace": "alpha",
+      "uri": "file:///workspace/alpha/tokens.tokens.json",
+      "anchors": [
+        {
+          "id": "unicode-declaration",
+          "needle": "\"emoji😀\"",
+          "occurrence": 1,
+          "offset": 5,
+          "length": 9,
+          "position": { "line": 1, "character": 2 }
+        },
+        {
+          "id": "alias-declaration",
+          "needle": "\"alias\"",
+          "occurrence": 1,
+          "offset": 55,
+          "length": 7,
+          "position": { "line": 2, "character": 2 }
+        },
+        {
+          "id": "unicode-reference",
+          "needle": "{emoji😀}",
+          "occurrence": 1,
+          "offset": 96,
+          "length": 9,
+          "position": { "line": 2, "character": 43 }
+        }
+      ]
+    }
+  ],
+  "transcripts": [
+    {
+      "id": "lifecycle-trusted",
+      "workspace": "alpha",
+      "categories": ["initialize-shutdown", "trusted-config"],
+      "steps": [
+        {
+          "direction": "client",
+          "id": 1,
+          "method": "initialize",
+          "params": {
+            "workspaceFolders": [{ "uri": "file:///workspace/alpha", "name": "alpha" }],
+            "initializationOptions": { "trusted": true }
+          }
+        },
+        { "direction": "server", "id": 1, "method": "initialize/result" },
+        { "direction": "client", "id": 2, "method": "shutdown" },
+        { "direction": "server", "id": 2, "method": "shutdown/result" },
+        { "direction": "client", "method": "exit" }
+      ],
+      "expected": { "configExecuted": true, "sessionsClosed": 1 }
+    },
+    {
+      "id": "lifecycle-untrusted",
+      "workspace": "untrusted",
+      "categories": ["untrusted-config"],
+      "steps": [
+        {
+          "direction": "client",
+          "id": 1,
+          "method": "initialize",
+          "params": {
+            "workspaceFolders": [{ "uri": "file:///workspace/untrusted", "name": "untrusted" }],
+            "initializationOptions": { "trusted": false }
+          }
+        },
+        { "direction": "server", "id": 1, "method": "initialize/result" }
+      ],
+      "expected": { "configExecuted": false, "capabilitiesAvailable": false }
+    },
+    {
+      "id": "open-valid-diagnostics",
+      "workspace": "alpha",
+      "categories": ["open-valid", "diagnostics"],
+      "steps": [
+        {
+          "direction": "client",
+          "method": "textDocument/didOpen",
+          "params": {
+            "textDocument": {
+              "uri": "file:///workspace/alpha/tokens.tokens.json",
+              "languageId": "json",
+              "version": 1,
+              "textFromWorkspace": true
+            }
+          }
+        },
+        {
+          "direction": "server",
+          "method": "textDocument/publishDiagnostics",
+          "params": {
+            "uri": "file:///workspace/alpha/tokens.tokens.json",
+            "version": 1,
+            "diagnostics": []
+          }
+        }
+      ],
+      "expected": { "publishedDocumentVersion": 1, "snapshotStatus": "valid" }
+    },
+    {
+      "id": "invalid-and-recover",
+      "workspace": "alpha",
+      "categories": ["change-invalid", "recover-valid", "diagnostics"],
+      "steps": [
+        {
+          "direction": "client",
+          "method": "textDocument/didChange",
+          "params": {
+            "textDocument": {
+              "uri": "file:///workspace/alpha/tokens.tokens.json",
+              "version": 2
+            },
+            "contentChanges": [{ "text": "{\r\n  \"emoji😀\":" }]
+          }
+        },
+        {
+          "direction": "server",
+          "method": "textDocument/publishDiagnostics",
+          "params": {
+            "uri": "file:///workspace/alpha/tokens.tokens.json",
+            "version": 2,
+            "diagnostics": [{ "code": "TOKEN_INVALID_JSON" }]
+          }
+        },
+        {
+          "direction": "client",
+          "method": "textDocument/didChange",
+          "params": {
+            "textDocument": {
+              "uri": "file:///workspace/alpha/tokens.tokens.json",
+              "version": 3
+            },
+            "contentChanges": [{ "textFromWorkspace": true }]
+          }
+        },
+        {
+          "direction": "server",
+          "method": "textDocument/publishDiagnostics",
+          "params": {
+            "uri": "file:///workspace/alpha/tokens.tokens.json",
+            "version": 3,
+            "diagnostics": []
+          }
+        }
+      ],
+      "expected": {
+        "publishedDocumentVersion": 3,
+        "snapshotStatus": "valid",
+        "diagnostics": [{ "version": 2, "code": "TOKEN_INVALID_JSON" }]
+      }
+    },
+    {
+      "id": "close-restores-disk",
+      "workspace": "alpha",
+      "categories": ["close-overlay"],
+      "steps": [
+        {
+          "direction": "client",
+          "method": "textDocument/didClose",
+          "params": {
+            "textDocument": { "uri": "file:///workspace/alpha/tokens.tokens.json" }
+          }
+        }
+      ],
+      "expected": { "authority": "filesystem", "overlayDocuments": 0 }
+    },
+    {
+      "id": "completion-and-hover",
+      "workspace": "alpha",
+      "categories": ["completion", "hover-context"],
+      "steps": [
+        {
+          "direction": "client",
+          "id": 10,
+          "method": "textDocument/completion",
+          "params": {
+            "textDocument": { "uri": "file:///workspace/alpha/tokens.tokens.json" },
+            "position": { "line": 2, "character": 58 }
+          }
+        },
+        {
+          "direction": "client",
+          "id": 11,
+          "method": "textDocument/hover",
+          "params": {
+            "textDocument": { "uri": "file:///workspace/alpha/tokens.tokens.json" },
+            "position": { "line": 2, "character": 54 }
+          }
+        }
+      ],
+      "expected": {
+        "completionTargets": ["emoji😀"],
+        "hover": { "token": "emoji😀", "type": "number", "resolvedValue": 1 },
+        "context": { "theme": "dark" }
+      }
+    },
+    {
+      "id": "navigation-and-symbols",
+      "workspace": "alpha",
+      "categories": ["definition", "references", "document-symbols", "workspace-symbols"],
+      "steps": [
+        {
+          "direction": "client",
+          "id": 20,
+          "method": "textDocument/definition",
+          "params": {
+            "textDocument": { "uri": "file:///workspace/alpha/tokens.tokens.json" },
+            "position": { "line": 2, "character": 54 }
+          }
+        },
+        {
+          "direction": "client",
+          "id": 21,
+          "method": "textDocument/references",
+          "params": {
+            "textDocument": { "uri": "file:///workspace/alpha/tokens.tokens.json" },
+            "position": { "line": 1, "character": 4 },
+            "context": { "includeDeclaration": true }
+          }
+        },
+        {
+          "direction": "client",
+          "id": 22,
+          "method": "textDocument/documentSymbol",
+          "params": {
+            "textDocument": { "uri": "file:///workspace/alpha/tokens.tokens.json" }
+          }
+        },
+        {
+          "direction": "client",
+          "id": 23,
+          "method": "workspace/symbol",
+          "params": { "query": "emoji" }
+        }
+      ],
+      "expected": {
+        "definitionTarget": "emoji😀",
+        "referenceRoles": ["declaration", "alias"],
+        "documentSymbols": ["alias", "emoji😀"],
+        "workspaceSymbols": ["emoji😀"]
+      }
+    },
+    {
+      "id": "rename-ready",
+      "workspace": "alpha",
+      "categories": ["rename-ready"],
+      "steps": [
+        {
+          "direction": "client",
+          "id": 30,
+          "method": "textDocument/prepareRename",
+          "params": {
+            "textDocument": { "uri": "file:///workspace/alpha/tokens.tokens.json" },
+            "position": { "line": 1, "character": 4 }
+          }
+        },
+        {
+          "direction": "client",
+          "id": 31,
+          "method": "textDocument/rename",
+          "params": {
+            "textDocument": { "uri": "file:///workspace/alpha/tokens.tokens.json" },
+            "position": { "line": 1, "character": 4 },
+            "newName": "brand.primary"
+          }
+        }
+      ],
+      "expected": {
+        "rename": { "status": "ready", "documents": 1, "edits": 2 },
+        "serverWrites": 0
+      }
+    },
+    {
+      "id": "rename-collisions",
+      "workspace": "beta",
+      "categories": ["rename-canonical-collision", "rename-backend-collision"],
+      "steps": [
+        {
+          "direction": "client",
+          "id": 40,
+          "method": "textDocument/rename",
+          "params": {
+            "textDocument": { "uri": "file:///workspace/beta/tokens.tokens.json" },
+            "position": { "line": 0, "character": 0 },
+            "newName": "base"
+          }
+        },
+        {
+          "direction": "client",
+          "id": 41,
+          "method": "textDocument/rename",
+          "params": {
+            "textDocument": { "uri": "file:///workspace/beta/tokens.tokens.json" },
+            "position": { "line": 0, "character": 0 },
+            "newName": "Base"
+          }
+        }
+      ],
+      "expected": {
+        "rename": {
+          "status": "rejected",
+          "reason": "canonical-collision",
+          "alsoCovered": ["backend-collision"]
+        },
+        "editsPublished": 0,
+        "serverWrites": 0
+      }
+    },
+    {
+      "id": "code-action-current",
+      "workspace": "alpha",
+      "categories": ["code-action"],
+      "steps": [
+        {
+          "direction": "client",
+          "id": 50,
+          "method": "textDocument/codeAction",
+          "params": {
+            "textDocument": { "uri": "file:///workspace/alpha/tokens.tokens.json" },
+            "range": {
+              "start": { "line": 2, "character": 51 },
+              "end": { "line": 2, "character": 60 }
+            }
+          }
+        }
+      ],
+      "expected": { "digestChecked": true, "documentVersionChecked": true }
+    },
+    {
+      "id": "code-action-stale",
+      "workspace": "alpha",
+      "categories": ["stale-edit"],
+      "steps": [
+        {
+          "direction": "client",
+          "id": 51,
+          "method": "textDocument/codeAction",
+          "params": {
+            "textDocument": { "uri": "file:///workspace/alpha/tokens.tokens.json", "version": 1 },
+            "range": {
+              "start": { "line": 2, "character": 51 },
+              "end": { "line": 2, "character": 60 }
+            }
+          }
+        }
+      ],
+      "expected": { "currentDocumentVersion": 3, "editsPublished": 0 }
+    },
+    {
+      "id": "latest-wins-cancellation",
+      "workspace": "alpha",
+      "categories": ["cancellation"],
+      "steps": [
+        {
+          "direction": "client",
+          "method": "textDocument/didChange",
+          "params": {
+            "textDocument": {
+              "uri": "file:///workspace/alpha/tokens.tokens.json",
+              "version": 2
+            },
+            "contentChanges": [{ "text": "{\"obsolete\":" }]
+          }
+        },
+        {
+          "direction": "client",
+          "method": "textDocument/didChange",
+          "params": {
+            "textDocument": {
+              "uri": "file:///workspace/alpha/tokens.tokens.json",
+              "version": 3
+            },
+            "contentChanges": [{ "textFromWorkspace": true }]
+          }
+        }
+      ],
+      "expected": {
+        "ignoredDocumentVersions": [2],
+        "publishedDocumentVersion": 3,
+        "committedSnapshotRevisions": 1
+      }
+    },
+    {
+      "id": "multi-root-isolation",
+      "workspace": "alpha",
+      "categories": ["multi-root"],
+      "steps": [
+        {
+          "direction": "client",
+          "id": 60,
+          "method": "workspace/symbol",
+          "params": { "query": "alias" }
+        }
+      ],
+      "expected": {
+        "workspaceIsolation": true,
+        "alphaResolvedValue": 1,
+        "betaResolvedValue": 2,
+        "crossWorkspaceResults": 0
+      }
+    },
+    {
+      "id": "utf16-crlf-ranges",
+      "workspace": "alpha",
+      "categories": ["utf16-crlf"],
+      "steps": [
+        {
+          "direction": "client",
+          "id": 70,
+          "method": "textDocument/definition",
+          "params": {
+            "textDocument": { "uri": "file:///workspace/alpha/tokens.tokens.json" },
+            "position": { "line": 2, "character": 54 }
+          }
+        }
+      ],
+      "expected": { "positionEncoding": "utf-16", "roundTrips": 3 }
+    }
+  ]
+}

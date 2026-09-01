@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tokenc.dev/schemas/drafts/rename-plan-v1.schema.json",
+  "title": "tokenc Rename Plan v1 draft",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "token",
+    "replacement",
+    "edits",
+    "diagnostics",
+    "backendPreviews"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1" },
+    "status": { "enum": ["ready", "rejected", "unavailable"] },
+    "token": { "type": "string", "minLength": 1 },
+    "replacement": { "type": "string", "minLength": 1 },
+    "edits": { "type": "array", "items": { "$ref": "#/$defs/textEdit" } },
+    "diagnostics": {
+      "type": "array",
+      "description": "Diagnostic v1 values; the production schema will reference Diagnostic v1",
+      "items": { "type": "object" }
+    },
+    "backendPreviews": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/backendPreview" }
+    }
+  },
+  "$defs": {
+    "textEdit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["document", "offset", "length", "newText", "expectedDocumentDigest"],
+      "properties": {
+        "document": { "type": "string", "minLength": 1 },
+        "offset": { "type": "integer", "minimum": 0 },
+        "length": { "type": "integer", "minimum": 0 },
+        "newText": { "type": "string" },
+        "expectedDocumentDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+      }
+    },
+    "backendPreview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["backendId", "beforeSymbols", "afterSymbols", "diagnostics"],
+      "properties": {
+        "backendId": { "type": "string", "minLength": 1 },
+        "beforeSymbols": { "type": "array", "items": { "type": "string" } },
+        "afterSymbols": { "type": "array", "items": { "type": "string" } },
+        "diagnostics": { "type": "array", "items": { "type": "object" } }
+      }
+    }
+  }
+}

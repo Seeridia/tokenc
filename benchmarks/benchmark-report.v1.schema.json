@@ -292,6 +292,11 @@
             "change-intelligence-report-serialization",
             "change-intelligence-unchanged",
             "cold-compile",
+            "editor-cancellation",
+            "editor-cold-start",
+            "editor-high-fan-out",
+            "editor-invalid-recovery",
+            "editor-one-file-update",
             "incremental-update"
           ]
         },
@@ -365,6 +370,7 @@
             "change-intelligence",
             "deep",
             "dtcg-examples",
+            "editor-loop",
             "fan-out",
             "incremental",
             "multidimensional-context",

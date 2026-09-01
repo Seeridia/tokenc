@@ -16,6 +16,7 @@ import {
 } from "@tokenc/core";
 
 import { changeIntelligenceBenchmarkCases } from "./change-intelligence.js";
+import { editorLoopBenchmarkCases } from "./editor-loop.js";
 import type {
   BenchmarkCaseDefinition,
   BenchmarkExpectation,
@@ -758,6 +759,7 @@ export const BENCHMARK_CASES: readonly BenchmarkCaseDefinition[] = [
   ...syntheticCases,
   ...dtcgCases(),
   ...changeIntelligenceBenchmarkCases(fixtureDescriptor),
+  ...editorLoopBenchmarkCases(fixtureDescriptor),
 ];
 
 export function benchmarkCase(id: string): BenchmarkCaseDefinition | undefined {
