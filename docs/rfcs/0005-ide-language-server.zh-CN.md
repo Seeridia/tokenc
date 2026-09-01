@@ -234,12 +234,10 @@ selection、restart/status command 与 packaging。可测试 VSIX 是 M3 artifac
 
 ## Contract 与 protocol corpus
 
-M3-01 将已实现的 editor-symbol contract 提升为公开 schema：
+M3-01 与 M3-02 将已实现的 Core editor contract 提升为公开 schema：
 
 - [`editor-symbol-v1.schema.json`](../../packages/core/schema/editor-symbol-v1.schema.json)
-
-Rename contract 在 M3-02 期间仍是非公开草案：
-[`rename-plan-v1.schema.json`](../schemas/drafts/rename-plan-v1.schema.json)。
+- [`rename-plan-v1.schema.json`](../../packages/core/schema/rename-plan-v1.schema.json)
 
 人工编写的 protocol authority 是
 [`corpus.v1.json`](../../benchmarks/fixtures/editor-protocol/corpus.v1.json)。它覆盖 trusted/untrusted
@@ -247,8 +245,8 @@ initialization、valid open、invalid/recovery edit、overlay close、diagnostic
 Context-aware hover、成功与拒绝 rename、current/stale code action、latest-wins cancellation、multi-root
 isolation，以及 UTF-16/CRLF range。
 
-`EditorSymbolV1` 已在完成实现、schema validation、deterministic test 与 public-contract lock 后成为公开
-契约。Rename shape 在 M3-02 通过同等 Gate 前仍可不承诺兼容地调整。
+`EditorSymbolV1` 与 `RenamePlanV1` 已在完成实现、schema validation、deterministic test 与
+public-contract lock 后成为公开契约。
 
 ## 进入 M3-01 前的 Gate checklist
 
@@ -288,7 +286,7 @@ M3-04 必须依据基线决定需要增加 cooperative Core checkpoint 的位置
 - 锁定含 astral Unicode 的 CRLF 文本之精确 UTF-16 offset/position。
 - 用当前 Core 编译 corpus 中的 valid、invalid 与 recovered text。
 - 执行全部五个 baseline invocation，并在 semantic counter 或 hash 漂移时失败。
-- 验证公开 editor-symbol schema 与 rename schema 草案都是 strict、versioned contract。
+- 验证两份公开 editor schema 都是 strict、versioned contract。
 - M3-01 至 M3-07 必须把每项人工 transcript 转为 Core 或 process-level differential test，不能用捕获的实现
   输出替换 expectation。
 
@@ -309,8 +307,7 @@ M3-04 必须依据基线决定需要增加 cooperative Core checkpoint 的位置
 
 ## 开放问题
 
-Gate 0 与公开 M3-01 editor-symbol contract 没有开放问题。M3-02 导出公共契约前，rename draft 字段只有在
-同步更新本 RFC、中文翻译、draft schema、protocol corpus 与测试时才允许修改。
+Gate 0 与公开 M3-01/M3-02 editor contract 没有开放问题。
 
 ## 明确不做
 

@@ -11,7 +11,7 @@ const editorSymbolSchemaUrl = new URL(
   import.meta.url,
 );
 const renamePlanSchemaUrl = new URL(
-  "../../docs/schemas/drafts/rename-plan-v1.schema.json",
+  "../../packages/core/schema/rename-plan-v1.schema.json",
   import.meta.url,
 );
 
@@ -168,7 +168,7 @@ describe("M3-00 editor-loop evidence", () => {
     }
   }, 20_000);
 
-  it("keeps the public editor and draft rename contracts strict and versioned", async () => {
+  it("keeps both public editor contracts strict and versioned", async () => {
     const schemas = await Promise.all([json(editorSymbolSchemaUrl), json(renamePlanSchemaUrl)]);
     for (const schemaValue of schemas) {
       const schema = record(schemaValue, "editor schema");
@@ -183,8 +183,8 @@ describe("M3-00 editor-loop evidence", () => {
     expect(string(record(schemas[0], "editor schema").$id, "editor schema id")).toBe(
       "https://tokenc.dev/schemas/editor-symbol-v1.schema.json",
     );
-    expect(string(record(schemas[1], "rename schema").$id, "rename schema id")).toContain(
-      "/schemas/drafts/",
+    expect(string(record(schemas[1], "rename schema").$id, "rename schema id")).toBe(
+      "https://tokenc.dev/schemas/rename-plan-v1.schema.json",
     );
   });
 });

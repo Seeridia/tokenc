@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://tokenc.dev/schemas/drafts/rename-plan-v1.schema.json",
-  "title": "tokenc Rename Plan v1 draft",
+  "$id": "https://tokenc.dev/schemas/rename-plan-v1.schema.json",
+  "title": "tokenc Rename Plan v1",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -17,29 +17,35 @@
     "schemaVersion": { "const": "1" },
     "status": { "enum": ["ready", "rejected", "unavailable"] },
     "token": { "type": "string", "minLength": 1 },
-    "replacement": { "type": "string", "minLength": 1 },
+    "replacement": { "type": "string" },
     "edits": { "type": "array", "items": { "$ref": "#/$defs/textEdit" } },
-    "diagnostics": {
-      "type": "array",
-      "description": "Diagnostic v1 values; the production schema will reference Diagnostic v1",
-      "items": { "type": "object" }
-    },
+    "diagnostics": { "type": "array", "items": { "type": "object" } },
     "backendPreviews": {
       "type": "array",
       "items": { "$ref": "#/$defs/backendPreview" }
     }
   },
   "$defs": {
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line", "column", "offset", "length"],
+      "properties": {
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 },
+        "offset": { "type": "integer", "minimum": 0 },
+        "length": { "type": "integer", "minimum": 0 }
+      }
+    },
     "textEdit": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["document", "offset", "length", "newText", "expectedDocumentDigest"],
+      "required": ["document", "range", "newText", "expectedDocumentDigest"],
       "properties": {
         "document": { "type": "string", "minLength": 1 },
-        "offset": { "type": "integer", "minimum": 0 },
-        "length": { "type": "integer", "minimum": 0 },
+        "range": { "$ref": "#/$defs/range" },
         "newText": { "type": "string" },
-        "expectedDocumentDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+        "expectedDocumentDigest": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" }
       }
     },
     "backendPreview": {

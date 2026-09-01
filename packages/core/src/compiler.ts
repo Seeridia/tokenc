@@ -33,6 +33,7 @@ import type {
 import { InternalCompilationQuery, type CompilationQuery } from "./query.js";
 import { TokenResolver } from "./resolver.js";
 import { createCompilerSession } from "./session.js";
+import { registerSnapshotRecompiler } from "./snapshot-editor.js";
 import {
   InvalidCompilationQuery,
   InvalidCompilationSnapshot,
@@ -268,6 +269,7 @@ function snapshotDocuments(documents: readonly ParsedTokenDocument[]): readonly 
   return Object.freeze(
     documents.map((document) =>
       Object.freeze({
+        source: document.source,
         identity: canonicalDocumentIdentity(document.source),
         content: document.content,
         tokenIds: Object.freeze(
@@ -485,23 +487,31 @@ function createSnapshot(
     base.sourceIndex,
   );
   Object.freeze(query);
+  let snapshot: CompilationSnapshot;
   if (!build.compilation.success)
-    return new InvalidCompilationSnapshot({
+    snapshot = new InvalidCompilationSnapshot({
       ...base,
       query: new InvalidCompilationQuery(query, diagnostics),
     });
-  const ir = new CompilationIR({
-    tokens: build.compilation.tokens,
-    sourceTokens: build.graph.tokens,
-    contexts: build.compilation.contexts,
-    availableContexts: build.compilation.availableContexts,
-    ...(build.compilation.resolution
-      ? { resolutionContext: build.compilation.resolution.context }
-      : {}),
-    getToken: (id) => build.graph.getToken(id),
-    resolveToken: (id, context) => resolver.resolve(id, context),
+  else {
+    const ir = new CompilationIR({
+      tokens: build.compilation.tokens,
+      sourceTokens: build.graph.tokens,
+      contexts: build.compilation.contexts,
+      availableContexts: build.compilation.availableContexts,
+      ...(build.compilation.resolution
+        ? { resolutionContext: build.compilation.resolution.context }
+        : {}),
+      getToken: (id) => build.graph.getToken(id),
+      resolveToken: (id, context) => resolver.resolve(id, context),
+    });
+    snapshot = new ValidCompilationSnapshot({ ...base, query, ir });
+  }
+  registerSnapshotRecompiler(snapshot, async (sources) => {
+    const next = await compileDocumentsInternal(sources, options);
+    return createSnapshot(next, options, revision + 1, graphRevision + 1);
   });
-  return new ValidCompilationSnapshot({ ...base, query, ir });
+  return snapshot;
 }
 
 /** @internal Publishes build results with a monotonic snapshot revision sequence. */

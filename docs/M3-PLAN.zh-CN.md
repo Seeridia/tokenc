@@ -234,7 +234,7 @@ M3 不包含：
 
 状态：已完成。Snapshot 现持有不可变且与 transport 无关的 source index；Query 已公开精确 position、
 document-symbol 与 Context-filtered occurrence operation。公开 `EditorSymbolV1` schema 以及
-Unicode/CRLF/invalid-input 证据均已锁定。下一步为 M3-02。
+Unicode/CRLF/invalid-input 证据均已锁定，并已放行 M3-02。
 
 交付：
 
@@ -252,6 +252,10 @@ Unicode/CRLF/invalid-input 证据均已锁定。下一步为 M3-02。
 - 现有 CLI/Query 行为与公共 contract 继续通过。
 
 #### M3-02 — Collision-safe rename planning（P0）
+
+状态：已完成。Core 只有在 virtual recompile、semantic-equivalence check 与可选 Backend preflight
+全部通过后才返回确定且带 digest guard 的 rename plan。Canonical、Unicode、case-folded、reserved、
+invalid、ambiguous 与 Backend collision 路径全部 fail closed。下一步为 M3-03。
 
 交付：
 
@@ -454,6 +458,6 @@ M3-00 RFC/baseline → M3-01 source index ──────┬→ M3-02 rename 
 
 ## 12. 立即执行的下一步
 
-M3-01 已完成。只启动 M3-02：基于单个 immutable Snapshot 构建 collision-safe rename planning，生成带
-digest guard 且互不重叠的 edit，对完整 edit set 执行 virtual recompile，并 preflight configured Backend
-symbol/artifact。Rename-plan contract 接受前，不创建公开 language-server package。
+M3-02 已完成。启动 M3-03：创建公开 language-server package，实现 trusted multi-root workspace
+lifecycle 与 open-buffer precedence，并保持 latest-work revision ordering。Protocol handler 必须消费已接受
+的 Core source-index 与 rename-plan contract，不得自行解析 Token 语义。

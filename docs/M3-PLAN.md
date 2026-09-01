@@ -256,7 +256,7 @@ Acceptance:
 
 Status: complete. Snapshot now owns an immutable, transport-neutral source index; Query exposes
 exact position, document-symbol, and Context-filtered occurrence operations. The public
-`EditorSymbolV1` schema and Unicode/CRLF/invalid-input evidence are locked. M3-02 is next.
+`EditorSymbolV1` schema and Unicode/CRLF/invalid-input evidence are locked; this unblocked M3-02.
 
 Deliver:
 
@@ -275,6 +275,10 @@ Acceptance:
 - Existing CLI/Query behavior and public contracts remain green.
 
 #### M3-02 — Collision-safe rename planning (P0)
+
+Status: complete. Core now returns deterministic, digest-guarded rename plans only after virtual
+recompilation, semantic-equivalence checks, and optional Backend preflight. Canonical, Unicode,
+case-folded, reserved, invalid, ambiguous, and Backend collision paths fail closed. M3-03 is next.
 
 Deliver:
 
@@ -487,7 +491,7 @@ Additional release gates:
 
 ## 12. Immediate next step
 
-M3-01 is complete. Start M3-02 only: build collision-safe rename planning over one immutable
-Snapshot, produce digest-guarded non-overlapping edits, virtual-recompile the complete edit set, and
-preflight configured Backend symbols/artifacts. Do not scaffold the public language-server package
-until the rename-plan contract is accepted.
+M3-02 is complete. Start M3-03: scaffold the public language-server package, implement trusted
+multi-root workspace lifecycle and open-buffer precedence, and preserve latest-work revision
+ordering. Protocol handlers must consume the accepted Core source-index and rename-plan contracts;
+they must not parse token semantics independently.

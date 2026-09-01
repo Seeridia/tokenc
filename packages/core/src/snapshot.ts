@@ -25,6 +25,9 @@ import {
 import type { EditorSourceIndex, EditorSymbolV1 } from "./source-index.js";
 
 export interface SnapshotDocument {
+  /** Exact loader identity used by source locations and editor operations. */
+  readonly source: string;
+  /** Canonical repository-relative identity used by snapshots and reports. */
   readonly identity: string;
   readonly content: string;
   /** Canonical Token IDs owned by this document after linking and inheritance expansion. */

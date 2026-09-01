@@ -417,10 +417,11 @@ annotated-tag 验证；详见
 
 **目标：** 把编译器事实源带入编辑循环。
 
-**状态（2026-09-01）：M3-01 source index 已完成；下一步为 M3-02。** RFC 0005、协议语料、LSP 实现前
-基线与公开且 transport-neutral 的 `EditorSymbolV1` contract 均已接受。本里程碑目标版本线为 `0.6.0`，
-交付公开 `@tokenc/language-server` 与薄、可安装的 VS Code client。契约、workspace、trust、
-cancellation、功能、benchmark 与发布顺序已在 [M3 执行计划](M3-PLAN.zh-CN.md)中固定。
+**状态（2026-09-02）：M3-02 rename planner 已完成；下一步为 M3-03。** 公开且 transport-neutral 的
+`EditorSymbolV1` 与 atomic `RenamePlanV1` contract 已与 RFC 0005、协议语料及 LSP 实现前基线一并接受。
+本里程碑目标版本线为 `0.6.0`，交付公开 `@tokenc/language-server` 与薄、可安装的 VS Code client。
+契约、workspace、trust、cancellation、功能、benchmark 与发布顺序已在
+[M3 执行计划](M3-PLAN.zh-CN.md)中固定。
 
 交付物：
 

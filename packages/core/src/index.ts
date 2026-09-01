@@ -19,6 +19,7 @@ export type {
   QueryRegion,
 } from "./query.js";
 export type { EditorSourceIndex, EditorSymbolRole, EditorSymbolV1 } from "./source-index.js";
+export * from "./rename.js";
 export * from "./snapshot.js";
 export * from "./snapshot-diff.js";
 export * from "./breaking-policy.js";

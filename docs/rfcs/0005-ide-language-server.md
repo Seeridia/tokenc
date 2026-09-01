@@ -259,12 +259,10 @@ but marketplace publication is not required for closure.
 
 ## Contracts and protocol corpus
 
-M3-01 promotes the implemented editor-symbol contract to:
+M3-01 and M3-02 promote the implemented Core editor contracts to:
 
 - [`editor-symbol-v1.schema.json`](../../packages/core/schema/editor-symbol-v1.schema.json)
-
-The rename contract remains a non-public M3-02 draft at
-[`rename-plan-v1.schema.json`](../schemas/drafts/rename-plan-v1.schema.json).
+- [`rename-plan-v1.schema.json`](../../packages/core/schema/rename-plan-v1.schema.json)
 
 The authored protocol authority is
 [`corpus.v1.json`](../../benchmarks/fixtures/editor-protocol/corpus.v1.json). It covers trusted and
@@ -272,9 +270,8 @@ untrusted initialization, valid open, invalid/recovery edits, overlay close, dia
 completion, navigation, symbols, Context-aware hover, successful and rejected rename, current and
 stale code actions, latest-wins cancellation, multi-root isolation, and UTF-16/CRLF ranges.
 
-`EditorSymbolV1` is public after implementation, schema validation, deterministic tests, and
-public-contract locking. The rename shape may still change during M3-02 without compatibility
-promises until it passes the same gates.
+`EditorSymbolV1` and `RenamePlanV1` are public after implementation, schema validation,
+deterministic tests, and public-contract locking.
 
 ## Gate checklist before M3-01
 
@@ -316,7 +313,7 @@ checkpoints are necessary.
 - Lock exact UTF-16 offsets and positions for CRLF text containing astral Unicode.
 - Compile the corpus's valid, invalid, and recovered text with current Core.
 - Run all five baseline invocations and fail on semantic counter or hash drift.
-- Validate the public editor-symbol schema and draft rename schema as strict versioned contracts.
+- Validate both public editor schemas as strict versioned contracts.
 - In M3-01 through M3-07, turn each authored transcript into a Core or process-level differential
   test rather than replacing the expectation with captured output.
 
@@ -339,9 +336,7 @@ checkpoints are necessary.
 
 ## Open questions
 
-None for Gate 0 or the public M3-01 editor-symbol contract. Rename draft fields may change only by
-updating this RFC, its Chinese translation, the draft schema, protocol corpus, and tests together
-before M3-02 exports a public contract.
+None for Gate 0 or the public M3-01/M3-02 editor contracts.
 
 ## Explicit non-goals
 

@@ -15,6 +15,7 @@ describe("M1 public API boundary", () => {
     expect(core.planResolverPermutations).toBeTypeOf("function");
     expect(core.compileResolverPermutations).toBeTypeOf("function");
     expect(core.compareResolverPermutations).toBeTypeOf("function");
+    expect(core.planTokenRename).toBeTypeOf("function");
   });
 
   it("does not export mutable Graph, Resolver, checker, or builder bypasses", () => {
@@ -36,6 +37,7 @@ describe("M1 public API boundary", () => {
         "./editor-symbol-v1.schema.json": "./schema/editor-symbol-v1.schema.json",
         "./explain-trace-v1.schema.json": "./schema/explain-trace-v1.schema.json",
         "./impact-report-v1.schema.json": "./schema/impact-report-v1.schema.json",
+        "./rename-plan-v1.schema.json": "./schema/rename-plan-v1.schema.json",
         "./snapshot-diff-v1.schema.json": "./schema/snapshot-diff-v1.schema.json",
       },
     });

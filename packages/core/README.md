@@ -36,6 +36,13 @@ component-reference, and group-inheritance spans without introducing editor prot
 `EditorSymbolV1` is published as `@tokenc/core/editor-symbol-v1.schema.json`; offsets and lengths are
 UTF-16 code units over the exact snapshot document content.
 
+`planTokenRename(snapshot, token, replacement, { backends? })` produces an immutable all-or-nothing
+`RenamePlanV1`. Ready plans contain non-overlapping edits guarded by the exact document digest only
+after an in-memory recompile preserves values and dependency topology and every supplied Backend
+passes `prepare()`. Invalid snapshots, ambiguous declarations, unsupported moves, canonical/Unicode/
+case-folded collisions, and Backend symbol or artifact failures expose no edits. The schema is
+published as `@tokenc/core/rename-plan-v1.schema.json`.
+
 Context-aware cycle checking projects only the dimensions relevant to each cyclic candidate region.
 It computes the projection size before enumeration and enforces the exported
 `CONTEXT_CYCLE_PROJECTION_LIMIT` of 16,384 contexts per region. Larger projections fail with a
