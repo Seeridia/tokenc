@@ -33,6 +33,7 @@ describe("M1 public API boundary", () => {
       exports: {
         "./breaking-policy-v1.schema.json": "./schema/breaking-policy-v1.schema.json",
         "./diagnostic-v1.schema.json": "./schema/diagnostic-v1.schema.json",
+        "./editor-symbol-v1.schema.json": "./schema/editor-symbol-v1.schema.json",
         "./explain-trace-v1.schema.json": "./schema/explain-trace-v1.schema.json",
         "./impact-report-v1.schema.json": "./schema/impact-report-v1.schema.json",
         "./snapshot-diff-v1.schema.json": "./schema/snapshot-diff-v1.schema.json",

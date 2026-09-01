@@ -18,6 +18,15 @@ import {
   type ContextPredicate,
 } from "./predicate.js";
 import type { TokenResolver } from "./resolver.js";
+import type { EditorSourceIndex, EditorSymbolV1 } from "./source-index.js";
+
+const EMPTY_EDITOR_SYMBOLS: readonly EditorSymbolV1[] = Object.freeze([]);
+const EMPTY_EDITOR_SOURCE_INDEX: EditorSourceIndex = Object.freeze({
+  all: () => EMPTY_EDITOR_SYMBOLS,
+  at: () => undefined,
+  declarations: () => EMPTY_EDITOR_SYMBOLS,
+  occurrences: () => EMPTY_EDITOR_SYMBOLS,
+});
 
 export type QueryRegion =
   | { readonly context: CompilationContext; readonly predicate?: never }
@@ -87,6 +96,9 @@ export interface CompilationQuery {
   token(id: TokenId): TokenNode | undefined;
   definition(id: TokenId): SourceLocation | undefined;
   tokenAt(document: string, offset: number): TokenNode | undefined;
+  symbolAt(document: string, offset: number): EditorSymbolV1 | undefined;
+  documentSymbols(document: string): readonly EditorSymbolV1[];
+  occurrences(id: TokenId, region?: QueryRegion): readonly EditorSymbolV1[];
   completions(prefix?: string): readonly TokenId[];
   dependencies(id: TokenId, region?: QueryRegion): readonly QueryEdgeV1[];
   usages(id: TokenId, region?: QueryRegion): readonly QueryEdgeV1[];
@@ -101,10 +113,17 @@ export class InternalCompilationQuery implements CompilationQuery {
   readonly #graph: TokenGraph;
   readonly #resolver: TokenResolver;
   readonly #resolution: ResolverResolution | undefined;
+  readonly #sourceIndex: EditorSourceIndex;
 
-  constructor(graph: TokenGraph, resolver: TokenResolver, resolution?: ResolverResolution) {
+  constructor(
+    graph: TokenGraph,
+    resolver: TokenResolver,
+    resolution?: ResolverResolution,
+    sourceIndex: EditorSourceIndex = EMPTY_EDITOR_SOURCE_INDEX,
+  ) {
     this.#graph = graph;
     this.#resolver = resolver;
+    this.#sourceIndex = sourceIndex;
     this.#resolution = resolution;
   }
 
@@ -122,7 +141,7 @@ export class InternalCompilationQuery implements CompilationQuery {
   }
 
   definition(id: TokenId): SourceLocation | undefined {
-    return this.#graph.getToken(id)?.source;
+    return this.#graph.getToken(id)?.declaration;
   }
 
   tokenAt(document: string, offset: number): TokenNode | undefined {
@@ -130,12 +149,35 @@ export class InternalCompilationQuery implements CompilationQuery {
       .filter(
         (token) =>
           token.source.file === document &&
-          offset >= token.source.offset &&
-          offset < token.source.offset + token.source.length,
+          ((offset >= token.source.offset && offset < token.source.offset + token.source.length) ||
+            (offset >= token.declaration.offset &&
+              offset < token.declaration.offset + token.declaration.length)),
       )
       .toSorted(
         (left, right) => left.source.length - right.source.length || compareIds(left.id, right.id),
       )[0];
+  }
+
+  symbolAt(document: string, offset: number): EditorSymbolV1 | undefined {
+    return this.#sourceIndex.at(document, offset);
+  }
+
+  documentSymbols(document: string): readonly EditorSymbolV1[] {
+    return this.#sourceIndex.declarations(document);
+  }
+
+  occurrences(id: TokenId, region: QueryRegion = {}): readonly EditorSymbolV1[] {
+    const scope = this.#regionPredicate(region);
+    return Object.freeze(
+      this.#sourceIndex.occurrences(id).flatMap((symbol) => {
+        if (!symbol.condition) return [symbol];
+        const intersection = intersectContextPredicates(symbol.condition, scope);
+        if (!intersection.ok) throw new RangeError(intersection.error.message);
+        return isContextPredicateSatisfiable(intersection.value)
+          ? [deepFreeze({ ...symbol, condition: structuredClone(intersection.value) })]
+          : [];
+      }),
+    );
   }
 
   completions(prefix = ""): readonly TokenId[] {

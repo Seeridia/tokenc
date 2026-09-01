@@ -40,6 +40,7 @@ import {
   type CompilationSnapshot,
   type SnapshotDocument,
 } from "./snapshot.js";
+import { InternalEditorSourceIndex } from "./source-index.js";
 
 export interface CompilerConfig {
   readonly source: readonly string[];
@@ -474,9 +475,15 @@ function createSnapshot(
     documents,
     diagnostics,
     stats: deepFreeze(structuredClone(build.stats)),
+    sourceIndex: new InternalEditorSourceIndex(build.documents, build.graph),
   };
   const resolver = build.compilation.resolver;
-  const query = new InternalCompilationQuery(build.graph, resolver, build.compilation.resolution);
+  const query = new InternalCompilationQuery(
+    build.graph,
+    resolver,
+    build.compilation.resolution,
+    base.sourceIndex,
+  );
   Object.freeze(query);
   if (!build.compilation.success)
     return new InvalidCompilationSnapshot({

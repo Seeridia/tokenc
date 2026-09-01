@@ -18,6 +18,8 @@ export function parseTokenDocument(
     linkTokenDocuments([unresolved])[0] ?? {
       source,
       content,
+      declarations: unresolved.declarations,
+      inheritances: [],
       tokens: [],
       diagnostics: unresolved.diagnostics,
     }

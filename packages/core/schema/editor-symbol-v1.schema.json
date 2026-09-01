@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://tokenc.dev/schemas/drafts/editor-symbol-v1.schema.json",
-  "title": "tokenc Editor Symbol v1 draft",
+  "$id": "https://tokenc.dev/schemas/editor-symbol-v1.schema.json",
+  "title": "tokenc Editor Symbol v1",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "role", "owner", "target", "source", "fieldPath"],

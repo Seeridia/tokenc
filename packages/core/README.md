@@ -24,10 +24,17 @@ and validated fixes; the published JSON Schema is exported as
 `@tokenc/core/explain-trace-v1.schema.json`. Core performs no terminal output, process termination,
 or artifact writes.
 
-Consumer queries use `snapshot.query`: `token`, `definition`, `tokenAt`, `completions`, `resolve`,
-`dependencies`, `usages`, `impact`, `graph`, and `explain`. Conditional queries accept a concrete
-Context or a `ContextPredicate`; unscoped results retain their exact conditions. `explain` returns
-the versioned `ExplainTraceV1` structure.
+Consumer queries use `snapshot.query`: `token`, `definition`, `tokenAt`, `symbolAt`,
+`documentSymbols`, `occurrences`, `completions`, `resolve`, `dependencies`, `usages`, `impact`,
+`graph`, and `explain`. Conditional queries accept a concrete Context or a `ContextPredicate`;
+unscoped results retain their exact conditions. `explain` returns the versioned `ExplainTraceV1`
+structure.
+
+Every valid or invalid snapshot owns an immutable `sourceIndex`. It preserves syntax-proven token
+declarations during incomplete JSON edits and records exact declaration, curly-alias, JSON Pointer,
+component-reference, and group-inheritance spans without introducing editor protocol types.
+`EditorSymbolV1` is published as `@tokenc/core/editor-symbol-v1.schema.json`; offsets and lengths are
+UTF-16 code units over the exact snapshot document content.
 
 Context-aware cycle checking projects only the dimensions relevant to each cyclic candidate region.
 It computes the projection size before enumeration and enforces the exported

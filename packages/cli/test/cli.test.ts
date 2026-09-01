@@ -179,7 +179,7 @@ describe("tokenc CLI", () => {
                 {
                   physicalLocation: {
                     artifactLocation: { uri: "tokens.json" },
-                    region: { startLine: 14, startColumn: 26 },
+                    region: { startLine: 14, startColumn: 27 },
                   },
                 },
               ],

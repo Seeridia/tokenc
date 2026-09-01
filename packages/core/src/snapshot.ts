@@ -22,6 +22,7 @@ import {
   type QueryEdgeV1,
   type QueryRegion,
 } from "./query.js";
+import type { EditorSourceIndex, EditorSymbolV1 } from "./source-index.js";
 
 export interface SnapshotDocument {
   readonly identity: string;
@@ -57,6 +58,18 @@ export class InvalidCompilationQuery {
 
   tokenAt(document: string, offset: number): TokenNode | undefined {
     return this.#query.tokenAt(document, offset);
+  }
+
+  symbolAt(document: string, offset: number): EditorSymbolV1 | undefined {
+    return this.#query.symbolAt(document, offset);
+  }
+
+  documentSymbols(document: string): readonly EditorSymbolV1[] {
+    return this.#query.documentSymbols(document);
+  }
+
+  occurrences(id: TokenId, region: QueryRegion = {}): readonly EditorSymbolV1[] {
+    return this.#query.occurrences(id, region);
   }
 
   completions(prefix = ""): readonly TokenId[] {
@@ -100,6 +113,7 @@ export interface SnapshotBase {
   readonly documents: readonly SnapshotDocument[];
   readonly diagnostics: readonly Diagnostic[];
   readonly stats: CompilationStats;
+  readonly sourceIndex: EditorSourceIndex;
 }
 
 interface ValidSnapshotInit extends SnapshotBase {
@@ -120,6 +134,7 @@ export class ValidCompilationSnapshot implements SnapshotBase {
   readonly documents: readonly SnapshotDocument[];
   readonly diagnostics: readonly Diagnostic[];
   readonly stats: CompilationStats;
+  readonly sourceIndex: EditorSourceIndex;
   readonly query: CompilationQuery;
   readonly ir: CompilationIR;
 
@@ -131,6 +146,7 @@ export class ValidCompilationSnapshot implements SnapshotBase {
     this.documents = init.documents;
     this.diagnostics = init.diagnostics;
     this.stats = init.stats;
+    this.sourceIndex = init.sourceIndex;
     this.query = init.query;
     this.ir = init.ir;
     Object.freeze(this);
@@ -155,6 +171,7 @@ export class InvalidCompilationSnapshot implements SnapshotBase {
   readonly documents: readonly SnapshotDocument[];
   readonly diagnostics: readonly Diagnostic[];
   readonly stats: CompilationStats;
+  readonly sourceIndex: EditorSourceIndex;
   readonly query: InvalidCompilationQuery;
 
   constructor(init: InvalidSnapshotInit) {
@@ -165,6 +182,7 @@ export class InvalidCompilationSnapshot implements SnapshotBase {
     this.documents = init.documents;
     this.diagnostics = init.diagnostics;
     this.stats = init.stats;
+    this.sourceIndex = init.sourceIndex;
     this.query = init.query;
     Object.freeze(this);
   }

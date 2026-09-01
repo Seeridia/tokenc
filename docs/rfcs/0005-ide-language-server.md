@@ -257,12 +257,14 @@ The VS Code extension contains activation, server launch, Workspace Trust, confi
 Context selection, restart/status commands, and packaging only. Its testable VSIX is an M3 artifact,
 but marketplace publication is not required for closure.
 
-## Draft contracts and protocol corpus
+## Contracts and protocol corpus
 
-M3-00 stores non-public draft schemas at:
+M3-01 promotes the implemented editor-symbol contract to:
 
-- [`editor-symbol-v1.schema.json`](../schemas/drafts/editor-symbol-v1.schema.json)
-- [`rename-plan-v1.schema.json`](../schemas/drafts/rename-plan-v1.schema.json)
+- [`editor-symbol-v1.schema.json`](../../packages/core/schema/editor-symbol-v1.schema.json)
+
+The rename contract remains a non-public M3-02 draft at
+[`rename-plan-v1.schema.json`](../schemas/drafts/rename-plan-v1.schema.json).
 
 The authored protocol authority is
 [`corpus.v1.json`](../../benchmarks/fixtures/editor-protocol/corpus.v1.json). It covers trusted and
@@ -270,8 +272,9 @@ untrusted initialization, valid open, invalid/recovery edits, overlay close, dia
 completion, navigation, symbols, Context-aware hover, successful and rejected rename, current and
 stale code actions, latest-wins cancellation, multi-root isolation, and UTF-16/CRLF ranges.
 
-These shapes may change during M3-01/M3-02 without compatibility promises. They become public only
-after implementation, schema validation, deterministic tests, and public-contract locking.
+`EditorSymbolV1` is public after implementation, schema validation, deterministic tests, and
+public-contract locking. The rename shape may still change during M3-02 without compatibility
+promises until it passes the same gates.
 
 ## Gate checklist before M3-01
 
@@ -313,7 +316,7 @@ checkpoints are necessary.
 - Lock exact UTF-16 offsets and positions for CRLF text containing astral Unicode.
 - Compile the corpus's valid, invalid, and recovered text with current Core.
 - Run all five baseline invocations and fail on semantic counter or hash drift.
-- Validate both draft schemas as strict versioned top-level contracts.
+- Validate the public editor-symbol schema and draft rename schema as strict versioned contracts.
 - In M3-01 through M3-07, turn each authored transcript into a Core or process-level differential
   test rather than replacing the expectation with captured output.
 
@@ -336,8 +339,9 @@ checkpoints are necessary.
 
 ## Open questions
 
-None for Gate 0. Draft field spelling may change only by updating this RFC, its Chinese translation,
-both draft schemas, the protocol corpus, and tests together before M3-01 exports a public contract.
+None for Gate 0 or the public M3-01 editor-symbol contract. Rename draft fields may change only by
+updating this RFC, its Chinese translation, the draft schema, protocol corpus, and tests together
+before M3-02 exports a public contract.
 
 ## Explicit non-goals
 

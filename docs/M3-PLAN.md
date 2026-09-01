@@ -230,7 +230,7 @@ M3 excludes:
 #### M3-00 — IDE RFC, protocol corpus, and baseline (P0)
 
 Status: complete. See [RFC 0005](rfcs/0005-ide-language-server.md) and the
-[M3-00 edit-loop baseline](M3-00-BASELINE.md). Gate 0 is accepted; M3-01 is next.
+[M3-00 edit-loop baseline](M3-00-BASELINE.md). Gate 0 is accepted and unblocked M3-01.
 
 Deliver:
 
@@ -253,6 +253,10 @@ Acceptance:
 ### Wave 1: Core editor contracts
 
 #### M3-01 — Source index and editor Query vertical slice (P0)
+
+Status: complete. Snapshot now owns an immutable, transport-neutral source index; Query exposes
+exact position, document-symbol, and Context-filtered occurrence operations. The public
+`EditorSymbolV1` schema and Unicode/CRLF/invalid-input evidence are locked. M3-02 is next.
 
 Deliver:
 
@@ -483,7 +487,7 @@ Additional release gates:
 
 ## 12. Immediate next step
 
-M3-00 is complete. Start M3-01 only: preserve source spans and roles in an immutable Snapshot-owned
-index, expose transport-neutral editor Query operations, and turn the accepted Unicode/CRLF and
-invalid-input corpus into exact Core evidence. Do not scaffold the public language-server package
-until the M3-01 source-index contract is accepted.
+M3-01 is complete. Start M3-02 only: build collision-safe rename planning over one immutable
+Snapshot, produce digest-guarded non-overlapping edits, virtual-recompile the complete edit set, and
+preflight configured Backend symbols/artifacts. Do not scaffold the public language-server package
+until the rename-plan contract is accepted.

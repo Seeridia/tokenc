@@ -22,10 +22,12 @@ import type {
   DependencyKind,
   DependencyOccurrence,
   Diagnostic,
+  GroupInheritance,
   JsonValue,
   ParsedTokenDocument,
   SourceLocation,
   TokenExpression,
+  TokenDeclaration,
   TokenId,
   TokenInheritance,
   TokenLiteral,
@@ -94,6 +96,7 @@ interface UnresolvedToken {
   readonly deprecated?: boolean | string;
   readonly extensions?: Readonly<Record<string, JsonValue>>;
   readonly overrides: readonly RawOverride[];
+  readonly declaration: SourceLocation;
   readonly source: SourceLocation;
   readonly inheritance?: TokenInheritance;
 }
@@ -118,6 +121,7 @@ export interface UnresolvedTokenDocument {
   readonly source: string;
   readonly content: string;
   readonly rootValue: JsonValue;
+  readonly declarations: readonly TokenDeclaration[];
   root?: UnresolvedGroup;
   readonly tokens: readonly UnresolvedToken[];
   readonly groups: readonly UnresolvedGroup[];
@@ -189,6 +193,30 @@ function findProperty(node: Node | undefined, name: string): Node | undefined {
   return properties(node).find((property) => propertyName(property) === name);
 }
 
+function scanTokenDeclarations(root: Node, locator: Locator): readonly TokenDeclaration[] {
+  const declarations: TokenDeclaration[] = [];
+  const visit = (node: Node, path: readonly string[]): void => {
+    for (const property of properties(node)) {
+      const name = propertyName(property);
+      if (name.startsWith("$") && name !== "$root") continue;
+      if (!isValidTokenSegment(name)) continue;
+      const value = propertyValue(property);
+      if (value?.type !== "object") continue;
+      const nextPath = [...path, name];
+      if (findProperty(value, "$value") || findProperty(value, "$ref")) {
+        const key = property.children?.[0];
+        if (key)
+          declarations.push({
+            id: tokenIdFromSegments(nextPath),
+            source: locator.at(key.offset, key.length),
+          });
+      } else visit(value, nextPath);
+    }
+  };
+  visit(root, []);
+  return declarations;
+}
+
 function isJsonValue(value: unknown): value is JsonValue {
   if (value === null || ["string", "number", "boolean"].includes(typeof value)) return true;
   if (Array.isArray(value)) return value.every(isJsonValue);
@@ -207,7 +235,12 @@ function valueLocations(
   path: readonly (string | number)[] = [],
   result = new Map<string, SourceLocation>(),
 ): ReadonlyMap<string, SourceLocation> {
-  result.set(JSON.stringify(path), locator.at(node.offset, node.length));
+  result.set(
+    JSON.stringify(path),
+    node.type === "string"
+      ? locator.at(node.offset + 1, Math.max(1, node.length - 2))
+      : locator.at(node.offset, node.length),
+  );
   if (node.type === "array") {
     for (const [index, child] of (node.children ?? []).entries())
       valueLocations(child, locator, [...path, index], result);
@@ -227,7 +260,10 @@ function expressionFromValue(node: Node, locator: Locator): RawExpression | unde
     : {
         kind: "value",
         value,
-        source: locator.at(node.offset, node.length),
+        source:
+          node.type === "string"
+            ? locator.at(node.offset + 1, Math.max(1, node.length - 2))
+            : locator.at(node.offset, node.length),
         locations: valueLocations(node, locator),
       };
 }
@@ -237,7 +273,7 @@ function expressionFromPointer(node: Node, locator: Locator): RawExpression | un
     ? {
         kind: "pointer",
         reference: node.value,
-        source: locator.at(node.offset, node.length),
+        source: locator.at(node.offset + 1, Math.max(1, node.length - 2)),
       }
     : undefined;
 }
@@ -370,6 +406,7 @@ export function parseUnresolvedTokenDocument(
     allowTrailingComma: false,
     disallowComments: true,
   });
+  const declarations = rootNode?.type === "object" ? scanTokenDeclarations(rootNode, locator) : [];
   const diagnostics = new DiagnosticBag();
   diagnostics.push(
     ...parseErrors.map((error) => ({
@@ -386,6 +423,7 @@ export function parseUnresolvedTokenDocument(
       source,
       content,
       rootValue: {},
+      declarations,
       tokens: [],
       groups: [],
       diagnostics,
@@ -429,7 +467,7 @@ export function parseUnresolvedTokenDocument(
       if (typeof extendsValue?.value === "string")
         extension = {
           reference: extendsValue.value,
-          source: locator.at(extendsValue.offset, extendsValue.length),
+          source: locator.at(extendsValue.offset + 1, Math.max(1, extendsValue.length - 2)),
         };
       else
         diagnostics.push({
@@ -564,6 +602,10 @@ export function parseUnresolvedTokenDocument(
           expression,
           ...tokenMetadata,
           overrides: readOverrides(child, tokenMetadata.extensions, locator, diagnostics),
+          declaration: locator.at(
+            childEntry.property?.children?.[0]?.offset ?? child.offset,
+            childEntry.property?.children?.[0]?.length ?? child.length,
+          ),
           source: locator.at(child.offset, child.length),
         };
         group.tokens.push(token);
@@ -599,6 +641,7 @@ export function parseUnresolvedTokenDocument(
     source,
     content,
     rootValue: rootValue ?? {},
+    declarations,
     tokens,
     groups,
     diagnostics,
@@ -1481,6 +1524,7 @@ export function linkTokenDocuments(
       baseCandidate,
       value: base.expression,
       overrides,
+      declaration: token.declaration,
       source: token.source,
       dependencyOccurrences,
       ...(token.description ? { description: token.description } : {}),
@@ -1493,9 +1537,23 @@ export function linkTokenDocuments(
 
   const batch = [...documents];
   return documents.map((document) => {
+    const inheritances: GroupInheritance[] = document.groups.flatMap((group) => {
+      if (!group.extension || group.path.length === 0) return [];
+      const target = extensionTarget(group);
+      if (!target || target.path.length === 0) return [];
+      return [
+        {
+          owner: tokenIdFromSegments(group.path),
+          target: tokenIdFromSegments(target.path),
+          source: group.extension.source,
+        },
+      ];
+    });
     const parsed: ParsedTokenDocument = {
       source: document.source,
       content: document.content,
+      declarations: document.declarations,
+      inheritances,
       tokens: parsedByDocument.get(document) ?? [],
       diagnostics: diagnosticsByDocument.get(document) ?? [],
     };

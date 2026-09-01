@@ -209,7 +209,7 @@ M3 不包含：
 #### M3-00 — IDE RFC、协议语料与基线（P0）
 
 状态：已完成。证据见 [RFC 0005](rfcs/0005-ide-language-server.zh-CN.md) 与
-[M3-00 编辑循环基线](M3-00-BASELINE.zh-CN.md)。Gate 0 已接受；下一步为 M3-01。
+[M3-00 编辑循环基线](M3-00-BASELINE.zh-CN.md)。Gate 0 已接受并放行 M3-01。
 
 交付：
 
@@ -231,6 +231,10 @@ M3 不包含：
 ### Wave 1：Core 编辑器契约
 
 #### M3-01 — Source index 与 editor Query 垂直切片（P0）
+
+状态：已完成。Snapshot 现持有不可变且与 transport 无关的 source index；Query 已公开精确 position、
+document-symbol 与 Context-filtered occurrence operation。公开 `EditorSymbolV1` schema 以及
+Unicode/CRLF/invalid-input 证据均已锁定。下一步为 M3-02。
 
 交付：
 
@@ -450,6 +454,6 @@ M3-00 RFC/baseline → M3-01 source index ──────┬→ M3-02 rename 
 
 ## 12. 立即执行的下一步
 
-M3-00 已完成。只启动 M3-01：在 Snapshot-owned immutable index 中保留 source span 与 role，公开与
-transport 无关的 editor Query operation，并把已接受的 Unicode/CRLF 与 invalid-input 语料转化为精确 Core
-证据。M3-01 source-index contract 接受前，不创建公开 language-server package。
+M3-01 已完成。只启动 M3-02：基于单个 immutable Snapshot 构建 collision-safe rename planning，生成带
+digest guard 且互不重叠的 edit，对完整 edit set 执行 virtual recompile，并 preflight configured Backend
+symbol/artifact。Rename-plan contract 接受前，不创建公开 language-server package。

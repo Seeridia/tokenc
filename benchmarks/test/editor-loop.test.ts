@@ -7,7 +7,7 @@ import { BENCHMARK_CASES } from "../fixtures.js";
 
 const corpusUrl = new URL("../fixtures/editor-protocol/corpus.v1.json", import.meta.url);
 const editorSymbolSchemaUrl = new URL(
-  "../../docs/schemas/drafts/editor-symbol-v1.schema.json",
+  "../../packages/core/schema/editor-symbol-v1.schema.json",
   import.meta.url,
 );
 const renamePlanSchemaUrl = new URL(
@@ -168,18 +168,23 @@ describe("M3-00 editor-loop evidence", () => {
     }
   }, 20_000);
 
-  it("keeps both draft editor contracts strict and versioned", async () => {
+  it("keeps the public editor and draft rename contracts strict and versioned", async () => {
     const schemas = await Promise.all([json(editorSymbolSchemaUrl), json(renamePlanSchemaUrl)]);
     for (const schemaValue of schemas) {
-      const schema = record(schemaValue, "draft schema");
+      const schema = record(schemaValue, "editor schema");
       expect(schema).toMatchObject({
         $schema: "https://json-schema.org/draft/2020-12/schema",
         type: "object",
         additionalProperties: false,
       });
-      expect(string(schema.$id, "schema id")).toContain("/schemas/drafts/");
       expect(strings(schema.required, "schema required")).toContain("schemaVersion");
       expect(record(schema.properties, "schema properties").schemaVersion).toEqual({ const: "1" });
     }
+    expect(string(record(schemas[0], "editor schema").$id, "editor schema id")).toBe(
+      "https://tokenc.dev/schemas/editor-symbol-v1.schema.json",
+    );
+    expect(string(record(schemas[1], "rename schema").$id, "rename schema id")).toContain(
+      "/schemas/drafts/",
+    );
   });
 });

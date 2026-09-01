@@ -205,6 +205,19 @@ export interface TokenInheritance {
   readonly extendsSource: SourceLocation;
 }
 
+/** Syntax-proven canonical token declaration retained independently of semantic validity. */
+export interface TokenDeclaration {
+  readonly id: TokenId;
+  readonly source: SourceLocation;
+}
+
+/** One syntax-level group inheritance spelling before member materialization. */
+export interface GroupInheritance {
+  readonly owner: TokenId;
+  readonly target: TokenId;
+  readonly source: SourceLocation;
+}
+
 export type CompilationContext = Readonly<Record<string, string>>;
 
 export interface ContextOverride<T extends TokenType = TokenType> {
@@ -230,6 +243,8 @@ export interface TokenNode<T extends TokenType = TokenType> {
   readonly deprecated?: boolean | string;
   readonly extensions?: Readonly<Record<string, JsonValue>>;
   readonly overrides: readonly ContextOverride<T>[];
+  /** Exact JSON property-key span that declares this token. */
+  readonly declaration: SourceLocation;
   readonly source: SourceLocation;
   readonly dependencyOccurrences: readonly DependencyOccurrence[];
   readonly inheritance?: TokenInheritance;
@@ -252,6 +267,8 @@ export interface DependencyOccurrence {
 export interface ParsedTokenDocument {
   readonly source: string;
   readonly content: string;
+  readonly declarations: readonly TokenDeclaration[];
+  readonly inheritances: readonly GroupInheritance[];
   readonly tokens: readonly TokenNode[];
   readonly diagnostics: readonly Diagnostic[];
 }
