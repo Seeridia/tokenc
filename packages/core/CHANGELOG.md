@@ -1,5 +1,18 @@
 # @tokenc/core
 
+## 0.6.0
+
+### Minor Changes
+
+- 5d7fadc: Index syntax-proven group declarations so inheritance references resolve to canonical source ranges.
+  Add current-snapshot LSP definition, references, document-symbol, and workspace-symbol handlers with
+  exact UTF-16 locations, canonical hierarchy, deterministic ordering, invalid-input safety, and
+  removed-document clearing.
+- b4a18f6: Add an immutable Snapshot-owned editor source index with exact declaration and reference occurrences,
+  position lookup, document symbols, Context-filtered occurrence queries, and the public Editor Symbol
+  v1 schema. Add atomic rename planning with digest-guarded edits, virtual recompilation, semantic
+  equivalence checks, Backend preflight previews, and the public Rename Plan v1 schema.
+
 ## 0.5.0
 
 ### Minor Changes
