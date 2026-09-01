@@ -45,7 +45,7 @@ jobs:
       - name: Build packages and example
         run: vp run -r build
 
-      - name: Verify M1 public contracts
+      - name: Verify public contracts
         run: vp run check:contracts
 
       - name: Run tests
@@ -53,6 +53,9 @@ jobs:
 
       - name: Enforce stable M1 performance budgets
         run: vp run bench:gate
+
+      - name: Enforce stable M2 performance budgets
+        run: vp run bench:m2:gate
 
       - name: Verify packed release candidate
         env:

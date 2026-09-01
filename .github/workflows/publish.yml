@@ -72,6 +72,7 @@ jobs:
           vp run check:contracts
           vp test --run
           vp run bench:gate
+          vp run bench:m2:gate
 
       - name: Verify release inputs are clean
         run: |
