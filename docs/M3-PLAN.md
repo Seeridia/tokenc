@@ -229,6 +229,9 @@ M3 excludes:
 
 #### M3-00 — IDE RFC, protocol corpus, and baseline (P0)
 
+Status: complete. See [RFC 0005](rfcs/0005-ide-language-server.md) and the
+[M3-00 edit-loop baseline](M3-00-BASELINE.md). Gate 0 is accepted; M3-01 is next.
+
 Deliver:
 
 - Add one RFC covering source-index roles, URI/offset mapping, workspace trust, overlays, revision
@@ -480,6 +483,7 @@ Additional release gates:
 
 ## 12. Immediate next step
 
-Start M3-00 only: write the IDE RFC, freeze the protocol transcript corpus, add Unicode/invalid JSON
-fixtures, and record the pre-M3 performance baseline. Do not scaffold the public language-server
-package until Gate 0 accepts the source-index, trust, revision, cancellation, and rename contracts.
+M3-00 is complete. Start M3-01 only: preserve source spans and roles in an immutable Snapshot-owned
+index, expose transport-neutral editor Query operations, and turn the accepted Unicode/CRLF and
+invalid-input corpus into exact Core evidence. Do not scaffold the public language-server package
+until the M3-01 source-index contract is accepted.

@@ -29,6 +29,10 @@ The M2-00 pre-implementation report is retained in
 [`baselines/m2-00-apple-m4-node24.json`](baselines/m2-00-apple-m4-node24.json); interpretation and
 semantic controls are recorded in the [M2-00 baseline document](../docs/M2-00-BASELINE.md).
 
+The M3-00 pre-LSP edit-loop report is retained in
+[`baselines/m3-00-apple-m4-node24.json`](baselines/m3-00-apple-m4-node24.json); its Gate 0 decisions
+and semantic controls are recorded in the [M3-00 baseline document](../docs/M3-00-BASELINE.md).
+
 `quick` uses one warm-up, three timing samples, and one isolated memory sample per case. `baseline`
 uses five warm-ups, twenty timing samples, and three isolated memory samples. An individual case can
 be selected with a repeatable `--case <id>` option. `--list` prints the available IDs. Explicit
@@ -108,3 +112,20 @@ vp run bench -- --profile quick \
 
 These cases characterize the primitives that M2-01 will compose; they are not an implementation of
 `compareSnapshots()` and do not add a production CLI command.
+
+M3-00 adds five pre-LSP editor-loop cases: cold startup, a warm one-file update, invalid JSON plus
+recovery, a 2,000-consumer high-fan-out update, and cancellation at the active loader boundary. Run
+only those cases with:
+
+```bash
+vp run bench -- --profile quick \
+  --case m3/editor-cold-start/layered-1200 \
+  --case m3/editor-one-file-update/layered-1200 \
+  --case m3/editor-invalid-recovery/layered-1200 \
+  --case m3/editor-high-fan-out/2000 \
+  --case m3/editor-cancellation/active-load \
+  --output artifacts/m3-00-quick.json
+```
+
+These cases characterize current Core behavior. They neither create an LSP package nor claim
+mid-parser cancellation.

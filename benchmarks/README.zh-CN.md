@@ -28,6 +28,10 @@ M2-00 实现前报告保存在
 [`baselines/m2-00-apple-m4-node24.json`](baselines/m2-00-apple-m4-node24.json)，解释与语义控制量见
 [M2-00 基线文档](../docs/M2-00-BASELINE.zh-CN.md)。
 
+M3-00 的 LSP 实现前编辑循环报告保存在
+[`baselines/m3-00-apple-m4-node24.json`](baselines/m3-00-apple-m4-node24.json)，Gate 0 决策与语义
+控制量见 [M3-00 基线文档](../docs/M3-00-BASELINE.zh-CN.md)。
+
 `quick` 对每个 case 执行 1 次 warm-up、3 次 timing sample 和 1 次独立 memory sample；`baseline`
 分别执行 5、20、3 次。可重复传入 `--case <id>` 选择 case，`--list` 列出所有 ID。用于测试 harness
 的 `--warmups`、`--samples` 和 `--memory-samples` 覆盖值也会写入报告。
@@ -93,3 +97,18 @@ vp run bench -- --profile quick \
 ```
 
 这些 case 只刻画 M2-01 将组合的原语；它们不是 `compareSnapshots()` 的实现，也不增加生产 CLI 命令。
+
+M3-00 增加五个 LSP 实现前编辑循环 case：冷启动、warm 单文件更新、无效 JSON 后恢复、2,000 消费者的
+高扇出更新，以及 active loader 边界的取消。只运行这些 case：
+
+```bash
+vp run bench -- --profile quick \
+  --case m3/editor-cold-start/layered-1200 \
+  --case m3/editor-one-file-update/layered-1200 \
+  --case m3/editor-invalid-recovery/layered-1200 \
+  --case m3/editor-high-fan-out/2000 \
+  --case m3/editor-cancellation/active-load \
+  --output artifacts/m3-00-quick.json
+```
+
+这些 case 只刻画当前 Core 行为；它们不会创建 LSP package，也不声称支持 parser 中途取消。
