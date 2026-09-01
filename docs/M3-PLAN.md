@@ -2,7 +2,7 @@
 
 [简体中文](M3-PLAN.zh-CN.md)
 
-> Status: in progress. M3-00 through M3-06 are complete; M3-07 is next. M2 is closed with the
+> Status: in progress. M3-00 through M3-07 are complete; M3-08 is next. M2 is closed with the
 > synchronized `0.5.0` packages published under the `next` dist-tag. Updated 2026-09-02.
 >
 > Intended release line: `0.6.0`. M3 adds the public `@tokenc/language-server` package. The thin VS
@@ -390,6 +390,14 @@ Acceptance:
 
 #### M3-07 — Rename and code-action transport (P0)
 
+Status: complete. `prepareRename` accepts only unambiguous Core-proven Token declarations and
+references. Rename returns versioned multi-document edits only from a current ready Core plan,
+surfaces canonical and Backend collisions as structured LSP errors, and fails with
+`ContentModified` after any intervening workspace change. Quick fixes require a current matching
+Diagnostic v1 fingerprint and a registry permission, then recheck source ownership, range, overlap,
+digest, and document version before transport. Process evidence applies an accepted rename through
+the client while proving that the server did not write the source file. M3-08 is next.
+
 Deliver:
 
 - Map Core rename plans to `prepareRename` and versioned multi-document `WorkspaceEdit` responses.
@@ -516,7 +524,6 @@ Additional release gates:
 
 ## 12. Immediate next step
 
-M3-06 is complete. Start M3-07: transport Core rename plans through `prepareRename` and versioned
-multi-document `WorkspaceEdit`, then expose only registry-approved Diagnostic fixes as preferred
-quick fixes. Revalidate snapshot revision, document versions, and source digests before returning
-any edit.
+M3-07 is complete. Start M3-08: add the thin private VS Code extension that launches the bundled
+server, respects Workspace Trust, forwards Context and Resolver configuration, and produces a
+deterministic VSIX with clean-profile install and activation smoke coverage.

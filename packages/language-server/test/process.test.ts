@@ -1,16 +1,31 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { afterEach, describe, expect, it } from "vite-plus/test";
+import { TextDocument } from "vscode-languageserver-textdocument";
+import { WorkspaceEdit, type TextDocumentEdit } from "vscode-languageserver/node.js";
 
 interface RpcMessage {
   readonly id?: number;
   readonly method?: string;
   readonly result?: unknown;
+  readonly error?: unknown;
   readonly params?: unknown;
+}
+
+function applyWorkspaceEdit(uri: string, content: string, edit: WorkspaceEdit): string {
+  const changes = (edit.documentChanges ?? []).filter(
+    (change): change is TextDocumentEdit =>
+      "textDocument" in change && change.textDocument.uri === uri,
+  );
+  return changes.reduce(
+    (current, change) =>
+      TextDocument.applyEdits(TextDocument.create(uri, "json", 0, current), change.edits),
+    content,
+  );
 }
 
 function isRpcMessage(value: unknown): value is RpcMessage {
@@ -149,7 +164,9 @@ describe("stdio language server", () => {
 
     const initialize = await client.request("initialize", {
       processId: process.pid,
-      capabilities: { workspace: { workspaceFolders: true } },
+      capabilities: {
+        workspace: { workspaceFolders: true, workspaceEdit: { documentChanges: true } },
+      },
       workspaceFolders: [{ name: "fixture", uri: pathToFileURL(project).href }],
       initializationOptions: { trusted: true, context: { theme: "dark" } },
     });
@@ -158,6 +175,8 @@ describe("stdio language server", () => {
         textDocumentSync: { change: 2, openClose: true },
         completionProvider: { triggerCharacters: ["{"] },
         hoverProvider: true,
+        renameProvider: { prepareProvider: true },
+        codeActionProvider: { codeActionKinds: ["quickfix"] },
         definitionProvider: true,
         referencesProvider: true,
         documentSymbolProvider: true,
@@ -217,7 +236,31 @@ describe("stdio language server", () => {
     expect(JSON.stringify(lightHover.result)).toContain('\\"theme\\": \\"light\\"');
     expect(JSON.stringify(lightHover.result)).toContain('\\"resolvedValue\\": 1');
 
-    const openContent = content.replace('"$value": 1', '"$value": 2');
+    const preparedRename = await client.request("textDocument/prepareRename", {
+      textDocument: { uri: tokenUri },
+      position: position(content, "{base😀}"),
+    });
+    expect(preparedRename.result).toMatchObject({ placeholder: "base😀" });
+    const collision = await client.request("textDocument/rename", {
+      textDocument: { uri: tokenUri },
+      position: position(content, "{base😀}"),
+      newName: "alias",
+    });
+    expect(collision.error).toMatchObject({
+      data: { status: "rejected", diagnostics: [{ code: "TOKEN_DUPLICATE_ID" }] },
+    });
+    const rename = await client.request("textDocument/rename", {
+      textDocument: { uri: tokenUri },
+      position: position(content, "{base😀}"),
+      newName: "renamed😀",
+    });
+    if (!WorkspaceEdit.is(rename.result)) throw new TypeError("Expected a WorkspaceEdit response");
+    const renamedContent = applyWorkspaceEdit(tokenUri, content, rename.result);
+    expect(renamedContent).toContain('"renamed😀"');
+    expect(renamedContent).toContain("{renamed😀}");
+    expect(await readFile(token, "utf8")).toBe(content);
+
+    const openContent = renamedContent.replace('"$value": 1', '"$value": 2');
     let marker = client.messageCount;
     client.notify("textDocument/didOpen", {
       textDocument: {
@@ -234,6 +277,14 @@ describe("stdio language server", () => {
         JSON.stringify(message.params).includes('"diagnostics":[]'),
       marker,
     );
+    const renamedDefinition = await client.request("textDocument/definition", {
+      textDocument: { uri: tokenUri },
+      position: position(openContent, "{renamed😀}"),
+    });
+    expect(renamedDefinition.result).toMatchObject({
+      uri: tokenUri,
+      range: { start: position(openContent, '"renamed😀"', 0) },
+    });
 
     marker = client.messageCount;
     client.notify("textDocument/didChange", {

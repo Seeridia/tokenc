@@ -42,3 +42,15 @@ Runtime changes use `workspace/didChangeConfiguration` with the same values unde
 entries under `workspaces` override shared entries for the exact workspace URI. `context` is a
 query-only override and does not rebuild the Session snapshot. `resolverInput` selects Resolver
 sources through an atomic Session transaction and is intentionally independent from `context`.
+
+Semantic rename uses Core's atomic rename planner, including virtual recompilation and configured
+Backend preflight. The server returns only versioned `documentChanges`, reports rejected plans as
+LSP request errors with structured diagnostics, and returns `ContentModified` if the workspace,
+document versions, or source digests changed during planning. It never applies the edits itself.
+Rename and code-action capabilities are advertised only to clients that declare
+`workspace.workspaceEdit.documentChanges` support.
+
+Quick fixes are projected only from the current Diagnostic v1 fingerprint and only when the
+diagnostic registry permits fixes for that code. Safe fixes are preferred; review-required fixes
+remain non-preferred. Every edit is checked again for current source ownership, digest, bounds,
+overlap, and open-document version before it is returned.

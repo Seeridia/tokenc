@@ -2,7 +2,7 @@
 
 [English](M3-PLAN.md)
 
-> 状态：推进中。M3-00 至 M3-06 已完成，下一步为 M3-07。M2 已关闭，五个同步版本的 `0.5.0`
+> 状态：推进中。M3-00 至 M3-07 已完成，下一步为 M3-08。M2 已关闭，五个同步版本的 `0.5.0`
 > package 已通过 `next` dist-tag 发布。更新时间：2026-09-02。
 >
 > 目标版本线：`0.6.0`。M3 新增公开 package `@tokenc/language-server`。薄 VS Code client 以可安装
@@ -357,6 +357,13 @@ transaction 更新；per-workspace 隔离与连续配置事件 supersession 均�
 
 #### M3-07 — Rename 与 Code-action Transport（P0）
 
+状态：已完成。`prepareRename` 只接受由 Core 明确证明且无歧义的 Token declaration/reference。Rename 只把
+当前且 ready 的 Core plan 转换为带版本的 multi-document edit；canonical 与 Backend collision 通过结构化
+LSP error 暴露，规划期间发生任何 workspace 变化都会返回 `ContentModified`。Quick fix 必须匹配当前
+Diagnostic v1 fingerprint 且经 registry 许可，并在返回前复核 source ownership、range、overlap、digest 与
+document version。Process 证据已通过 client 应用一次成功 rename，并证明 server 没有写入源文件。下一步为
+M3-08。
+
 交付：
 
 - 将 Core rename plan 映射到 `prepareRename` 与 versioned multi-document `WorkspaceEdit`。
@@ -480,6 +487,5 @@ M3-00 RFC/baseline → M3-01 source index ──────┬→ M3-02 rename 
 
 ## 12. 立即执行的下一步
 
-M3-06 已完成。启动 M3-07：通过 `prepareRename` 与带版本的 multi-document `WorkspaceEdit` 传输 Core
-rename plan，并只把 diagnostic registry 允许的 fix 暴露为 preferred quick fix。返回任何 edit 前都要重新
-校验 snapshot revision、document version 与 source digest。
+M3-07 已完成。启动 M3-08：增加薄的私有 VS Code extension，负责启动 bundled server、遵守 Workspace
+Trust、转发 Context 与 Resolver 配置，并产出确定性 VSIX，覆盖干净 profile 的安装与 activation smoke。

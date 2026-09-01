@@ -12,6 +12,7 @@ import {
 
 import packageManifest from "../package.json" with { type: "json" };
 import { DiagnosticPublisher } from "./diagnostics.js";
+import { EditingProvider } from "./editing.js";
 import { InsightProvider } from "./insight.js";
 import { NavigationProvider } from "./navigation.js";
 import {
@@ -142,11 +143,13 @@ export class TokencLanguageServer {
   readonly #connection: Connection;
   readonly #documents = new TextDocuments(TextDocument);
   readonly #diagnostics: DiagnosticPublisher;
+  readonly #editing: EditingProvider;
   readonly #insight: InsightProvider;
   readonly #navigation: NavigationProvider;
   readonly #onExit: (code: number) => void;
   #initialization: LanguageServerInitializationOptions = {};
   #shutdownRequested = false;
+  #supportsDocumentChanges = false;
   #supportsWorkspaceFolders = false;
   #clientInitialized = false;
   #shutdownPromise: Promise<void> | undefined;
@@ -179,6 +182,7 @@ export class TokencLanguageServer {
         options.onSnapshot?.(snapshot, workspace, workspaceRevision);
       },
     });
+    this.#editing = new EditingProvider(this.workspaces);
     this.#insight = new InsightProvider(this.workspaces);
     this.#navigation = new NavigationProvider(this.workspaces);
     this.#registerHandlers();
@@ -191,6 +195,8 @@ export class TokencLanguageServer {
 
   async initialize(params: InitializeParams): Promise<InitializeResult> {
     this.#initialization = initializationOptions(params.initializationOptions);
+    this.#supportsDocumentChanges =
+      params.capabilities.workspace?.workspaceEdit?.documentChanges === true;
     this.#supportsWorkspaceFolders = params.capabilities.workspace?.workspaceFolders === true;
     await Promise.all(foldersFromInitialize(params).map((folder) => this.#addWorkspace(folder)));
     return {
@@ -202,6 +208,12 @@ export class TokencLanguageServer {
         definitionProvider: true,
         completionProvider: { triggerCharacters: ["{"] },
         hoverProvider: true,
+        ...(this.#supportsDocumentChanges
+          ? {
+              renameProvider: { prepareProvider: true },
+              codeActionProvider: { codeActionKinds: ["quickfix"] },
+            }
+          : {}),
         referencesProvider: true,
         documentSymbolProvider: true,
         workspaceSymbolProvider: true,
@@ -263,6 +275,9 @@ export class TokencLanguageServer {
     });
     this.#connection.onCompletion((params) => this.#insight.completion(params));
     this.#connection.onHover((params) => this.#insight.hover(params));
+    this.#connection.onPrepareRename((params) => this.#editing.prepareRename(params));
+    this.#connection.onRenameRequest((params) => this.#editing.rename(params));
+    this.#connection.onCodeAction((params) => this.#editing.codeActions(params));
     this.#connection.onDefinition((params) => this.#navigation.definition(params));
     this.#connection.onReferences((params) => this.#navigation.references(params));
     this.#connection.onDocumentSymbol((params) => this.#navigation.documentSymbols(params));

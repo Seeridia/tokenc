@@ -3,6 +3,7 @@ import packageManifest from "../package.json" with { type: "json" };
 export const VERSION = packageManifest.version;
 
 export * from "./diagnostics.js";
+export * from "./editing.js";
 export * from "./insight.js";
 export * from "./navigation.js";
 export * from "./server.js";
