@@ -141,6 +141,9 @@ export class InternalCompilationQuery implements CompilationQuery {
   }
 
   definition(id: TokenId): SourceLocation | undefined {
+    const declarations = this.#sourceIndex.declarations().filter((symbol) => symbol.target === id);
+    if (declarations.length === 1) return declarations[0]?.source;
+    if (declarations.length > 1) return undefined;
     return this.#graph.getToken(id)?.declaration;
   }
 

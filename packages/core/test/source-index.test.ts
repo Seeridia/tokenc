@@ -90,6 +90,10 @@ describe("EditorSourceIndex", () => {
       ["alias", "gradient", "gradientBase", [0]],
       ["inheritance", "derived", "base", ["$extends"]],
     ]);
+    expect(snapshot.query.definition(parseTokenId("base"))).toMatchObject({
+      offset: content.indexOf('"base"'),
+      length: '"base"'.length,
+    });
   });
 
   it("filters exact occurrences with the same Context predicates as graph usages", async () => {
@@ -140,10 +144,11 @@ describe("EditorSourceIndex", () => {
       '{"nested":{"quote\\\"name":{"$type":"number","$value":1},"$root":{"$type":"number","$value":2}},"dup":{"$type":"number","$value":3},"dup":{"$type":"number","$value":4}}';
     const snapshot = await compileDocuments([{ file, content }]);
     const declarations = snapshot.sourceIndex.declarations(file);
-    const rawKeys = ['"quote\\\"name"', '"$root"', '"dup"', '"dup"'];
+    const rawKeys = ['"nested"', '"quote\\\"name"', '"$root"', '"dup"', '"dup"'];
 
     expect(snapshot.status).toBe("invalid");
     expect(declarations.map((symbol) => symbol.target)).toEqual([
+      "nested",
       'nested.quote"name',
       "nested.$root",
       "dup",
@@ -153,7 +158,8 @@ describe("EditorSourceIndex", () => {
       content.indexOf(rawKeys[0]!),
       content.indexOf(rawKeys[1]!),
       content.indexOf(rawKeys[2]!),
-      content.lastIndexOf(rawKeys[3]!),
+      content.indexOf(rawKeys[3]!),
+      content.lastIndexOf(rawKeys[4]!),
     ]);
     expect(declarations.map((symbol) => symbol.source.length)).toEqual(
       rawKeys.map((key) => key.length),

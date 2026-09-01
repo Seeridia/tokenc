@@ -4,7 +4,7 @@ import type { ContextPredicate } from "./predicate.js";
 
 export type EditorSymbolRole = "declaration" | "alias" | "json-pointer" | "inheritance";
 
-/** Transport-neutral declaration or reference occurrence owned by one Snapshot revision. */
+/** Transport-neutral token/group declaration or reference occurrence owned by one Snapshot revision. */
 export interface EditorSymbolV1 {
   readonly schemaVersion: "1";
   readonly role: EditorSymbolRole;

@@ -2,7 +2,7 @@
 
 [简体中文](M3-PLAN.zh-CN.md)
 
-> Status: in progress. M3-00 through M3-04 are complete; M3-05 is next. M2 is closed with the
+> Status: in progress. M3-00 through M3-05 are complete; M3-06 is next. M2 is closed with the
 > synchronized `0.5.0` packages published under the `next` dist-tag. Updated 2026-09-02.
 >
 > Intended release line: `0.6.0`. M3 adds the public `@tokenc/language-server` package. The thin VS
@@ -345,6 +345,13 @@ Acceptance:
 
 #### M3-05 — Definition, references, and symbols (P0)
 
+Status: complete. Standard LSP definition, references, document-symbol, and workspace-symbol
+handlers now project only the settled current Core snapshot. Alias, JSON Pointer, composite-field,
+and group-inheritance references navigate to syntax-proven canonical declarations; references
+preserve source-index ordering and declaration inclusion, symbols preserve canonical hierarchy, and
+invalid/removed-document behavior is covered at library and stdio process levels. Core now indexes
+group declarations so inheritance navigation does not guess a server-side target. M3-06 is next.
+
 Deliver:
 
 - Implement definition, references, document symbols, and workspace symbols from the Core source
@@ -503,6 +510,6 @@ Additional release gates:
 
 ## 12. Immediate next step
 
-M3-04 is complete. Start M3-05: implement definition, references, document symbols, and workspace
-symbols exclusively from the Core editor source index and Query API, preserving occurrence roles,
-exact ranges, deterministic ordering, and current-snapshot gating.
+M3-05 is complete. Start M3-06: implement alias completion only at Core-proven reference positions,
+then add Context-aware hover from the same current Snapshot Query. Keep ordinary Context overrides
+and Resolver input distinct, with deterministic completion filtering and no stale resolved preview.

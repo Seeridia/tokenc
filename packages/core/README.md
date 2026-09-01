@@ -31,8 +31,10 @@ unscoped results retain their exact conditions. `explain` returns the versioned 
 structure.
 
 Every valid or invalid snapshot owns an immutable `sourceIndex`. It preserves syntax-proven token
-declarations during incomplete JSON edits and records exact declaration, curly-alias, JSON Pointer,
-component-reference, and group-inheritance spans without introducing editor protocol types.
+and group declarations during incomplete JSON edits and records exact declaration, curly-alias,
+JSON Pointer, component-reference, and group-inheritance spans without introducing editor protocol
+types. `query.definition()` returns a source-index declaration when one is unambiguous, including
+canonical group targets used by inheritance.
 `EditorSymbolV1` is published as `@tokenc/core/editor-symbol-v1.schema.json`; offsets and lengths are
 UTF-16 code units over the exact snapshot document content.
 

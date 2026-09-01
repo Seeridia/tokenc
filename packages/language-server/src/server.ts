@@ -11,6 +11,7 @@ import {
 
 import packageManifest from "../package.json" with { type: "json" };
 import { DiagnosticPublisher } from "./diagnostics.js";
+import { NavigationProvider } from "./navigation.js";
 import {
   WorkspaceManager,
   type WorkspaceFileChange,
@@ -77,6 +78,7 @@ export class TokencLanguageServer {
   readonly #connection: Connection;
   readonly #documents = new TextDocuments(TextDocument);
   readonly #diagnostics: DiagnosticPublisher;
+  readonly #navigation: NavigationProvider;
   readonly #onExit: (code: number) => void;
   #initialization: LanguageServerInitializationOptions = {};
   #shutdownRequested = false;
@@ -112,6 +114,7 @@ export class TokencLanguageServer {
         options.onSnapshot?.(snapshot, workspace, workspaceRevision);
       },
     });
+    this.#navigation = new NavigationProvider(this.workspaces);
     this.#registerHandlers();
   }
 
@@ -130,6 +133,10 @@ export class TokencLanguageServer {
           openClose: true,
           change: TextDocumentSyncKind.Incremental,
         },
+        definitionProvider: true,
+        referencesProvider: true,
+        documentSymbolProvider: true,
+        workspaceSymbolProvider: true,
         workspace: {
           workspaceFolders: {
             supported: true,
@@ -179,6 +186,10 @@ export class TokencLanguageServer {
       for (const change of event.changes)
         this.workspaces.watchedFile(change.uri, fileChange(change.type));
     });
+    this.#connection.onDefinition((params) => this.#navigation.definition(params));
+    this.#connection.onReferences((params) => this.#navigation.references(params));
+    this.#connection.onDocumentSymbol((params) => this.#navigation.documentSymbols(params));
+    this.#connection.onWorkspaceSymbol((params) => this.#navigation.workspaceSymbols(params));
     this.#documents.onDidOpen(({ document }) => {
       this.workspaces.openDocument(document.uri, document.getText(), document.version);
     });

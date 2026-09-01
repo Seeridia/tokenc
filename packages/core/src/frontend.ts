@@ -193,7 +193,7 @@ function findProperty(node: Node | undefined, name: string): Node | undefined {
   return properties(node).find((property) => propertyName(property) === name);
 }
 
-function scanTokenDeclarations(root: Node, locator: Locator): readonly TokenDeclaration[] {
+function scanEditorDeclarations(root: Node, locator: Locator): readonly TokenDeclaration[] {
   const declarations: TokenDeclaration[] = [];
   const visit = (node: Node, path: readonly string[]): void => {
     for (const property of properties(node)) {
@@ -203,14 +203,13 @@ function scanTokenDeclarations(root: Node, locator: Locator): readonly TokenDecl
       const value = propertyValue(property);
       if (value?.type !== "object") continue;
       const nextPath = [...path, name];
-      if (findProperty(value, "$value") || findProperty(value, "$ref")) {
-        const key = property.children?.[0];
-        if (key)
-          declarations.push({
-            id: tokenIdFromSegments(nextPath),
-            source: locator.at(key.offset, key.length),
-          });
-      } else visit(value, nextPath);
+      const key = property.children?.[0];
+      if (key)
+        declarations.push({
+          id: tokenIdFromSegments(nextPath),
+          source: locator.at(key.offset, key.length),
+        });
+      if (!findProperty(value, "$value") && !findProperty(value, "$ref")) visit(value, nextPath);
     }
   };
   visit(root, []);
@@ -406,7 +405,7 @@ export function parseUnresolvedTokenDocument(
     allowTrailingComma: false,
     disallowComments: true,
   });
-  const declarations = rootNode?.type === "object" ? scanTokenDeclarations(rootNode, locator) : [];
+  const declarations = rootNode?.type === "object" ? scanEditorDeclarations(rootNode, locator) : [];
   const diagnostics = new DiagnosticBag();
   diagnostics.push(
     ...parseErrors.map((error) => ({

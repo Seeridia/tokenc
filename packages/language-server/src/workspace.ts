@@ -166,6 +166,15 @@ export class WorkspaceCoordinator {
     );
   }
 
+  canQuery(snapshot: CompilationSnapshot, workspaceRevision: number): boolean {
+    return (
+      this.#status === "ready" &&
+      this.#session?.currentSnapshot === snapshot &&
+      this.#scheduler.requestedRevision === workspaceRevision &&
+      this.#scheduler.publishedRevision === workspaceRevision
+    );
+  }
+
   async initialize(): Promise<void> {
     if (!this.trusted || !this.root || this.#status === "closed") return;
     this.reload();

@@ -17,6 +17,13 @@ function isRpcMessage(value: unknown): value is RpcMessage {
   return typeof value === "object" && value !== null;
 }
 
+function position(content: string, needle: string, inside = 1) {
+  const offset = content.indexOf(needle) + inside;
+  const prefix = content.slice(0, offset);
+  const lines = prefix.split("\n");
+  return { line: lines.length - 1, character: lines.at(-1)!.length };
+}
+
 class StdioClient {
   readonly child: ChildProcessWithoutNullStreams;
   readonly #pending = new Map<number, (message: RpcMessage) => void>();
@@ -122,7 +129,8 @@ describe("stdio language server", () => {
     const project = await mkdtemp(join(tmpdir(), "tokenc-lsp-process-"));
     temporaryDirectories.push(project);
     const token = join(project, "tokens.json");
-    const content = JSON.stringify({ value: { $type: "number", $value: 1 } });
+    const content =
+      '{\r\n  "base😀": { "$type": "number", "$value": 1 },\r\n  "alias": { "$type": "number", "$value": "{base😀}" }\r\n}\r\n';
     await Promise.all([
       writeFile(
         join(project, "tokenc.config.mjs"),
@@ -148,16 +156,47 @@ describe("stdio language server", () => {
     expect(initialize.result).toMatchObject({
       capabilities: {
         textDocumentSync: { change: 2, openClose: true },
+        definitionProvider: true,
+        referencesProvider: true,
+        documentSymbolProvider: true,
+        workspaceSymbolProvider: true,
         workspace: { workspaceFolders: { supported: true } },
       },
     });
 
     client.notify("initialized", {});
-    const openContent = JSON.stringify({ value: { $type: "number", $value: 2 } });
+    const tokenUri = pathToFileURL(token).href;
+    const definition = await client.request("textDocument/definition", {
+      textDocument: { uri: tokenUri },
+      position: position(content, "{base😀}"),
+    });
+    expect(definition.result).toMatchObject({
+      uri: tokenUri,
+      range: { start: position(content, '"base😀"', 0) },
+    });
+    const references = await client.request("textDocument/references", {
+      textDocument: { uri: tokenUri },
+      position: position(content, '"base😀"'),
+      context: { includeDeclaration: true },
+    });
+    expect(references.result).toMatchObject([
+      { uri: tokenUri, range: { start: position(content, '"base😀"', 0) } },
+      { uri: tokenUri, range: { start: position(content, "{base😀}", 0) } },
+    ]);
+    const documentSymbols = await client.request("textDocument/documentSymbol", {
+      textDocument: { uri: tokenUri },
+    });
+    expect(documentSymbols.result).toMatchObject([{ name: "base😀" }, { name: "alias" }]);
+    const workspaceSymbols = await client.request("workspace/symbol", { query: "BASE" });
+    expect(workspaceSymbols.result).toMatchObject([
+      { name: "base😀", location: { uri: tokenUri } },
+    ]);
+
+    const openContent = content.replace('"$value": 1', '"$value": 2');
     let marker = client.messageCount;
     client.notify("textDocument/didOpen", {
       textDocument: {
-        uri: pathToFileURL(token).href,
+        uri: tokenUri,
         languageId: "json",
         version: 1,
         text: openContent,
@@ -173,7 +212,7 @@ describe("stdio language server", () => {
 
     marker = client.messageCount;
     client.notify("textDocument/didChange", {
-      textDocument: { uri: pathToFileURL(token).href, version: 2 },
+      textDocument: { uri: tokenUri, version: 2 },
       contentChanges: [{ text: '{\r\n  "value":' }],
     });
     const invalid = await client.waitFor(
@@ -191,7 +230,7 @@ describe("stdio language server", () => {
 
     marker = client.messageCount;
     client.notify("textDocument/didChange", {
-      textDocument: { uri: pathToFileURL(token).href, version: 3 },
+      textDocument: { uri: tokenUri, version: 3 },
       contentChanges: [{ text: content }],
     });
     await client.waitFor(
@@ -204,12 +243,12 @@ describe("stdio language server", () => {
 
     marker = client.messageCount;
     client.notify("textDocument/didClose", {
-      textDocument: { uri: pathToFileURL(token).href },
+      textDocument: { uri: tokenUri },
     });
     await client.waitFor(
       (message) =>
         message.method === "textDocument/publishDiagnostics" &&
-        JSON.stringify(message.params).includes(pathToFileURL(token).href) &&
+        JSON.stringify(message.params).includes(tokenUri) &&
         !JSON.stringify(message.params).includes('"version"') &&
         JSON.stringify(message.params).includes('"diagnostics":[]'),
       marker,

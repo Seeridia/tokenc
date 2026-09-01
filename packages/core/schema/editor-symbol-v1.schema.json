@@ -7,7 +7,10 @@
   "required": ["schemaVersion", "role", "owner", "target", "source", "fieldPath"],
   "properties": {
     "schemaVersion": { "const": "1" },
-    "role": { "enum": ["declaration", "alias", "json-pointer", "inheritance"] },
+    "role": {
+      "description": "A syntax-proven token/group declaration or semantic reference occurrence",
+      "enum": ["declaration", "alias", "json-pointer", "inheritance"]
+    },
     "owner": { "type": "string", "minLength": 1 },
     "target": { "type": "string", "minLength": 1 },
     "source": { "$ref": "#/$defs/sourceLocation" },

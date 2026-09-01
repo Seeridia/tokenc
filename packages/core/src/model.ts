@@ -205,7 +205,7 @@ export interface TokenInheritance {
   readonly extendsSource: SourceLocation;
 }
 
-/** Syntax-proven canonical token declaration retained independently of semantic validity. */
+/** Syntax-proven canonical token or group declaration retained independently of semantic validity. */
 export interface TokenDeclaration {
   readonly id: TokenId;
   readonly source: SourceLocation;

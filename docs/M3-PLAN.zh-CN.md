@@ -2,7 +2,7 @@
 
 [English](M3-PLAN.md)
 
-> 状态：推进中。M3-00 至 M3-04 已完成，下一步为 M3-05。M2 已关闭，五个同步版本的 `0.5.0`
+> 状态：推进中。M3-00 至 M3-05 已完成，下一步为 M3-06。M2 已关闭，五个同步版本的 `0.5.0`
 > package 已通过 `next` dist-tag 发布。更新时间：2026-09-02。
 >
 > 目标版本线：`0.6.0`。M3 新增公开 package `@tokenc/language-server`。薄 VS Code client 以可安装
@@ -319,6 +319,12 @@ fingerprint/fix metadata 与打开文档版本。发布受 revision gate 约束�
 
 #### M3-05 — Definition、References 与 Symbols（P0）
 
+状态：已完成。标准 LSP definition、references、document symbol 与 workspace symbol handler 只投影
+已稳定的当前 Core snapshot。Alias、JSON Pointer、composite field 与 group inheritance reference 均导航到
+syntax-proven canonical declaration；references 保持 source-index 顺序与 declaration inclusion，symbols 保持
+canonical hierarchy，并在 library 与 stdio process 层覆盖无效/已删除文档。Core 现已索引 group declaration，
+因此 inheritance 导航不需要 server 猜测目标。下一步为 M3-06。
+
 交付：
 
 - 从 Core source index 与 Query API 实现 definition、references、document symbol 与 workspace symbol。
@@ -469,6 +475,6 @@ M3-00 RFC/baseline → M3-01 source index ──────┬→ M3-02 rename 
 
 ## 12. 立即执行的下一步
 
-M3-04 已完成。启动 M3-05：仅从 Core editor source index 与 Query API 实现 definition、references、
-document symbol 与 workspace symbol，并保持 occurrence role、精确 range、确定性顺序及当前 snapshot
-门禁。
+M3-05 已完成。启动 M3-06：只在 Core 能证明的 reference position 提供 alias completion，并从同一当前
+Snapshot Query 提供 Context-aware hover。普通 Context override 与 Resolver input 必须继续分离，completion
+filtering 保持确定性，resolved preview 不得读取陈旧 snapshot。
