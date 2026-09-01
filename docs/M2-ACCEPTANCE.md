@@ -1,12 +1,13 @@
-# M2 Release Candidate Acceptance Record
+# M2 Acceptance Record
 
 [简体中文](M2-ACCEPTANCE.zh-CN.md)
 
-> Decision: **implementation complete and accepted as the `0.5.0` release candidate; milestone
-> closure still requires an authorized publication and post-publish verification.**
+> Decision: **M2 is complete. The synchronized `0.5.0` packages are published under the `next`
+> dist-tag, and all post-publish checks passed.**
 >
-> Local acceptance date: 2026-09-01. The candidate consists of the five synchronized public
-> packages and targets the `next` dist-tag. No package was published and no tag was created.
+> Acceptance and publication date: 2026-09-01. The release was produced from
+> `93b338024fd6eda892a5b09cde6d03c7b1e1f522` on `main` by
+> [Publish Packages run 33521149877](https://github.com/Seeridia/tokenc/actions/runs/33521149877).
 
 ## 1. Accepted scope
 
@@ -115,9 +116,21 @@ All four local gates passed against the synchronized `0.5.0` package manifests. 
 and packed consumer smoke used the exact release-version tarballs and the `next` dist-tag without
 publishing them.
 
-## 7. Operational closure still required
+## 7. Publication closure
 
-After authorization, the release workflow must publish the exact five-package manifest, then verify
-registry-installed consumption, provenance, the requested dist-tag, and all annotated local and
-remote package tags. Until those external checks pass, the exact status is “M2 implementation
-complete; `0.5.0` release candidate accepted,” not “M2 published and closed.”
+The authorized release workflow published the exact five-package manifest and passed every
+post-publish gate. Independent registry queries confirmed `0.5.0`, `next: 0.5.0`, and SLSA
+provenance v1 for `@tokenc/core`, `@tokenc/cli`, `@tokenc/backend-css`,
+`@tokenc/backend-tailwind`, and `@tokenc/backend-typescript`.
+
+The workflow pushed one annotated tag per package. Every tag exists on the remote and peels to the
+release commit `93b338024fd6eda892a5b09cde6d03c7b1e1f522`:
+
+- `@tokenc/core@0.5.0`
+- `@tokenc/cli@0.5.0`
+- `@tokenc/backend-css@0.5.0`
+- `@tokenc/backend-tailwind@0.5.0`
+- `@tokenc/backend-typescript@0.5.0`
+
+The workflow also revalidated the packed artifacts against npm and left the release worktree clean.
+These checks close M2.

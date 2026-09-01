@@ -1,12 +1,13 @@
-# M2 Release Candidate 验收记录
+# M2 验收记录
 
 [English](M2-ACCEPTANCE.md)
 
-> 验收结论：**实现已完成并通过 `0.5.0` release candidate 验收；最终关闭里程碑仍需获得授权后执行实际
-> 发布与发布后验证。**
+> 验收结论：**M2 已完成。五个同步版本的 `0.5.0` package 已通过 `next` dist-tag 发布，且全部发布后验证
+> 均已通过。**
 >
-> 本地验收日期：2026-09-01。候选版本由五个同步版本的公共 package 组成，目标 dist-tag 为 `next`。
-> 本次未发布任何 package，也未创建 tag。
+> 验收与发布日期：2026-09-01。该版本由 `main` 上的
+> `93b338024fd6eda892a5b09cde6d03c7b1e1f522` 通过
+> [Publish Packages run 33521149877](https://github.com/Seeridia/tokenc/actions/runs/33521149877) 生成。
 
 ## 1. 已验收范围
 
@@ -106,8 +107,20 @@ vp run verify-release --phase packed --tag next --output "$release_output"
 上述四项本地门禁均已针对同步的 `0.5.0` package manifest 通过。package dry-run 与 packed consumer
 smoke 使用精确的发布版本 tarball 和 `next` dist-tag，但没有执行发布。
 
-## 7. 仍需执行的操作性收尾
+## 7. 发布收尾
 
-获得授权后，release workflow 必须发布 manifest 中精确的五个 package，再验证 registry-installed
-消费、provenance、目标 dist-tag，以及全部本地和远端 annotated package tag。在这些外部检查通过前，
-准确状态是“M2 实现完成，`0.5.0` release candidate 验收通过”，而不是“M2 已发布并关闭”。
+获得授权的 release workflow 已发布 manifest 中精确的五个 package，并通过全部发布后门禁。独立 registry
+查询确认 `@tokenc/core`、`@tokenc/cli`、`@tokenc/backend-css`、
+`@tokenc/backend-tailwind` 与 `@tokenc/backend-typescript` 均为 `0.5.0`，其 `next` dist-tag 均指向
+`0.5.0`，并且均带有 SLSA provenance v1。
+
+Workflow 为每个 package 推送了一个 annotated tag。以下 tag 均存在于远端，并 peel 到 release commit
+`93b338024fd6eda892a5b09cde6d03c7b1e1f522`：
+
+- `@tokenc/core@0.5.0`
+- `@tokenc/cli@0.5.0`
+- `@tokenc/backend-css@0.5.0`
+- `@tokenc/backend-tailwind@0.5.0`
+- `@tokenc/backend-typescript@0.5.0`
+
+Workflow 还针对 npm 重新验证了 packed artifact，并保持 release worktree clean。以上验证正式关闭 M2。

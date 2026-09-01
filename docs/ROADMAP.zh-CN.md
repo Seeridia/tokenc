@@ -386,13 +386,14 @@ provenance 和 annotated package tags。`tokenc check` Backend 预检、输出�
 
 **目标：** 让 tokenc 首先作为现有 Token 流水线的安全检查层被采用。
 
-**状态（2026-09-01）：实现已完成；M2-00 至 M2-09 已通过 `0.5.0` release candidate 验收。** 变更智能契约、证据基线、
+**状态（2026-09-01）：已完成；`0.5.0` 已通过 `next` dist-tag 发布，M2 已关闭。** 变更智能契约、证据基线、
 公开 Snapshot Diff v1 与 Impact Report v1 API、JSON Schema、`tokenc impact` 和只读 Git-backed
 `tokenc diff`、Breaking-change Policy v1、共享 Report v1 text/JSON/SARIF renderer，以及 Resolver
 permutation 惰性规划、Session 编译、Snapshot Diff 比较与 Backend 批量 preflight，以及固定 commit 的 CI
 参考 workflow、fork-safe artifact 路径与四结果可执行 fixture，以及有界、仅使用公开 API 的 Terrazzo
 handoff 与显式 unsupported-extension 分类、独立 differential proof、语义工作量门禁、公共契约锁和
-packed release 证据均已完成。发布与发布后验证仍是外部操作；详见
+packed release 证据均已完成。获得授权的 release workflow 已通过 registry、provenance、dist-tag 与
+annotated-tag 验证；详见
 [M2 验收记录](M2-ACCEPTANCE.zh-CN.md)。
 
 交付物：

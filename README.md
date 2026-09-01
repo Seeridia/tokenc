@@ -252,7 +252,7 @@ This is a library monorepo: packages are built with `vp pack`, orchestrated by `
 
 ## Documentation
 
-- [M2 release-candidate acceptance](docs/M2-ACCEPTANCE.md) · [简体中文](docs/M2-ACCEPTANCE.zh-CN.md)
+- [M2 acceptance record](docs/M2-ACCEPTANCE.md) · [简体中文](docs/M2-ACCEPTANCE.zh-CN.md)
 
 - [Architecture](docs/ARCHITECTURE.md) · [中文](docs/ARCHITECTURE.zh-CN.md)
 - [Product strategy and roadmap](docs/ROADMAP.md) · [中文](docs/ROADMAP.zh-CN.md)
