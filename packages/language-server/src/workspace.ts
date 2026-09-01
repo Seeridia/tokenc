@@ -86,7 +86,11 @@ export interface WorkspaceCoordinatorOptions {
   readonly projectLoader?: WorkspaceProjectLoader;
   readonly createSession?: typeof createCompilerSession;
   readonly onError?: (error: unknown, workspace: WorkspaceCoordinator) => void;
-  readonly onSnapshot?: (snapshot: CompilationSnapshot, workspace: WorkspaceCoordinator) => void;
+  readonly onSnapshot?: (
+    snapshot: CompilationSnapshot,
+    workspace: WorkspaceCoordinator,
+    workspaceRevision: number,
+  ) => void;
 }
 
 interface OpenDocument {
@@ -154,6 +158,14 @@ export class WorkspaceCoordinator {
     return this.#configPath;
   }
 
+  canPublish(snapshot: CompilationSnapshot, workspaceRevision: number): boolean {
+    return (
+      this.#status !== "closed" &&
+      this.#session?.currentSnapshot === snapshot &&
+      this.#scheduler.requestedRevision === workspaceRevision
+    );
+  }
+
   async initialize(): Promise<void> {
     if (!this.trusted || !this.root || this.#status === "closed") return;
     this.reload();
@@ -163,7 +175,7 @@ export class WorkspaceCoordinator {
   reload(): number {
     if (!this.trusted || !this.root || this.#status === "closed") return this.requestedRevision;
     this.#status = "loading";
-    return this.#scheduler.schedule(async (signal) => {
+    return this.#scheduler.schedule(async (signal, workspaceRevision) => {
       const project = await this.#projectLoader.load(this.root!, this.#explicitConfigPath, signal);
       signal.throwIfAborted();
       if (!this.#session)
@@ -177,7 +189,13 @@ export class WorkspaceCoordinator {
       const sourceIdentities = new Set(diskDocuments.keys());
       for (const identity of this.#overlays.keys())
         if (project.includesDocument(identity)) sourceIdentities.add(identity);
-      await this.#applyDesired(diskDocuments, sourceIdentities, project.config, signal);
+      await this.#applyDesired(
+        diskDocuments,
+        sourceIdentities,
+        project.config,
+        signal,
+        workspaceRevision,
+      );
       signal.throwIfAborted();
       this.#diskDocuments = diskDocuments;
       this.#sourceIdentities = sourceIdentities;
@@ -212,7 +230,7 @@ export class WorkspaceCoordinator {
       (!this.#sourceIdentities.has(identity) && !this.#includesDocument?.(identity))
     )
       return this.reload();
-    return this.#scheduler.schedule(async (signal) => {
+    return this.#scheduler.schedule(async (signal, workspaceRevision) => {
       const diskDocuments = new Map(this.#diskDocuments);
       const sourceIdentities = new Set(this.#sourceIdentities);
       if (change === "deleted") {
@@ -224,7 +242,13 @@ export class WorkspaceCoordinator {
         diskDocuments.set(identity, document);
         sourceIdentities.add(identity);
       }
-      await this.#applyDesired(diskDocuments, sourceIdentities, undefined, signal);
+      await this.#applyDesired(
+        diskDocuments,
+        sourceIdentities,
+        undefined,
+        signal,
+        workspaceRevision,
+      );
       signal.throwIfAborted();
       this.#diskDocuments = diskDocuments;
       this.#sourceIdentities = sourceIdentities;
@@ -266,12 +290,13 @@ export class WorkspaceCoordinator {
   #scheduleCurrentDocuments(): number {
     if (!this.#session || this.#status === "untrusted" || this.#status === "closed")
       return this.requestedRevision;
-    return this.#scheduler.schedule(async (signal) => {
+    return this.#scheduler.schedule(async (signal, workspaceRevision) => {
       await this.#applyDesired(
         new Map(this.#diskDocuments),
         new Set(this.#sourceIdentities),
         undefined,
         signal,
+        workspaceRevision,
       );
       if (!signal.aborted) this.#status = "ready";
     });
@@ -282,6 +307,7 @@ export class WorkspaceCoordinator {
     sourceIdentities: ReadonlySet<string>,
     config: CompilerSessionConfiguration | undefined,
     signal: AbortSignal,
+    workspaceRevision: number,
   ): Promise<void> {
     const session = this.#session;
     if (!session) return;
@@ -309,14 +335,20 @@ export class WorkspaceCoordinator {
         },
       });
     }
-    if (changes.length === 0 && !config) return;
+    if (changes.length === 0 && !config) {
+      const snapshot = session.currentSnapshot;
+      if (snapshot && !signal.aborted && workspaceRevision === this.#scheduler.requestedRevision)
+        this.#onSnapshot(snapshot, this, workspaceRevision);
+      return;
+    }
     const snapshot = await session.apply(
       { documents: changes, ...(config ? { config } : {}) },
       { signal },
     );
     signal.throwIfAborted();
     this.#appliedContents = desired;
-    this.#onSnapshot(snapshot, this);
+    if (workspaceRevision === this.#scheduler.requestedRevision)
+      this.#onSnapshot(snapshot, this, workspaceRevision);
   }
 }
 

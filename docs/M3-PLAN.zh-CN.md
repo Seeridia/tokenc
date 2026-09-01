@@ -2,7 +2,7 @@
 
 [English](M3-PLAN.md)
 
-> 状态：推进中。M3-00 至 M3-03 已完成，下一步为 M3-04。M2 已关闭，五个同步版本的 `0.5.0`
+> 状态：推进中。M3-00 至 M3-04 已完成，下一步为 M3-05。M2 已关闭，五个同步版本的 `0.5.0`
 > package 已通过 `next` dist-tag 发布。更新时间：2026-09-02。
 >
 > 目标版本线：`0.6.0`。M3 新增公开 package `@tokenc/language-server`。薄 VS Code client 以可安装
@@ -297,6 +297,12 @@ buffer 覆盖磁盘内容，watched change 保守路由，且 process-level init
 
 #### M3-04 — Diagnostics、恢复与取消（P0）
 
+状态：已完成。Diagnostic v1 已投影为 LSP 3.17，并保留精确 UTF-16 range、related location、文档链接、
+fingerprint/fix metadata 与打开文档版本。发布受 revision gate 约束并会清除已移除文档；process test 覆盖
+无效输入及自动恢复，active-loader test 证明 superseded work 不会 commit 或 publish。已接受的 M3-00
+证据不支持凭空增加同步 Core checkpoint，因此继续使用已有且经过测量的 loader cancellation boundary。
+下一步为 M3-05。
+
 交付：
 
 - 将 Diagnostic v1 映射为带精确 range、related information、URL 与 fingerprint data 的 LSP diagnostic。
@@ -463,6 +469,6 @@ M3-00 RFC/baseline → M3-01 source index ──────┬→ M3-02 rename 
 
 ## 12. 立即执行的下一步
 
-M3-03 已完成。启动 M3-04：把 Diagnostic v1 投影为带精确 range 与 metadata 的 LSP diagnostics，只发布
-最新接受的 document version，清除已移除文档的 diagnostics，并证明 invalid-to-valid recovery 与
-cancellation 不会造成陈旧 Session commit 或 publication。
+M3-04 已完成。启动 M3-05：仅从 Core editor source index 与 Query API 实现 definition、references、
+document symbol 与 workspace symbol，并保持 occurrence role、精确 range、确定性顺序及当前 snapshot
+门禁。

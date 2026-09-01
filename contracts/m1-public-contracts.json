@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "Public TypeScript declarations and machine-readable schemas through M3-03",
+  "description": "Public TypeScript declarations and machine-readable schemas through M3-04",
   "files": {
     "packages/backend-css/dist/index.d.ts": "878bbef3fe34d27a1e38d7c08d35b350da58a69d294f2e5bdcedb1597445a503",
     "packages/backend-tailwind/dist/index.d.ts": "44d5766d71bb83cf4c356ceb985c44a43d82428b21cc32c91075fc4f11a87c03",
@@ -17,6 +17,6 @@
     "packages/core/schema/rename-plan-v1.schema.json": "f53f461322098c3d517f53fa5c60dd2f5e2ae5e53f9575b35e4e9956444e239e",
     "packages/core/schema/snapshot-diff-v1.schema.json": "bef4137767ea3c037c5172363428938251628d63e497b5634c742c9a057229ca",
     "packages/language-server/dist/bin.d.ts": "f4c5cf9bb78e85f15dc27180260637cf24b2a24bc39e0788783a3accc4dde614",
-    "packages/language-server/dist/index.d.ts": "b7e1fae663f7c462cb0adc5eb6712d1de43e08beee9876e358c7975eb6d848c1"
+    "packages/language-server/dist/index.d.ts": "dccf4938b9196b574214962f96a85110fd5a054429a5ebcc4aac2aa3694b9cb6"
   }
 }

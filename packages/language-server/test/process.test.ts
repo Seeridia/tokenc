@@ -50,8 +50,12 @@ class StdioClient {
     return response;
   }
 
-  waitFor(predicate: (message: RpcMessage) => boolean): Promise<RpcMessage> {
-    const existing = this.#messages.find(predicate);
+  get messageCount(): number {
+    return this.#messages.length;
+  }
+
+  waitFor(predicate: (message: RpcMessage) => boolean, afterMessage = 0): Promise<RpcMessage> {
+    const existing = this.#messages.slice(afterMessage).find(predicate);
     if (existing) return Promise.resolve(existing);
     return new Promise<RpcMessage>((resolveMessage) => {
       this.#waiters.push({ predicate, resolve: resolveMessage });
@@ -150,6 +154,7 @@ describe("stdio language server", () => {
 
     client.notify("initialized", {});
     const openContent = JSON.stringify({ value: { $type: "number", $value: 2 } });
+    let marker = client.messageCount;
     client.notify("textDocument/didOpen", {
       textDocument: {
         uri: pathToFileURL(token).href,
@@ -160,8 +165,54 @@ describe("stdio language server", () => {
     });
     await client.waitFor(
       (message) =>
-        message.method === "window/logMessage" &&
-        JSON.stringify(message.params).includes("snapshot 2 (valid)"),
+        message.method === "textDocument/publishDiagnostics" &&
+        JSON.stringify(message.params).includes('"version":1') &&
+        JSON.stringify(message.params).includes('"diagnostics":[]'),
+      marker,
+    );
+
+    marker = client.messageCount;
+    client.notify("textDocument/didChange", {
+      textDocument: { uri: pathToFileURL(token).href, version: 2 },
+      contentChanges: [{ text: '{\r\n  "value":' }],
+    });
+    const invalid = await client.waitFor(
+      (message) =>
+        message.method === "textDocument/publishDiagnostics" &&
+        JSON.stringify(message.params).includes('"version":2') &&
+        JSON.stringify(message.params).includes("TOKEN_INVALID_JSON"),
+      marker,
+    );
+    const invalidJson = JSON.stringify(invalid.params);
+    expect(invalidJson).toContain('"version":2');
+    expect(invalidJson).toContain('"code":"TOKEN_INVALID_JSON"');
+    expect(invalidJson).toContain('"codeDescription":{"href":');
+    expect(invalidJson).toContain('"data":{"schemaVersion":"1","fingerprint":');
+
+    marker = client.messageCount;
+    client.notify("textDocument/didChange", {
+      textDocument: { uri: pathToFileURL(token).href, version: 3 },
+      contentChanges: [{ text: content }],
+    });
+    await client.waitFor(
+      (message) =>
+        message.method === "textDocument/publishDiagnostics" &&
+        JSON.stringify(message.params).includes('"version":3') &&
+        JSON.stringify(message.params).includes('"diagnostics":[]'),
+      marker,
+    );
+
+    marker = client.messageCount;
+    client.notify("textDocument/didClose", {
+      textDocument: { uri: pathToFileURL(token).href },
+    });
+    await client.waitFor(
+      (message) =>
+        message.method === "textDocument/publishDiagnostics" &&
+        JSON.stringify(message.params).includes(pathToFileURL(token).href) &&
+        !JSON.stringify(message.params).includes('"version"') &&
+        JSON.stringify(message.params).includes('"diagnostics":[]'),
+      marker,
     );
 
     const shutdown = await client.request("shutdown");

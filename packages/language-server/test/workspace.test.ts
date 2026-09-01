@@ -37,6 +37,14 @@ function resolvedValue(workspace: WorkspaceCoordinator): unknown {
   return snapshot.query.resolve(parseTokenId("value"))?.value;
 }
 
+function deferred(): { readonly promise: Promise<void>; readonly resolve: () => void } {
+  let resolve!: () => void;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
 afterEach(async () => {
   await Promise.all(
     temporaryDirectories
@@ -98,7 +106,7 @@ describe("WorkspaceCoordinator", () => {
     await workspace.idle();
     expect(resolvedValue(workspace)).toBe(4);
     expect(createSession).toHaveBeenCalledTimes(1);
-    expect(snapshots).toHaveLength(3);
+    expect(snapshots).toEqual([1, 2, 2, 3]);
     await workspace.close();
   });
 
@@ -122,6 +130,51 @@ describe("WorkspaceCoordinator", () => {
     workspace.closeDocument(draftUri);
     await workspace.idle();
     expect(workspace.snapshot?.query.token(parseTokenId("draft"))).toBeUndefined();
+    await workspace.close();
+  });
+
+  it("aborts superseded file loading without committing or publishing its revision", async () => {
+    const { root, token } = await fixture(1);
+    const baseLoader = new NodeWorkspaceProjectLoader();
+    const started = deferred();
+    let aborted = false;
+    const projectLoader: WorkspaceProjectLoader = {
+      load: (workspaceRoot, configPath, signal) =>
+        baseLoader.load(workspaceRoot, configPath, signal),
+      readDocument: (_identity, signal) =>
+        new Promise((_resolveDocument, rejectDocument) => {
+          started.resolve();
+          signal.addEventListener(
+            "abort",
+            () => {
+              aborted = true;
+              rejectDocument(signal.reason);
+            },
+            { once: true },
+          );
+        }),
+    };
+    const publishedWorkspaceRevisions: number[] = [];
+    const workspace = new WorkspaceCoordinator({
+      folder: { name: "tokens", uri: pathToFileURL(root).href },
+      trusted: true,
+      projectLoader,
+      onSnapshot: (_snapshot, _workspace, revision) => publishedWorkspaceRevisions.push(revision),
+    });
+    await workspace.initialize();
+
+    const uri = pathToFileURL(token).href;
+    workspace.watchedFile(uri, "changed");
+    await started.promise;
+    workspace.changeDocument(uri, JSON.stringify({ value: { $type: "number", $value: 9 } }), 1);
+    await workspace.idle();
+
+    expect(aborted).toBe(true);
+    expect(resolvedValue(workspace)).toBe(9);
+    expect(workspace.snapshot?.revision).toBe(2);
+    expect(workspace.requestedRevision).toBe(3);
+    expect(workspace.publishedRevision).toBe(3);
+    expect(publishedWorkspaceRevisions).toEqual([1, 3]);
     await workspace.close();
   });
 

@@ -2,7 +2,7 @@
 
 [简体中文](M3-PLAN.zh-CN.md)
 
-> Status: in progress. M3-00 through M3-03 are complete; M3-04 is next. M2 is closed with the
+> Status: in progress. M3-00 through M3-04 are complete; M3-05 is next. M2 is closed with the
 > synchronized `0.5.0` packages published under the `next` dist-tag. Updated 2026-09-02.
 >
 > Intended release line: `0.6.0`. M3 adds the public `@tokenc/language-server` package. The thin VS
@@ -321,6 +321,13 @@ Acceptance:
 
 #### M3-04 — Diagnostics, recovery, and cancellation (P0)
 
+Status: complete. Diagnostic v1 now maps to LSP 3.17 with exact UTF-16 ranges, related locations,
+documentation links, fingerprint/fix metadata, and open-document versions. Publications are
+revision-gated and clear removed documents; process tests cover invalid input and automatic
+recovery, while active-loader tests prove superseded work does not commit or publish. The accepted
+M3-00 evidence did not justify speculative synchronous Core checkpoints, so the existing measured
+loader boundary remains the cancellation point. M3-05 is next.
+
 Deliver:
 
 - Map Diagnostic v1 to LSP diagnostics with exact ranges, related information, URLs, and fingerprint
@@ -496,6 +503,6 @@ Additional release gates:
 
 ## 12. Immediate next step
 
-M3-03 is complete. Start M3-04: project Diagnostic v1 into exact LSP ranges and metadata, publish
-only the latest accepted document versions, clear removed-document diagnostics, and prove
-invalid-to-valid recovery plus cancellation without stale Session commits or publications.
+M3-04 is complete. Start M3-05: implement definition, references, document symbols, and workspace
+symbols exclusively from the Core editor source index and Query API, preserving occurrence roles,
+exact ranges, deterministic ordering, and current-snapshot gating.
