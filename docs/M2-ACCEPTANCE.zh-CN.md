@@ -103,9 +103,8 @@ vp run verify-release --phase packed --tag next --output "$release_output"
 完整候选源码还必须在已提交的隔离 clean worktree 中通过 `vp run verify` 与 packed verification，并在完成后
 保持 `git status --porcelain --untracked-files=all` 为空。
 
-上述四项本地门禁均已通过。package dry-run 与 packed manifest 使用当前同步的 `0.4.0` package 版本；
-已检查的 Changeset 计划会在获得授权的 version/release workflow 中对五个 package 执行一次统一 minor
-升级，从而生成 `0.5.0`。
+上述四项本地门禁均已针对同步的 `0.5.0` package manifest 通过。package dry-run 与 packed consumer
+smoke 使用精确的发布版本 tarball 和 `next` dist-tag，但没有执行发布。
 
 ## 7. 仍需执行的操作性收尾
 
