@@ -1,5 +1,29 @@
 # @tokenc/core
 
+## 0.5.0
+
+### Minor Changes
+
+- eb7e068: Add immutable Snapshot Diff v1 comparison for one explicit Context, including deterministic token
+  facts, advisory rename candidates, dual-Graph impact, optional Backend plan comparison, incomplete
+  coverage handling, deterministic JSON serialization, and an exported JSON Schema.
+- eb7e068: Add immutable Impact Report v1 construction and deterministic serialization, including
+  source-owned Token facts, optional base-Snapshot impact, Context Predicate coverage, and a public
+  JSON Schema. Add `tokenc impact <source...> --context name=value --format text|json` with explicit
+  empty/unknown source results and fail-closed exit behavior.
+- eb7e068: Add immutable, lazy Resolver permutation planning with exact Context filters and mandatory bounds,
+  ordered Session compilation, Snapshot Diff v1 comparison, and whole-batch Backend preflight before
+  optional emission.
+- eb7e068: Add Breaking-change Policy v1 with documented severity defaults, Context-scoped rules, auditable
+  stable-change allow entries, fail-closed validation, deterministic Diagnostic findings, and a public
+  JSON Schema. Add `tokenc diff --policy <path>` with shared text/JSON finding identity and exit codes
+  for pass, policy failure, and incomplete decisions.
+
+### Patch Changes
+
+- eb7e068: Complete the coordinated M2 release-candidate hardening with independent differential proof,
+  semantic-work performance budgets, locked declarations and schemas, and packed-consumer validation.
+
 ## 0.4.0
 
 ### Minor Changes

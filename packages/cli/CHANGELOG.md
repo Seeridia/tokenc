@@ -1,5 +1,40 @@
 # @tokenc/cli
 
+## 0.5.0
+
+### Minor Changes
+
+- eb7e068: Add immutable Impact Report v1 construction and deterministic serialization, including
+  source-owned Token facts, optional base-Snapshot impact, Context Predicate coverage, and a public
+  JSON Schema. Add `tokenc impact <source...> --context name=value --format text|json` with explicit
+  empty/unknown source results and fail-closed exit behavior.
+- eb7e068: Add the read-only Git revision/worktree provider and `tokenc diff --base <ref>
+  [--head <ref|worktree>] --format text|json`. Diff compilation uses one explicitly trusted current
+  configuration, preserves staged, unstaged, untracked, added, renamed, and deleted source state, and
+  fails closed without mutating checkout, branch, index, or repository configuration.
+- eb7e068: Add Breaking-change Policy v1 with documented severity defaults, Context-scoped rules, auditable
+  stable-change allow entries, fail-closed validation, deterministic Diagnostic findings, and a public
+  JSON Schema. Add `tokenc diff --policy <path>` with shared text/JSON finding identity and exit codes
+  for pass, policy failure, and incomplete decisions.
+- eb7e068: Add the immutable Report v1 model and public JSON Schema, and render `tokenc check` and `tokenc
+  diff` as text, JSON, or SARIF 2.1.0 from the same normalized diagnostics. SARIF includes rule
+  metadata, relative artifact URIs, regions, related locations, validated fixes, policy suppressions,
+  and Diagnostic fingerprints.
+
+### Patch Changes
+
+- eb7e068: Complete the coordinated M2 release-candidate hardening with independent differential proof,
+  semantic-work performance budgets, locked declarations and schemas, and packed-consumer validation.
+- Updated dependencies [eb7e068]
+- Updated dependencies [eb7e068]
+- Updated dependencies [eb7e068]
+- Updated dependencies [eb7e068]
+- Updated dependencies [eb7e068]
+  - @tokenc/core@0.5.0
+  - @tokenc/backend-css@0.5.0
+  - @tokenc/backend-tailwind@0.5.0
+  - @tokenc/backend-typescript@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes
