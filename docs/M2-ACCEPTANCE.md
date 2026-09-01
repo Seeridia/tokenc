@@ -111,9 +111,9 @@ vp run verify-release --phase packed --tag next --output "$release_output"
 The complete candidate must also pass `vp run verify` and packed verification from a committed,
 isolated clean worktree, leaving `git status --porcelain --untracked-files=all` empty.
 
-All four local gates passed. The package dry-run and packed manifests use the current synchronized
-`0.4.0` package versions; the checked Changeset plan applies one coordinated minor bump to all five
-packages, producing `0.5.0` during the authorized version/release workflow.
+All four local gates passed against the synchronized `0.5.0` package manifests. The package dry-run
+and packed consumer smoke used the exact release-version tarballs and the `next` dist-tag without
+publishing them.
 
 ## 7. Operational closure still required
 

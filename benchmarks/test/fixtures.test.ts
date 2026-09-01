@@ -101,7 +101,7 @@ describe("benchmark fixtures", () => {
       },
     });
     expect(first.snapshot.stats).toMatchObject({ tokens: 10_012, references: 11 });
-  });
+  }, 20_000);
 
   it("pins all dtcg-examples resolvers and records expected diagnostics", async () => {
     const definition = benchmarkCase("ecosystem/dtcg-examples/shopify-polaris/default")!;

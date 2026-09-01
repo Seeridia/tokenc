@@ -1,5 +1,18 @@
 # @tokenc/backend-typescript
 
+## 0.5.0
+
+### Patch Changes
+
+- eb7e068: Complete the coordinated M2 release-candidate hardening with independent differential proof,
+  semantic-work performance budgets, locked declarations and schemas, and packed-consumer validation.
+- Updated dependencies [eb7e068]
+- Updated dependencies [eb7e068]
+- Updated dependencies [eb7e068]
+- Updated dependencies [eb7e068]
+- Updated dependencies [eb7e068]
+  - @tokenc/core@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes

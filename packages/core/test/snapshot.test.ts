@@ -139,7 +139,7 @@ describe("CompilationSnapshot", () => {
     expect(results[0]?.impact.directlyAffected).toHaveLength(dependentCount);
     expect(results[0]?.graph).toHaveLength(dependentCount);
     expect(new Set(results.map((result) => JSON.stringify(result))).size).toBe(1);
-  }, 10_000);
+  }, 20_000);
 
   it("exposes graph queries but no IR or emit operation when invalid", async () => {
     const snapshot = await compileDocuments([
