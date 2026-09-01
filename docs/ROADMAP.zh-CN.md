@@ -417,6 +417,10 @@ annotated-tag 验证；详见
 
 **目标：** 把编译器事实源带入编辑循环。
 
+**状态（2026-09-01）：执行计划已接受；下一步为 M3-00。** 本里程碑目标版本线为 `0.6.0`，交付公开
+`@tokenc/language-server` 与薄、可安装的 VS Code client。契约、workspace、trust、cancellation、功能、
+benchmark 与发布顺序已在 [M3 执行计划](M3-PLAN.zh-CN.md)中固定。
+
 交付物：
 
 - `@tokenc/language-server`。

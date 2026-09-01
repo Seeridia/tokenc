@@ -351,6 +351,11 @@ Exit criteria:
 
 **Goal:** bring the shared compiler source of truth into the edit loop.
 
+**Status (2026-09-01): execution plan accepted; M3-00 is next.** The milestone targets the `0.6.0`
+release line, a public `@tokenc/language-server`, and a thin installable VS Code client. Contract,
+workspace, trust, cancellation, feature, benchmark, and release sequencing are fixed in the
+[M3 execution plan](M3-PLAN.md).
+
 Deliverables:
 
 - `@tokenc/language-server` and a thin VS Code extension.
