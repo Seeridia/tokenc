@@ -2,8 +2,8 @@
 
 [English](M3-PLAN.md)
 
-> 状态：规划已敲定，可以开始执行。M2 已关闭，五个同步版本的 `0.5.0` package 已通过 `next`
-> dist-tag 发布。更新时间：2026-09-01。
+> 状态：推进中。M3-00 至 M3-03 已完成，下一步为 M3-04。M2 已关闭，五个同步版本的 `0.5.0`
+> package 已通过 `next` dist-tag 发布。更新时间：2026-09-02。
 >
 > 目标版本线：`0.6.0`。M3 新增公开 package `@tokenc/language-server`。薄 VS Code client 以可安装
 > VSIX 完成验证；发布到 Marketplace 不属于 M3 退出门槛。
@@ -275,6 +275,11 @@ invalid、ambiguous 与 Backend collision 路径全部 fail closed。下一步�
 
 #### M3-03 — Server package 与 workspace lifecycle（P0）
 
+状态：已完成。公开 package 已固定 LSP 3.17 实现版本，提供 stdio binary 与 library factory，并为每个
+可信 workspace 保持一个 latest-wins `CompilerSession`。配置执行 fail closed，multi-root 状态隔离，打开的
+buffer 覆盖磁盘内容，watched change 保守路由，且 process-level initialize/open/shutdown 证据通过。下一步
+为 M3-04。
+
 交付：
 
 - 创建 `@tokenc/language-server`，使用固定版本的 LSP dependency，提供 stdio binary 与 library factory。
@@ -458,6 +463,6 @@ M3-00 RFC/baseline → M3-01 source index ──────┬→ M3-02 rename 
 
 ## 12. 立即执行的下一步
 
-M3-02 已完成。启动 M3-03：创建公开 language-server package，实现 trusted multi-root workspace
-lifecycle 与 open-buffer precedence，并保持 latest-work revision ordering。Protocol handler 必须消费已接受
-的 Core source-index 与 rename-plan contract，不得自行解析 Token 语义。
+M3-03 已完成。启动 M3-04：把 Diagnostic v1 投影为带精确 range 与 metadata 的 LSP diagnostics，只发布
+最新接受的 document version，清除已移除文档的 diagnostics，并证明 invalid-to-valid recovery 与
+cancellation 不会造成陈旧 Session commit 或 publication。

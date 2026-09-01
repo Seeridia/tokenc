@@ -57,7 +57,8 @@ export interface CliIO {
   readonly stderr: (message: string) => void;
 }
 
-async function sessionConfiguration(
+/** Translate a host-loaded tokenc config into the semantic configuration owned by Core. */
+export async function createSessionConfiguration(
   config: CompilerConfig,
   loader: DocumentLoader,
   signal?: AbortSignal,
@@ -167,16 +168,28 @@ function isConfig(value: unknown): value is CompilerConfig {
   );
 }
 
-interface LoadedConfig extends ConfigFileSnapshot {
+export interface LoadedConfigFile extends ConfigFileSnapshot {
   readonly config: CompilerConfig;
 }
 
-async function loadConfigFile(cwd: string, explicit?: string): Promise<LoadedConfig> {
+/** Discover and import one trusted executable tokenc configuration. */
+export async function loadConfigFile(cwd: string, explicit?: string): Promise<LoadedConfigFile> {
   const path = await findConfig(cwd, explicit);
   // Read before importing so an edit racing with the import remains detectable on the next event.
   const source = await readFile(path, "utf8");
-  const jiti = createJiti(pathToFileURL(path).href, { interopDefault: true, moduleCache: false });
-  const loaded: unknown = await jiti.import(path, { default: true });
+  const jiti = createJiti(pathToFileURL(path).href, {
+    fsCache: false,
+    interopDefault: true,
+    moduleCache: false,
+    tryNative: false,
+  });
+  const module: unknown = await jiti.evalModule(source, {
+    async: true,
+    filename: path,
+    forceTranspile: true,
+  });
+  const loaded =
+    typeof module === "object" && module !== null && "default" in module ? module.default : module;
   if (!isConfig(loaded)) throw new Error(`Invalid tokenc config: ${path}`);
   return { config: { ...loaded, cwd: dirname(path) }, path, source };
 }
@@ -321,7 +334,7 @@ async function loadAndCompile(
   const loader = new FileSystemDocumentLoader(config.cwd ?? io.cwd);
   const [sources, semanticConfig] = await Promise.all([
     loadTokenFiles(config.source, config.cwd),
-    sessionConfiguration(config, loader),
+    createSessionConfiguration(config, loader),
   ]);
   const session = createCompilerSession({ loader, config: semanticConfig });
   try {
@@ -692,7 +705,7 @@ async function compileGitView(
   const loader = scopedGitDocumentLoader(view, directory);
   const [sources, semanticConfig] = await Promise.all([
     view.sources(provider.patterns(root, config.source)),
-    sessionConfiguration(config, loader),
+    createSessionConfiguration(config, loader),
   ]);
   const session = createCompilerSession({ loader, config: semanticConfig });
   try {
@@ -900,7 +913,7 @@ async function devCommand(parsed: ParsedArguments, io: CliIO): Promise<number> {
   const loader = new FileSystemDocumentLoader(config.cwd ?? io.cwd);
   const session = createCompilerSession({
     loader,
-    config: await sessionConfiguration(config, loader),
+    config: await createSessionConfiguration(config, loader),
   });
   let initial = await session.apply({
     documents: sources.map((source) => ({
@@ -956,7 +969,7 @@ async function devCommand(parsed: ParsedArguments, io: CliIO): Promise<number> {
         });
       }
       if (configChanged) {
-        const nextSemanticConfig = await sessionConfiguration(nextConfig, loader, signal);
+        const nextSemanticConfig = await createSessionConfiguration(nextConfig, loader, signal);
         const nextSnapshot = await session.apply(
           { documents: documentChanges, config: nextSemanticConfig },
           { signal },

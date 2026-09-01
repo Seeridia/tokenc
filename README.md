@@ -221,6 +221,7 @@ For virtual or remote inputs, use `parseTokenDocument(content, source)` and
 | ---------------------------------------------------------------------------------------- | ---------------------------------------------------- |
 | [`@tokenc/core`](https://www.npmjs.com/package/@tokenc/core)                             | Parser, types, graph, resolver, checker, and IR.     |
 | [`@tokenc/cli`](https://www.npmjs.com/package/@tokenc/cli)                               | Build, check, watch, diagnostics, and graph queries. |
+| [`@tokenc/language-server`](https://www.npmjs.com/package/@tokenc/language-server)       | Trusted multi-root LSP host for editor integrations. |
 | [`@tokenc/backend-css`](https://www.npmjs.com/package/@tokenc/backend-css)               | CSS Custom Properties and context selectors.         |
 | [`@tokenc/backend-tailwind`](https://www.npmjs.com/package/@tokenc/backend-tailwind)     | Tailwind CSS v4 `@theme` variables.                  |
 | [`@tokenc/backend-typescript`](https://www.npmjs.com/package/@tokenc/backend-typescript) | Object and flat TypeScript exports.                  |

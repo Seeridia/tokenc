@@ -329,7 +329,8 @@ non-standard function syntax.
   │    ↑
   │    └─ @tokenc/backend-tailwind
   ├─ @tokenc/backend-typescript
-  └─ @tokenc/cli → backends
+  ├─ @tokenc/cli → backends
+  └─ @tokenc/language-server → @tokenc/cli config host
 ```
 
 Core never imports the CLI or a backend. Backends depend only on public core IR. The CLI owns configuration loading, filesystem writes, terminal output, signals, and watch lifecycle.
@@ -340,4 +341,5 @@ All CLI compilation commands create a `CompilerSession` and consume its snapshot
 Session alive across token, configuration, and Resolver reloads. Its rebuild coordinator aborts
 superseded work, suppresses stale output, and remains live after invalid input or configuration.
 Architecture tests reject deep or relative imports from Core internals in the CLI and bundled
-backends.
+backends. The language server owns protocol, trust, URI, overlay, and workspace scheduling only; it
+uses the CLI's trusted configuration host and Core's public Session/Snapshot APIs.

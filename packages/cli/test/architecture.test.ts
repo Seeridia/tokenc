@@ -11,6 +11,7 @@ const consumerRoots = [
   "packages/backend-css/src",
   "packages/backend-tailwind/src",
   "packages/backend-typescript/src",
+  "packages/language-server/src",
 ].map((path) => resolve(workspace, path));
 
 async function sourceFiles(directory: string): Promise<readonly string[]> {
@@ -28,7 +29,7 @@ async function sourceFiles(directory: string): Promise<readonly string[]> {
 }
 
 describe("public consumer architecture", () => {
-  it("keeps the CLI and bundled backends on the @tokenc/core root API", async () => {
+  it("keeps public hosts and bundled backends on the @tokenc/core root API", async () => {
     const violations: string[] = [];
     const files = (await Promise.all(consumerRoots.map(sourceFiles))).flat();
     const sources = await Promise.all(
@@ -47,6 +48,15 @@ describe("public consumer architecture", () => {
       }
     }
     expect(violations).toEqual([]);
+  });
+
+  it("keeps the language server as a protocol adapter without semantic implementations", async () => {
+    const languageServerRoot = resolve(workspace, "packages/language-server/src");
+    const files = await sourceFiles(languageServerRoot);
+    const basenames = files.map((file) => file.slice(languageServerRoot.length + 1));
+    expect(basenames).not.toEqual(
+      expect.arrayContaining(["parser.ts", "graph.ts", "resolver.ts", "backend.ts"]),
+    );
   });
 
   it("keeps CLI compilation on CompilerSession instead of the one-shot compile facade", async () => {

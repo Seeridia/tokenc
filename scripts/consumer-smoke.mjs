@@ -10,6 +10,7 @@ const PUBLIC_PACKAGE_NAMES = Object.freeze([
   "@tokenc/backend-css",
   "@tokenc/backend-tailwind",
   "@tokenc/backend-typescript",
+  "@tokenc/language-server",
 ]);
 
 const EXPECTED_OUTPUTS = Object.freeze([
@@ -110,7 +111,9 @@ function normalizeInstallPlan(source, packages, version) {
   if (new Set(namedEntries).size !== namedEntries.length)
     throw new Error("packages contains duplicate public package names");
   if (source === "registry" && PUBLIC_PACKAGE_NAMES.some((name) => !namedEntries.includes(name)))
-    throw new Error("packages must contain all five public package names");
+    throw new Error(
+      `packages must contain all ${PUBLIC_PACKAGE_NAMES.length} public package names`,
+    );
   return specs;
 }
 
@@ -204,9 +207,12 @@ import { compileDocuments } from "@tokenc/core";
 import { css } from "@tokenc/backend-css";
 import { tailwind } from "@tokenc/backend-tailwind";
 import { typescript } from "@tokenc/backend-typescript";
+import { VERSION as languageServerVersion, fileUriToDocumentIdentity } from "@tokenc/language-server";
 
 const content = ${JSON.stringify(JSON.stringify(TOKEN_DOCUMENT))};
 const expected = ${JSON.stringify(EXPECTED_OUTPUTS)};
+assert.equal(typeof languageServerVersion, "string");
+assert.equal(fileUriToDocumentIdentity("untitled:tokens.json"), undefined);
 const snapshot = await compileDocuments([{ file: "tokens.json", content }]);
 assert.equal(snapshot.status, "valid", JSON.stringify(snapshot.diagnostics));
 const result = await snapshot.emit([
@@ -276,7 +282,7 @@ function verifyAuditSignatures(stdout, installed) {
 }
 
 /**
- * Exercise the five public packages exactly as an external npm consumer would.
+ * Exercise every public package exactly as an external npm consumer would.
  *
  * @param {{
  *   source: "packed" | "registry",

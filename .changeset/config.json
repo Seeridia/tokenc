@@ -8,7 +8,8 @@
       "@tokenc/cli",
       "@tokenc/backend-css",
       "@tokenc/backend-tailwind",
-      "@tokenc/backend-typescript"
+      "@tokenc/backend-typescript",
+      "@tokenc/language-server"
     ]
   ],
   "linked": [],

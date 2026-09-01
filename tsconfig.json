@@ -9,7 +9,8 @@
       "@tokenc/backend-tailwind": ["./packages/backend-tailwind/src/index.ts"],
       "@tokenc/backend-typescript": ["./packages/backend-typescript/src/index.ts"],
       "@tokenc/cli": ["./packages/cli/src/index.ts"],
-      "@tokenc/core": ["./packages/core/src/index.ts"]
+      "@tokenc/core": ["./packages/core/src/index.ts"],
+      "@tokenc/language-server": ["./packages/language-server/src/index.ts"]
     },
     "strict": true,
     "noUncheckedIndexedAccess": true,

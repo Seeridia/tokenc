@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@tokenc/cli": ["../cli/dist/index.d.ts"],
+      "@tokenc/core": ["../core/dist/index.d.ts"]
+    }
+  }
+}

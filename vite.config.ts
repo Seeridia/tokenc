@@ -16,6 +16,9 @@ export default defineConfig({
       ),
       "@tokenc/cli": fileURLToPath(new URL("./packages/cli/src/index.ts", import.meta.url)),
       "@tokenc/core": fileURLToPath(new URL("./packages/core/src/index.ts", import.meta.url)),
+      "@tokenc/language-server": fileURLToPath(
+        new URL("./packages/language-server/src/index.ts", import.meta.url),
+      ),
     },
   },
   fmt: {

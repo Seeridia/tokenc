@@ -8,6 +8,7 @@ export const PUBLIC_PACKAGES = Object.freeze(
     { directory: "packages/backend-tailwind", name: "@tokenc/backend-tailwind" },
     { directory: "packages/backend-typescript", name: "@tokenc/backend-typescript" },
     { directory: "packages/cli", name: "@tokenc/cli" },
+    { directory: "packages/language-server", name: "@tokenc/language-server" },
   ].map((definition) => Object.freeze(definition)),
 );
 

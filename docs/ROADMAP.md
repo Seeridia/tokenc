@@ -351,9 +351,10 @@ Exit criteria:
 
 **Goal:** bring the shared compiler source of truth into the edit loop.
 
-**Status (2026-09-02): M3-02 rename planner complete; M3-03 is next.** The public transport-neutral
-`EditorSymbolV1` and atomic `RenamePlanV1` contracts are accepted alongside RFC 0005, the protocol
-corpus, and the pre-LSP baseline. The milestone targets the `0.6.0` release line, a public
+**Status (2026-09-02): M3-03 server lifecycle complete; M3-04 is next.** The public transport-neutral
+`EditorSymbolV1` and atomic `RenamePlanV1` contracts now feed a pinned LSP 3.17 server package with
+fail-closed trust, multi-root isolation, overlays, watched-file routing, and latest-wins scheduling.
+The milestone targets the `0.6.0` release line, a public
 `@tokenc/language-server`, and a thin installable VS Code client. Contract, workspace, trust,
 cancellation, feature, benchmark, and release sequencing are fixed in the
 [M3 execution plan](M3-PLAN.md).

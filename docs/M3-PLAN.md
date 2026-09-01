@@ -2,8 +2,8 @@
 
 [简体中文](M3-PLAN.zh-CN.md)
 
-> Status: planned and ready to execute. M2 is closed with the synchronized `0.5.0` packages
-> published under the `next` dist-tag. Updated 2026-09-01.
+> Status: in progress. M3-00 through M3-03 are complete; M3-04 is next. M2 is closed with the
+> synchronized `0.5.0` packages published under the `next` dist-tag. Updated 2026-09-02.
 >
 > Intended release line: `0.6.0`. M3 adds the public `@tokenc/language-server` package. The thin VS
 > Code client is validated as an installable VSIX; marketplace publication is not an M3 exit gate.
@@ -299,6 +299,11 @@ Acceptance:
 
 #### M3-03 — Server package and workspace lifecycle (P0)
 
+Status: complete. The public package now pins the LSP 3.17 implementation, exposes a stdio binary
+and library factory, and keeps one latest-wins `CompilerSession` per trusted workspace. Config
+execution fails closed, multi-root state is isolated, open buffers shadow disk, watched changes are
+routed conservatively, and process-level initialize/open/shutdown evidence passes. M3-04 is next.
+
 Deliver:
 
 - Create `@tokenc/language-server` with pinned LSP dependencies, stdio binary, and library factory.
@@ -491,7 +496,6 @@ Additional release gates:
 
 ## 12. Immediate next step
 
-M3-02 is complete. Start M3-03: scaffold the public language-server package, implement trusted
-multi-root workspace lifecycle and open-buffer precedence, and preserve latest-work revision
-ordering. Protocol handlers must consume the accepted Core source-index and rename-plan contracts;
-they must not parse token semantics independently.
+M3-03 is complete. Start M3-04: project Diagnostic v1 into exact LSP ranges and metadata, publish
+only the latest accepted document versions, clear removed-document diagnostics, and prove
+invalid-to-valid recovery plus cancellation without stale Session commits or publications.

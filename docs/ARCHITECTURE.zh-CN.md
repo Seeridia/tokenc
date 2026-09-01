@@ -412,7 +412,8 @@ v0.1 不会为了提前支持这个能力而创造非标准 Function Syntax。
   │    ↑
   │    └─ @tokenc/backend-tailwind
   ├─ @tokenc/backend-typescript
-  └─ @tokenc/cli → backends
+  ├─ @tokenc/cli → backends
+  └─ @tokenc/language-server → @tokenc/cli 配置宿主
 ```
 
 Core 不会导入 CLI 或 Backend。Backend 只依赖公开的 Core IR。CLI 负责配置加载、文件写入、终端输出、进程信号和 watcher 生命周期。
@@ -423,6 +424,8 @@ Backend 或 Compilation 状态。
 之间保持同一个 Session；rebuild coordinator 会取消已被新事件取代的任务、阻止陈旧输出，并在无效输入
 或无效配置之后继续等待恢复。Architecture test 会拒绝 CLI 与内置 Backend 对 Core internal module 的
 deep import 或相对路径 import。
+Language Server 只负责 protocol、trust、URI、overlay 与 workspace scheduling；配置加载复用 CLI
+的可信宿主，语义状态只通过 Core 的公开 Session/Snapshot API 获取。
 
 ## 关键原则
 
