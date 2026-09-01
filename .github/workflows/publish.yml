@@ -96,7 +96,10 @@ jobs:
           --manifest "$RELEASE_OUTPUT/release-manifest.json"
 
       - name: Create release tags
-        run: vp exec changeset git-tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          vp exec changeset git-tag
 
       - name: Verify local release tags
         run: >-
