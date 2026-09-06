@@ -48,7 +48,7 @@
     "@tokenc/core": "workspace:*",
     "micromatch": "4.0.8",
     "vscode-languageserver": "9.0.1",
-    "vscode-languageserver-textdocument": "1.0.11"
+    "vscode-languageserver-textdocument": "1.0.14"
   },
   "devDependencies": {
     "@types/micromatch": "4.0.10",

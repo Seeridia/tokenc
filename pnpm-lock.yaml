@@ -218,8 +218,8 @@ importers:
         specifier: 9.0.1
         version: 9.0.1
       vscode-languageserver-textdocument:
-        specifier: 1.0.11
-        version: 1.0.11
+        specifier: 1.0.14
+        version: 1.0.14
     devDependencies:
       '@types/micromatch':
         specifier: 4.0.10
@@ -2896,9 +2896,6 @@ packages:
   vscode-languageserver-protocol@3.18.3:
     resolution: {integrity: sha512-DF49+WeV5py4zO5hhobp60jjsDSK0lAqA0OuKBLBvp423HPWQcCbhZz3JgyfIewsEz2f8U+X75xNIFHdiXZm2w==}
 
-  vscode-languageserver-textdocument@1.0.11:
-    resolution: {integrity: sha512-X+8T3GoiwTVlJbicx/sIAF+yuJAqz8VvwJyoMVhwEMoEKE/fkDmrqUgDMyBECcM2A2frVZIUj5HI/ErRXCfOeA==}
-
   vscode-languageserver-textdocument@1.0.14:
     resolution: {integrity: sha512-EQyqJMi552E4ZTf46izQ4Fj6XquqxCySR3J5ZSD1SisMf6RfpeOWHxGBE8Gr6V0/3GHIGdAzDn8F8+1nTGCnoQ==}
 
@@ -5399,8 +5396,6 @@ snapshots:
     dependencies:
       vscode-jsonrpc: 9.0.2
       vscode-languageserver-types: 3.18.3
-
-  vscode-languageserver-textdocument@1.0.11: {}
 
   vscode-languageserver-textdocument@1.0.14: {}
 
