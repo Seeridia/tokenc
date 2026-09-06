@@ -20,9 +20,9 @@
     "@tokenc/backend-typescript": "workspace:*",
     "@tokenc/core": "workspace:*",
     "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.5",
+    "@types/react-dom": "19.2.7",
     "@vitejs/plugin-react": "6.1.1",
-    "tsx": "^4.23.12",
+    "tsx": "^4.23.13",
     "typescript": "^7.0.2",
     "vite": "catalog:"
   }

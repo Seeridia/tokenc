@@ -10,6 +10,6 @@
   "devDependencies": {
     "@tokenc/backend-css": "workspace:*",
     "@tokenc/core": "workspace:*",
-    "tsx": "^4.23.12"
+    "tsx": "^4.23.13"
   }
 }
