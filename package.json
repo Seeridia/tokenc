@@ -36,10 +36,10 @@
     "version-packages": "changeset version && vp run check:versions"
   },
   "devDependencies": {
-    "@changesets/cli": "^3.0.0",
+    "@changesets/cli": "^3.0.2",
     "@types/node": "^24.0.0",
     "dtcg-examples": "1.1.3",
-    "tsx": "^4.23.12",
+    "tsx": "^4.23.13",
     "typescript": "^7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:",
