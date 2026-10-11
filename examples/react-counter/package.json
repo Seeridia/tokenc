@@ -21,8 +21,8 @@
     "@tokenc/core": "workspace:*",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
-    "@vitejs/plugin-react": "6.1.1",
-    "tsx": "^4.23.12",
+    "@vitejs/plugin-react": "6.1.2",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "catalog:"
   }
