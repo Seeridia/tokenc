@@ -12,14 +12,14 @@
     "tokens:watch": "vp exec tsx ../../packages/cli/src/bin.ts dev"
   },
   "dependencies": {
-    "react": "19.2.8",
+    "react": "19.3.1",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@tokenc/backend-css": "workspace:*",
     "@tokenc/backend-typescript": "workspace:*",
     "@tokenc/core": "workspace:*",
-    "@types/react": "19.2.18",
+    "@types/react": "19.3.0",
     "@types/react-dom": "19.2.5",
     "@vitejs/plugin-react": "6.1.1",
     "tsx": "^4.23.12",
