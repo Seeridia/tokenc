@@ -13,14 +13,14 @@
   },
   "dependencies": {
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
     "@tokenc/backend-css": "workspace:*",
     "@tokenc/backend-typescript": "workspace:*",
     "@tokenc/core": "workspace:*",
     "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.5",
+    "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.1",
     "tsx": "^4.23.12",
     "typescript": "^7.0.2",
